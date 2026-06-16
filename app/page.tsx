@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { supabase, TENANT_ID, type MenuItemRow } from "@/lib/supabase";
 
@@ -13,8 +12,54 @@ const CATEGORIES = [
 
 type CategoryFilter = (typeof CATEGORIES)[number] | "all";
 
+type CartItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+};
+
 function formatPrice(price: number) {
   return `${price} ₴`;
+}
+
+function triggerHaptic() {
+  window.Telegram?.WebApp.HapticFeedback.impactOccurred("light");
+}
+
+function getCartTotal(cart: CartItem[]) {
+  return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+function ImagePlaceholder() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-zinc-800 via-[#141a16] to-[#0a120e] px-4 text-center">
+      <span className="text-3xl" aria-hidden>
+        🍽
+      </span>
+      <span className="text-xs font-medium uppercase tracking-[0.18em] text-amber-400/70">
+        Аж у небі
+      </span>
+    </div>
+  );
+}
+
+function DishImage({ src, alt }: { src: string; alt: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return <ImagePlaceholder />;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+      onError={() => setHasError(true)}
+    />
+  );
 }
 
 function SkeletonCard() {
@@ -33,30 +78,76 @@ function SkeletonCard() {
   );
 }
 
+function CartControls({
+  quantity,
+  onAdd,
+  onIncrement,
+  onDecrement,
+}: {
+  quantity: number;
+  onAdd: () => void;
+  onIncrement: () => void;
+  onDecrement: () => void;
+}) {
+  if (quantity === 0) {
+    return (
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-1 w-full rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-[#0a120e] transition active:scale-[0.98] hover:bg-amber-300"
+      >
+        Додати
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex items-center justify-between rounded-xl border border-amber-400/30 bg-amber-400/10 p-1">
+      <button
+        type="button"
+        onClick={onDecrement}
+        aria-label="Зменшити кількість"
+        className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0a120e]/40 text-lg font-semibold text-amber-300 transition active:scale-95 hover:bg-[#0a120e]/60"
+      >
+        −
+      </button>
+      <span className="min-w-8 text-center text-sm font-semibold text-white">
+        {quantity}
+      </span>
+      <button
+        type="button"
+        onClick={onIncrement}
+        aria-label="Збільшити кількість"
+        className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-400 text-lg font-semibold text-[#0a120e] transition active:scale-95 hover:bg-amber-300"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 function DishCard({
   item,
+  quantity,
   onAdd,
+  onIncrement,
+  onDecrement,
 }: {
   item: MenuItemRow;
-  onAdd: (item: MenuItemRow) => void;
+  quantity: number;
+  onAdd: () => void;
+  onIncrement: () => void;
+  onDecrement: () => void;
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-lg shadow-black/20 transition hover:border-amber-400/30 hover:bg-white/[0.06]">
       <div className="relative aspect-[4/3] overflow-hidden bg-white/5">
         {item.image_url ? (
-          <Image
-            src={item.image_url}
-            alt={item.name}
-            fill
-            sizes="(max-width: 640px) 100vw, 50vw"
-            className="object-cover transition duration-500 group-hover:scale-105"
-          />
+          <DishImage src={item.image_url} alt={item.name} />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-950/80 to-[#0a120e] text-4xl">
-            🍽
-          </div>
+          <ImagePlaceholder />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a120e] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a120e] via-transparent to-transparent pointer-events-none" />
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -77,13 +168,12 @@ function DishCard({
           <div className="flex-1" />
         )}
 
-        <button
-          type="button"
-          onClick={() => onAdd(item)}
-          className="mt-1 w-full rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-[#0a120e] transition active:scale-[0.98] hover:bg-amber-300"
-        >
-          Додати
-        </button>
+        <CartControls
+          quantity={quantity}
+          onAdd={onAdd}
+          onIncrement={onIncrement}
+          onDecrement={onDecrement}
+        />
       </div>
     </article>
   );
@@ -91,8 +181,18 @@ function DishCard({
 
 export default function Home() {
   const [items, setItems] = useState<MenuItemRow[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
+
+  const cartTotal = useMemo(() => getCartTotal(cart), [cart]);
+
+  const cartQuantities = useMemo(() => {
+    return cart.reduce<Record<string, number>>((acc, item) => {
+      acc[item.id] = item.quantity;
+      return acc;
+    }, {});
+  }, [cart]);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -121,6 +221,48 @@ export default function Home() {
     fetchMenuItems();
   }, []);
 
+  useEffect(() => {
+    const webApp = window.Telegram?.WebApp;
+    if (!webApp) {
+      return;
+    }
+
+    if (cartTotal > 0) {
+      webApp.MainButton.setParams({
+        text: `ОФОРМИТИ ЗАМОВЛЕННЯ • ${cartTotal} ₴`,
+        color: "#fbbf24",
+        text_color: "#0a120e",
+        is_active: true,
+        is_visible: true,
+      });
+      webApp.MainButton.show();
+    } else {
+      webApp.MainButton.hide();
+    }
+  }, [cartTotal]);
+
+  useEffect(() => {
+    const webApp = window.Telegram?.WebApp;
+    if (!webApp) {
+      return;
+    }
+
+    const handleMainButtonClick = () => {
+      const _user = webApp.initDataUnsafe?.user;
+      const total = getCartTotal(cart);
+
+      alert(
+        `Дані готові! Сума: ${total} ₴. Кошик: ${JSON.stringify(cart)}`
+      );
+    };
+
+    webApp.onEvent("mainButtonClicked", handleMainButtonClick);
+
+    return () => {
+      webApp.offEvent("mainButtonClicked", handleMainButtonClick);
+    };
+  }, [cart]);
+
   const filteredItems = useMemo(() => {
     if (activeCategory === "all") {
       return items;
@@ -129,8 +271,63 @@ export default function Home() {
     return items.filter((item) => item.category === activeCategory);
   }, [items, activeCategory]);
 
-  function handleAdd(item: MenuItemRow) {
-    window.Telegram?.WebApp.HapticFeedback.impactOccurred("light");
+  function addToCart(item: MenuItemRow) {
+    triggerHaptic();
+
+    setCart((prev) => {
+      const existing = prev.find((cartItem) => cartItem.id === item.id);
+
+      if (existing) {
+        return prev.map((cartItem) =>
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            : cartItem
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: 1,
+        },
+      ];
+    });
+  }
+
+  function incrementItem(itemId: string) {
+    triggerHaptic();
+
+    setCart((prev) =>
+      prev.map((cartItem) =>
+        cartItem.id === itemId
+          ? { ...cartItem, quantity: cartItem.quantity + 1 }
+          : cartItem
+      )
+    );
+  }
+
+  function decrementItem(itemId: string) {
+    triggerHaptic();
+
+    setCart((prev) => {
+      const target = prev.find((cartItem) => cartItem.id === itemId);
+      if (!target) {
+        return prev;
+      }
+
+      if (target.quantity <= 1) {
+        return prev.filter((cartItem) => cartItem.id !== itemId);
+      }
+
+      return prev.map((cartItem) =>
+        cartItem.id === itemId
+          ? { ...cartItem, quantity: cartItem.quantity - 1 }
+          : cartItem
+      );
+    });
   }
 
   const sectionTitle =
@@ -194,7 +391,9 @@ export default function Home() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-3xl px-4 py-5 pb-10">
+      <main
+        className={`mx-auto max-w-3xl px-4 py-5 ${cartTotal > 0 ? "pb-28" : "pb-10"}`}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-medium text-white">{sectionTitle}</h2>
           {!loading && (
@@ -213,12 +412,21 @@ export default function Home() {
         ) : filteredItems.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {filteredItems.map((item) => (
-              <DishCard key={item.id} item={item} onAdd={handleAdd} />
+              <DishCard
+                key={item.id}
+                item={item}
+                quantity={cartQuantities[item.id] ?? 0}
+                onAdd={() => addToCart(item)}
+                onIncrement={() => incrementItem(item.id)}
+                onDecrement={() => decrementItem(item.id)}
+              />
             ))}
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-12 text-center">
-            <p className="text-base text-white/70">У цій категорії поки немає страв</p>
+            <p className="text-base text-white/70">
+              У цій категорії поки немає страв
+            </p>
             <p className="mt-2 text-sm text-white/40">
               Спробуйте обрати іншу категорію
             </p>
