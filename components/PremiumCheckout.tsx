@@ -2,7 +2,7 @@
 
 import { formatPrice } from "@/components/ImagePlaceholder";
 import type { CartItem } from "@/lib/cart";
-import { formatOrderDateTime, minScheduledDateTimeLocal } from "@/lib/orderStatus";
+import { formatOrderDateTime, minScheduledDateTimeLocal, validateScheduledDateTimeLocal, dateTimeLocalToIso } from "@/lib/orderStatus";
 import { useState } from "react";
 
 export type PaymentMethod = "cash" | "card";
@@ -76,6 +76,19 @@ export default function PremiumCheckout({
       if (isScheduledOrder && !scheduledFor) {
         window.Telegram?.WebApp.showAlert("Оберіть час подачі замовлення.");
         return;
+      }
+
+      if (isScheduledOrder && scheduledFor) {
+        try {
+          validateScheduledDateTimeLocal(scheduledFor);
+        } catch (error) {
+          window.Telegram?.WebApp.showAlert(
+            error instanceof Error
+              ? error.message
+              : "Невірний час подачі замовлення."
+          );
+          return;
+        }
       }
 
       setStep("confirm");
@@ -305,7 +318,7 @@ export default function PremiumCheckout({
                     Час подачі
                   </p>
                   <p className="mt-1 text-sm text-white">
-                    {formatOrderDateTime(new Date(scheduledFor).toISOString())}
+                    {formatOrderDateTime(dateTimeLocalToIso(scheduledFor))}
                   </p>
                 </div>
               ) : null}

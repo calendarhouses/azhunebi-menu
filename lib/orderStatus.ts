@@ -88,8 +88,48 @@ export function getStatusChangeMessage(
   return labels[next] || "Статус оновлено";
 }
 
+const SCHEDULED_MIN_LEAD_MS = 60 * 60 * 1000;
+const SCHEDULED_PICKER_BUFFER_MS = 5 * 60 * 1000;
+
+function pad2(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+export function formatDateTimeLocalValue(date: Date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
 export function minScheduledDateTimeLocal() {
-  const date = new Date(Date.now() + 60 * 60 * 1000);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
+  return formatDateTimeLocalValue(
+    new Date(Date.now() + SCHEDULED_MIN_LEAD_MS + SCHEDULED_PICKER_BUFFER_MS)
+  );
+}
+
+export function dateTimeLocalToIso(localValue: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(localValue.trim());
+
+  if (!match) {
+    throw new Error("Невірний формат часу подачі");
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const date = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Невірний час подачі");
+  }
+
+  if (date.getTime() < Date.now() + SCHEDULED_MIN_LEAD_MS) {
+    throw new Error("Час подачі має бути щонайменше через 1 годину від зараз");
+  }
+
+  return date.toISOString();
+}
+
+export function validateScheduledDateTimeLocal(localValue: string) {
+  dateTimeLocalToIso(localValue);
 }

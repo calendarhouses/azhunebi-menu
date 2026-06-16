@@ -19,6 +19,8 @@ import {
 import { rememberOrderId } from "@/lib/orderStorage";
 import {
   getStatusChangeMessage,
+  dateTimeLocalToIso,
+  minScheduledDateTimeLocal,
   type OrderStatus,
   type TrackedOrder,
 } from "@/lib/orderStatus";
@@ -306,15 +308,30 @@ export default function Home() {
       return;
     }
 
+    let scheduledPayload: string | undefined;
+
+    if (isScheduledOrderRef.current) {
+      if (!scheduledForRef.current.trim()) {
+        webApp.showAlert("Оберіть час подачі замовлення.");
+        return;
+      }
+
+      try {
+        scheduledPayload = dateTimeLocalToIso(scheduledForRef.current);
+      } catch (error) {
+        webApp.showAlert(
+          error instanceof Error
+            ? error.message
+            : "Невірний час подачі замовлення."
+        );
+        return;
+      }
+    }
+
     isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
-      const scheduledPayload =
-        isScheduledOrderRef.current && scheduledForRef.current
-          ? new Date(scheduledForRef.current).toISOString()
-          : undefined;
-
       const result = await createOrderRequest({
         initData: webApp.initData,
         cart: currentCart.map((item) => ({
@@ -344,9 +361,14 @@ export default function Home() {
         openPanel: true,
         focusOrderId: result.orderId as string,
       });
-    } catch {
+    } catch (error) {
       triggerError();
-      webApp.showAlert("Не вдалося відправити замовлення. Спробуйте ще раз.");
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Не вдалося відправити замовлення. Спробуйте ще раз.";
+      console.error("[submitOrder] order submission failed", error);
+      webApp.showAlert(message);
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -589,7 +611,12 @@ export default function Home() {
         onCommentChange={setComment}
         onLocationNoteChange={setLocationNote}
         onPaymentMethodChange={setPaymentMethod}
-        onIsScheduledOrderChange={setIsScheduledOrder}
+        onIsScheduledOrderChange={(value) => {
+          setIsScheduledOrder(value);
+          if (value && !scheduledFor) {
+            setScheduledFor(minScheduledDateTimeLocal());
+          }
+        }}
         onScheduledForChange={setScheduledFor}
         onIncrement={incrementItem}
         onDecrement={decrementItem}
