@@ -22,10 +22,7 @@ async function orderRequest<T>(
 
   const response = await fetch(`${BOT_API_URL}?action=${action}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Azhunebi-Action": action,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ initData, action, ...payload }),
   });
 
@@ -84,22 +81,7 @@ export async function createOrderRequest(payload: {
   paymentMethod: string;
   scheduledFor?: string;
 }) {
-  const response = await fetch(`${BOT_API_URL}?action=create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Azhunebi-Action": "create",
-    },
-    body: JSON.stringify({ ...payload, action: "create" }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok || !result.ok) {
-    throw new Error(result.error || "Order request failed");
-  }
-
-  return result as CreateOrderResponse;
+  return orderRequest<CreateOrderResponse>("create", payload);
 }
 
 export async function checkBotApiVersion() {
