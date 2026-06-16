@@ -1,14 +1,15 @@
 function MenuSkeletonItem() {
   return (
-    <div className="flex gap-4 rounded-2xl border border-zinc-800/50 bg-zinc-900 p-4">
+    <div className="flex gap-3 rounded-[20px] border border-stone-700/35 bg-brand-surface p-3.5">
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="space-y-2">
-          <div className="h-5 w-3/4 animate-pulse rounded-lg bg-zinc-800" />
-          <div className="h-4 w-1/2 animate-pulse rounded-lg bg-zinc-800" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="h-5 w-3/5 animate-pulse rounded-lg bg-stone-800/80" />
+          <div className="h-5 w-12 animate-pulse rounded-full bg-stone-800/80" />
         </div>
-        <div className="h-5 w-1/4 animate-pulse rounded-lg bg-zinc-800" />
+        <div className="h-5 w-16 animate-pulse rounded-lg bg-stone-800/80" />
+        <div className="h-9 w-[6.5rem] animate-pulse rounded-xl bg-stone-800/80" />
       </div>
-      <div className="h-24 w-24 shrink-0 animate-pulse rounded-lg bg-zinc-800" />
+      <div className="h-[7.5rem] w-[7.5rem] shrink-0 animate-pulse rounded-2xl bg-stone-800/80" />
     </div>
   );
 }

@@ -503,7 +503,7 @@ export default function Home() {
     activeCategory === "all" ? "Усе меню" : activeCategory;
 
   return (
-    <div className="min-h-full bg-zinc-950 text-zinc-100">
+    <div className="min-h-full bg-brand-bg text-stone-100">
       {orderToast && !ordersOpen ? (
         <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-zinc-900/95 px-4 py-3 shadow-xl backdrop-blur-md">
           <p className="text-sm font-medium text-amber-200">{orderToast}</p>
@@ -520,6 +520,7 @@ export default function Home() {
       <MenuHeader
         logoUrl={logoUrl}
         cartCount={cartCount}
+        ordersCount={orders.length}
         showAdminLink={showAdminLink}
         showOrdersLink={showOrdersLink}
         onOpenOrders={() => {
@@ -570,13 +571,13 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-zinc-800/50 bg-zinc-900 px-6 py-12 text-center">
-            <p className="text-base text-zinc-300">
+          <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
+            <p className="text-base text-stone-300">
               {searchQuery.trim()
                 ? "За вашим запитом нічого не знайдено"
                 : "У цій категорії поки немає страв"}
             </p>
-            <p className="mt-2 text-sm text-zinc-500">
+            <p className="mt-2 text-sm text-stone-500">
               {searchQuery.trim()
                 ? "Спробуйте інший пошук або категорію"
                 : "Спробуйте обрати іншу категорію"}

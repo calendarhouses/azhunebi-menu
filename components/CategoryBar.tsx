@@ -6,10 +6,10 @@ type CategoryBarProps = {
 
 function categoryButtonClass(isActive: boolean) {
   if (isActive) {
-    return "shrink-0 rounded-full bg-amber-500 px-5 py-2 text-sm font-medium text-amber-950 transition-all";
+    return "shrink-0 rounded-full bg-amber-500 px-5 py-2 text-sm font-medium text-amber-950 shadow-[0_4px_14px_rgba(245,158,11,0.25)] transition-all";
   }
 
-  return "shrink-0 rounded-full bg-zinc-800/50 px-5 py-2 text-sm text-zinc-400 transition-all hover:bg-zinc-800";
+  return "shrink-0 rounded-full border border-stone-700/30 bg-brand-surface px-5 py-2 text-sm text-stone-400 transition-all hover:border-stone-600/40 hover:text-stone-200";
 }
 
 export default function CategoryBar({
@@ -18,7 +18,7 @@ export default function CategoryBar({
   onChange,
 }: CategoryBarProps) {
   return (
-    <div className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-md">
+    <div className="sticky top-0 z-40 border-b border-stone-700/30 bg-brand-bg/85 backdrop-blur-md">
       <div className="mx-auto max-w-3xl">
         <div className="scrollbar-hide flex gap-2 overflow-x-auto px-4 py-3">
           <button

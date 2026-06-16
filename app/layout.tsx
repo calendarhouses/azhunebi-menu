@@ -23,7 +23,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0a0a0a",
+  themeColor: "#141210",
 };
 
 export default function RootLayout({
@@ -36,7 +36,7 @@ export default function RootLayout({
       lang="uk"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-zinc-950 font-sans text-zinc-100 antialiased">
+      <body className="min-h-full bg-brand-bg font-sans text-stone-100 antialiased">
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
