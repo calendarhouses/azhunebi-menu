@@ -72,7 +72,7 @@ export default function PremiumCheckout({
   const { mounted, visible } = useSheetPresence(open);
   const maxHeight = useStableSheetHeight(mounted);
   const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
-  const { keyboardOpen, keyboardInset, handleFieldFocus, handleFieldBlur } =
+  const { keyboardInset, visibleHeight, handleFieldFocus, handleFieldBlur } =
     useKeyboardFieldScroll(mounted && cart.length > 0, scrollRef);
 
   useBodyScrollLock(mounted);
@@ -115,15 +115,11 @@ export default function PremiumCheckout({
     }
   }
 
+  const keyboardVisible = keyboardInset > 48;
   const panelStyle: CSSProperties = {
     ...sheetStyle,
-    maxHeight,
-    ...(keyboardOpen
-      ? {
-          transform: `translateY(${keyboardInset}px)`,
-          transition: "transform 0.2s ease",
-        }
-      : {}),
+    maxHeight: keyboardVisible && visibleHeight ? visibleHeight : maxHeight,
+    ...(keyboardVisible && visibleHeight ? { height: visibleHeight } : {}),
   };
 
   return (
@@ -170,7 +166,7 @@ export default function PremiumCheckout({
 
         <div
           ref={scrollRef}
-          className={`relative min-h-0 flex-1 overscroll-contain ${
+          className={`relative min-h-0 flex-1 touch-pan-y overscroll-contain ${
             cart.length === 0 ? "overflow-hidden" : "overflow-y-auto px-5 pb-4"
           }`}
         >
@@ -283,24 +279,22 @@ export default function PremiumCheckout({
                   </div>
                 </div>
               </section>
+
+              <div className="pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleSubmit}
+                  className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition disabled:opacity-50"
+                >
+                  {isSubmitting
+                    ? "Відправка..."
+                    : `Оформити замовлення на ${formatPrice(total)}`}
+                </button>
+              </div>
             </>
           )}
         </div>
-
-        {cart.length > 0 && !keyboardOpen ? (
-          <div className="relative shrink-0 border-t border-stone-600/20 bg-brand-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={handleSubmit}
-              className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition disabled:opacity-50"
-            >
-              {isSubmitting
-                ? "Відправка..."
-                : `Оформити замовлення на ${formatPrice(total)}`}
-            </button>
-          </div>
-        ) : null}
       </div>
     </div>
   );

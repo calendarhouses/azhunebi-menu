@@ -1,80 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { scrollFieldIntoView } from "@/lib/useSheetPresence";
+import { useCallback, useEffect, useState, type RefObject } from "react";
 
-const FOOTER_RESERVE_PX = 96;
-const HEADER_RESERVE_PX = 72;
-
-function getVisibleBounds(keyboardOpen: boolean) {
+function measureKeyboardInset() {
   const viewport = window.visualViewport;
-  const footerReserve = keyboardOpen ? 16 : FOOTER_RESERVE_PX;
 
   if (!viewport) {
-    return {
-      top: HEADER_RESERVE_PX,
-      bottom: window.innerHeight - footerReserve,
-    };
+    return { inset: 0, visibleHeight: window.innerHeight };
   }
+
+  const inset = Math.max(
+    0,
+    window.innerHeight - viewport.height - viewport.offsetTop
+  );
 
   return {
-    top: viewport.offsetTop + HEADER_RESERVE_PX,
-    bottom: viewport.offsetTop + viewport.height - footerReserve,
+    inset,
+    visibleHeight: Math.round(viewport.height),
   };
-}
-
-function scrollFocusedField(
-  element: HTMLInputElement | HTMLTextAreaElement,
-  container: HTMLElement | null,
-  keyboardOpen: boolean
-) {
-  if (!container) {
-    return;
-  }
-
-  const { top, bottom } = getVisibleBounds(keyboardOpen);
-  const rect = element.getBoundingClientRect();
-
-  if (rect.bottom > bottom) {
-    container.scrollBy({
-      top: rect.bottom - bottom + 12,
-      behavior: "smooth",
-    });
-    return;
-  }
-
-  if (rect.top < top) {
-    container.scrollBy({
-      top: rect.top - top,
-      behavior: "smooth",
-    });
-  }
 }
 
 export function useKeyboardFieldScroll(
   active: boolean,
   containerRef: RefObject<HTMLElement | null>
 ) {
-  const focusedFieldRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(
-    null
-  );
   const [keyboardInset, setKeyboardInset] = useState(0);
-  const keyboardOpen = keyboardInset > 0;
-
-  const syncFocusedField = useCallback(() => {
-    const field = focusedFieldRef.current;
-    const container = containerRef.current;
-
-    if (!field || !container) {
-      return;
-    }
-
-    scrollFocusedField(field, container, keyboardInset > 0);
-  }, [containerRef, keyboardInset]);
+  const [visibleHeight, setVisibleHeight] = useState<number | null>(null);
 
   useEffect(() => {
     if (!active) {
-      focusedFieldRef.current = null;
       setKeyboardInset(0);
+      setVisibleHeight(null);
       return;
     }
 
@@ -84,51 +41,36 @@ export function useKeyboardFieldScroll(
     }
 
     const updateViewport = () => {
-      const inset = Math.max(
-        0,
-        window.innerHeight - viewport.height - viewport.offsetTop
-      );
+      const { inset, visibleHeight: height } = measureKeyboardInset();
       setKeyboardInset(inset);
-      syncFocusedField();
+      setVisibleHeight(height);
     };
 
     updateViewport();
     viewport.addEventListener("resize", updateViewport);
-    viewport.addEventListener("scroll", updateViewport);
 
     return () => {
       viewport.removeEventListener("resize", updateViewport);
-      viewport.removeEventListener("scroll", updateViewport);
     };
-  }, [active, syncFocusedField]);
+  }, [active]);
 
   const handleFieldFocus = useCallback(
     (element: HTMLInputElement | HTMLTextAreaElement) => {
-      focusedFieldRef.current = element;
+      const scroll = () =>
+        scrollFieldIntoView(element, containerRef.current, "smooth");
 
-      window.setTimeout(() => syncFocusedField(), 120);
-      window.setTimeout(() => syncFocusedField(), 320);
-      window.setTimeout(() => syncFocusedField(), 520);
+      window.requestAnimationFrame(scroll);
+      window.setTimeout(scroll, 120);
+      window.setTimeout(scroll, 320);
     },
-    [syncFocusedField]
+    [containerRef]
   );
 
-  const handleFieldBlur = useCallback(() => {
-    window.setTimeout(() => {
-      if (document.activeElement instanceof HTMLInputElement) {
-        return;
-      }
-      if (document.activeElement instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      focusedFieldRef.current = null;
-    }, 0);
-  }, []);
+  const handleFieldBlur = useCallback(() => {}, []);
 
   return {
-    keyboardOpen,
     keyboardInset,
+    visibleHeight,
     handleFieldFocus,
     handleFieldBlur,
   };

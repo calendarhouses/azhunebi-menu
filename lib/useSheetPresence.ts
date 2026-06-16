@@ -48,27 +48,33 @@ export function useStableSheetHeight(active: boolean) {
 
 export function scrollFieldIntoView(
   element: HTMLInputElement | HTMLTextAreaElement,
-  container?: HTMLElement | null
+  container?: HTMLElement | null,
+  behavior: ScrollBehavior = "smooth"
 ) {
-  window.setTimeout(() => {
-    if (container) {
-      const containerRect = container.getBoundingClientRect();
-      const elementRect = element.getBoundingClientRect();
-      const overflow = elementRect.bottom - containerRect.bottom + 20;
+  if (!container) {
+    element.scrollIntoView({ block: "nearest", behavior });
+    return;
+  }
 
-      if (overflow > 0) {
-        container.scrollBy({ top: overflow, behavior: "smooth" });
-        return;
-      }
+  const viewport = window.visualViewport;
+  const elementRect = element.getBoundingClientRect();
+  const visibleTop = viewport ? viewport.offsetTop + 72 : 72;
+  const visibleBottom = viewport
+    ? viewport.offsetTop + viewport.height - 16
+    : window.innerHeight - 16;
 
-      const underflow = containerRect.top + 80 - elementRect.top;
-      if (underflow > 0) {
-        container.scrollBy({ top: -underflow, behavior: "smooth" });
-      }
+  if (elementRect.bottom > visibleBottom) {
+    container.scrollBy({
+      top: elementRect.bottom - visibleBottom + 12,
+      behavior,
+    });
+    return;
+  }
 
-      return;
-    }
-
-    element.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, 320);
+  if (elementRect.top < visibleTop) {
+    container.scrollBy({
+      top: elementRect.top - visibleTop,
+      behavior,
+    });
+  }
 }

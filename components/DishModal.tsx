@@ -15,7 +15,7 @@ import Lottie from "lottie-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 
 const LOTTIE_BASE_PATH = "/azhunebi-menu";
-const SUCCESS_CLOSE_MS = 1800;
+const SUCCESS_CLOSE_MS = 3000;
 
 type DishModalProps = {
   item: MenuItemRow | null;
@@ -127,45 +127,37 @@ export default function DishModal({
           visible ? "is-visible" : ""
         }`}
       >
-        {showSuccess ? (
-          <div className="flex min-h-[18rem] flex-col items-center justify-center px-6 py-12 text-center">
-            {successAnimation ? (
-              <Lottie
-                animationData={successAnimation}
-                loop={false}
-                className="mx-auto h-44 w-44 animate-sheet-up drop-shadow-2xl"
-              />
-            ) : (
-              <div className="mx-auto mb-4 h-44 w-44 animate-sheet-up rounded-full bg-brand-accent/15" />
-            )}
-            <p className="animate-sheet-up text-2xl font-semibold text-stone-50">
-              Записав!
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="shrink-0 touch-pan-y" {...swipeAreaProps}>
-              <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 shrink-0 rounded-full" />
-              <div className="relative aspect-[16/10] overflow-hidden">
-                {item.image_url ? (
-                  <DishImage
-                    src={item.image_url}
-                    alt={item.name}
-                    large
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <DishImage src="" alt={item.name} large className="h-full w-full" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-brand-surface/20 to-transparent" />
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="absolute right-4 top-4 rounded-full border border-stone-600/25 bg-brand-bg/70 px-3 py-1 text-sm text-stone-100 backdrop-blur-sm"
-                >
-                  ✕
-                </button>
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <div
+            className={`flex min-h-0 flex-1 flex-col transition-opacity duration-300 ${
+              showSuccess ? "pointer-events-none opacity-0" : "opacity-100"
+            }`}
+          >
+            <div
+              className="relative aspect-[16/10] shrink-0 touch-pan-y overflow-hidden rounded-t-[28px]"
+              {...swipeAreaProps}
+            >
+              {item.image_url ? (
+                <DishImage
+                  src={item.image_url}
+                  alt={item.name}
+                  large
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <DishImage src="" alt={item.name} large className="h-full w-full" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-brand-surface/20 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+                <div className="sheet-handle h-1 w-12 rounded-full shadow-sm" />
               </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="absolute right-4 top-4 z-10 rounded-full border border-stone-600/25 bg-brand-bg/70 px-3 py-1 text-sm text-stone-100 backdrop-blur-sm"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="max-h-[50vh] space-y-4 overflow-y-auto px-5 pb-4 pt-4">
@@ -257,8 +249,25 @@ export default function DishModal({
                 </>
               )}
             </div>
-          </>
-        )}
+          </div>
+
+          {showSuccess ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-brand-surface px-6 text-center">
+              {successAnimation ? (
+                <Lottie
+                  animationData={successAnimation}
+                  loop={false}
+                  className="mx-auto h-48 w-48 animate-sheet-up drop-shadow-2xl"
+                />
+              ) : (
+                <div className="mx-auto h-48 w-48 animate-sheet-up rounded-full bg-brand-accent/15" />
+              )}
+              <p className="animate-sheet-up text-2xl font-semibold text-stone-50">
+                Записав!
+              </p>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
