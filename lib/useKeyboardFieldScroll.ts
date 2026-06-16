@@ -5,31 +5,33 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 const FOOTER_RESERVE_PX = 96;
 const HEADER_RESERVE_PX = 72;
 
-function getVisibleBounds() {
+function getVisibleBounds(keyboardOpen: boolean) {
   const viewport = window.visualViewport;
+  const footerReserve = keyboardOpen ? 16 : FOOTER_RESERVE_PX;
 
   if (!viewport) {
     return {
       top: HEADER_RESERVE_PX,
-      bottom: window.innerHeight - FOOTER_RESERVE_PX,
+      bottom: window.innerHeight - footerReserve,
     };
   }
 
   return {
     top: viewport.offsetTop + HEADER_RESERVE_PX,
-    bottom: viewport.offsetTop + viewport.height - 20,
+    bottom: viewport.offsetTop + viewport.height - footerReserve,
   };
 }
 
 function scrollFocusedField(
   element: HTMLInputElement | HTMLTextAreaElement,
-  container: HTMLElement | null
+  container: HTMLElement | null,
+  keyboardOpen: boolean
 ) {
   if (!container) {
     return;
   }
 
-  const { top, bottom } = getVisibleBounds();
+  const { top, bottom } = getVisibleBounds(keyboardOpen);
   const rect = element.getBoundingClientRect();
 
   if (rect.bottom > bottom) {
@@ -56,6 +58,7 @@ export function useKeyboardFieldScroll(
     null
   );
   const [keyboardInset, setKeyboardInset] = useState(0);
+  const keyboardOpen = keyboardInset > 0;
 
   const syncFocusedField = useCallback(() => {
     const field = focusedFieldRef.current;
@@ -65,8 +68,8 @@ export function useKeyboardFieldScroll(
       return;
     }
 
-    scrollFocusedField(field, container);
-  }, [containerRef]);
+    scrollFocusedField(field, container, keyboardInset > 0);
+  }, [containerRef, keyboardInset]);
 
   useEffect(() => {
     if (!active) {
@@ -124,6 +127,7 @@ export function useKeyboardFieldScroll(
   }, []);
 
   return {
+    keyboardOpen,
     keyboardInset,
     handleFieldFocus,
     handleFieldBlur,

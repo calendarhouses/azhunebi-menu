@@ -72,7 +72,7 @@ export default function PremiumCheckout({
   const { mounted, visible } = useSheetPresence(open);
   const maxHeight = useStableSheetHeight(mounted);
   const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
-  const { keyboardInset, handleFieldFocus, handleFieldBlur } =
+  const { keyboardOpen, keyboardInset, handleFieldFocus, handleFieldBlur } =
     useKeyboardFieldScroll(mounted && cart.length > 0, scrollRef);
 
   useBodyScrollLock(mounted);
@@ -118,6 +118,12 @@ export default function PremiumCheckout({
   const panelStyle: CSSProperties = {
     ...sheetStyle,
     maxHeight,
+    ...(keyboardOpen
+      ? {
+          transform: `translateY(${keyboardInset}px)`,
+          transition: "transform 0.2s ease",
+        }
+      : {}),
   };
 
   return (
@@ -167,11 +173,6 @@ export default function PremiumCheckout({
           className={`relative min-h-0 flex-1 overscroll-contain ${
             cart.length === 0 ? "overflow-hidden" : "overflow-y-auto px-5 pb-4"
           }`}
-          style={
-            keyboardInset > 0
-              ? { paddingBottom: `${keyboardInset + 24}px` }
-              : undefined
-          }
         >
           {cart.length === 0 ? (
             <EmptyStateScreen
@@ -286,7 +287,7 @@ export default function PremiumCheckout({
           )}
         </div>
 
-        {cart.length > 0 ? (
+        {cart.length > 0 && !keyboardOpen ? (
           <div className="relative shrink-0 border-t border-stone-600/20 bg-brand-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
