@@ -1,7 +1,6 @@
 "use client";
 
-import { scrollFieldIntoView } from "@/lib/useSheetPresence";
-import { useCallback, useEffect, useState, type RefObject } from "react";
+import { useEffect, useState } from "react";
 
 function measureKeyboardInset() {
   const viewport = window.visualViewport;
@@ -21,10 +20,7 @@ function measureKeyboardInset() {
   };
 }
 
-export function useKeyboardFieldScroll(
-  active: boolean,
-  containerRef: RefObject<HTMLElement | null>
-) {
+export function useKeyboardFieldScroll(active: boolean) {
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [visibleHeight, setVisibleHeight] = useState<number | null>(null);
 
@@ -54,24 +50,8 @@ export function useKeyboardFieldScroll(
     };
   }, [active]);
 
-  const handleFieldFocus = useCallback(
-    (element: HTMLInputElement | HTMLTextAreaElement) => {
-      const scroll = () =>
-        scrollFieldIntoView(element, containerRef.current, "smooth");
-
-      window.requestAnimationFrame(scroll);
-      window.setTimeout(scroll, 120);
-      window.setTimeout(scroll, 320);
-    },
-    [containerRef]
-  );
-
-  const handleFieldBlur = useCallback(() => {}, []);
-
   return {
     keyboardInset,
     visibleHeight,
-    handleFieldFocus,
-    handleFieldBlur,
   };
 }

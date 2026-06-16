@@ -45,36 +45,3 @@ export function useStableSheetHeight(active: boolean) {
 
   return maxHeight;
 }
-
-export function scrollFieldIntoView(
-  element: HTMLInputElement | HTMLTextAreaElement,
-  container?: HTMLElement | null,
-  behavior: ScrollBehavior = "smooth"
-) {
-  if (!container) {
-    element.scrollIntoView({ block: "nearest", behavior });
-    return;
-  }
-
-  const viewport = window.visualViewport;
-  const elementRect = element.getBoundingClientRect();
-  const visibleTop = viewport ? viewport.offsetTop + 72 : 72;
-  const visibleBottom = viewport
-    ? viewport.offsetTop + viewport.height - 16
-    : window.innerHeight - 16;
-
-  if (elementRect.bottom > visibleBottom) {
-    container.scrollBy({
-      top: elementRect.bottom - visibleBottom + 12,
-      behavior,
-    });
-    return;
-  }
-
-  if (elementRect.top < visibleTop) {
-    container.scrollBy({
-      top: elementRect.top - visibleTop,
-      behavior,
-    });
-  }
-}

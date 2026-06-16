@@ -123,67 +123,67 @@ export default function DishModal({
 
       <div
         style={panelStyle}
-        className={`sheet-panel sheet-panel-motion fixed inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
+        className={`sheet-panel sheet-panel-motion relative fixed inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
           visible ? "is-visible" : ""
         }`}
       >
-        <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          className={`relative transition-opacity duration-300 ${
+            showSuccess ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
+        >
           <div
-            className={`flex min-h-0 flex-1 flex-col transition-opacity duration-300 ${
-              showSuccess ? "pointer-events-none opacity-0" : "opacity-100"
-            }`}
+            className="relative aspect-[16/10] shrink-0 touch-pan-y overflow-hidden rounded-t-[28px]"
+            {...swipeAreaProps}
           >
-            <div
-              className="relative aspect-[16/10] shrink-0 touch-pan-y overflow-hidden rounded-t-[28px]"
-              {...swipeAreaProps}
+            {item.image_url ? (
+              <DishImage
+                src={item.image_url}
+                alt={item.name}
+                large
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <DishImage src="" alt={item.name} large className="h-full w-full" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-brand-surface/20 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+              <div className="sheet-handle h-1 w-12 rounded-full shadow-sm" />
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-4 top-4 z-10 rounded-full border border-stone-600/25 bg-brand-bg/70 px-3 py-1 text-sm text-stone-100 backdrop-blur-sm"
             >
-              {item.image_url ? (
-                <DishImage
-                  src={item.image_url}
-                  alt={item.name}
-                  large
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <DishImage src="" alt={item.name} large className="h-full w-full" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-brand-surface/20 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
-                <div className="sheet-handle h-1 w-12 rounded-full shadow-sm" />
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-2.5 px-5 pt-3">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                {item.category ? (
+                  <p className="mb-0.5 text-xs font-medium uppercase tracking-[0.18em] text-brand-accent/90">
+                    {item.category}
+                  </p>
+                ) : null}
+                <h2 className="text-2xl font-semibold text-stone-50">{item.name}</h2>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="absolute right-4 top-4 z-10 rounded-full border border-stone-600/25 bg-brand-bg/70 px-3 py-1 text-sm text-stone-100 backdrop-blur-sm"
-              >
-                ✕
-              </button>
+              <span className="shrink-0 rounded-full border border-stone-600/25 bg-brand-surface-elevated px-3 py-1.5 text-base font-medium text-stone-50">
+                {formatPrice(item.price)}
+              </span>
             </div>
 
-            <div className="max-h-[50vh] space-y-4 overflow-y-auto px-5 pb-4 pt-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  {item.category ? (
-                    <p className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-brand-accent/90">
-                      {item.category}
-                    </p>
-                  ) : null}
-                  <h2 className="text-2xl font-semibold text-stone-50">{item.name}</h2>
-                </div>
-                <span className="rounded-full border border-stone-600/25 bg-brand-surface-elevated px-3 py-1.5 text-base font-medium text-stone-50">
-                  {formatPrice(item.price)}
-                </span>
-              </div>
+            {item.description ? (
+              <p className="text-sm leading-6 text-brand-muted">{item.description}</p>
+            ) : (
+              <p className="text-sm leading-6 text-brand-muted">
+                Смачна страва від нашого шеф-кухаря
+              </p>
+            )}
 
-              {item.description ? (
-                <p className="text-sm leading-7 text-brand-muted">{item.description}</p>
-              ) : (
-                <p className="text-sm text-brand-muted">
-                  Смачна страва від нашого шеф-кухаря
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-2">
+            {(formatWeight(item.weight_g) || formatAllergens(item.allergens)) && (
+              <div className="flex flex-wrap gap-2 pt-0.5">
                 {formatWeight(item.weight_g) ? (
                   <span className="rounded-full border border-stone-600/25 bg-brand-input px-3 py-1 text-xs text-brand-muted">
                     ⚖ {formatWeight(item.weight_g)}
@@ -195,79 +195,79 @@ export default function DishModal({
                   </span>
                 ) : null}
               </div>
-            </div>
+            )}
+          </div>
 
-            <div className="shrink-0 space-y-3 border-t border-stone-600/20 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              {quantity === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerImpact("medium");
-                    onAdd();
-                  }}
-                  className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition active:scale-[0.98]"
-                >
-                  Додати до замовлення
-                </button>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between rounded-2xl border border-brand-accent/20 bg-brand-accent/10 p-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerImpact("light");
-                        onDecrement();
-                      }}
-                      className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-input text-xl font-semibold text-brand-accent"
-                    >
-                      −
-                    </button>
-                    <div className="text-center">
-                      <p className="text-xs uppercase tracking-wide text-brand-muted">
-                        У кошику
-                      </p>
-                      <p className="text-lg font-semibold text-stone-50">{quantity}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerImpact("light");
-                        onIncrement();
-                      }}
-                      className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-accent text-xl font-semibold text-brand-accent-text"
-                    >
-                      +
-                    </button>
+          <div className="mt-4 space-y-3 border-t border-stone-600/20 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+            {quantity === 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerImpact("medium");
+                  onAdd();
+                }}
+                className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition active:scale-[0.98]"
+              >
+                Додати до замовлення
+              </button>
+            ) : (
+              <>
+                <div className="flex items-center justify-between rounded-2xl border border-brand-accent/20 bg-brand-accent/10 p-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerImpact("light");
+                      onDecrement();
+                    }}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-input text-xl font-semibold text-brand-accent"
+                  >
+                    −
+                  </button>
+                  <div className="text-center">
+                    <p className="text-xs uppercase tracking-wide text-brand-muted">
+                      У кошику
+                    </p>
+                    <p className="text-lg font-semibold text-stone-50">{quantity}</p>
                   </div>
                   <button
                     type="button"
-                    onClick={handleDone}
-                    className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition active:scale-[0.98]"
+                    onClick={() => {
+                      triggerImpact("light");
+                      onIncrement();
+                    }}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-accent text-xl font-semibold text-brand-accent-text"
                   >
-                    Готово
+                    +
                   </button>
-                </>
-              )}
-            </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDone}
+                  className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition active:scale-[0.98]"
+                >
+                  Готово
+                </button>
+              </>
+            )}
           </div>
-
-          {showSuccess ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-brand-surface px-6 text-center">
-              {successAnimation ? (
-                <Lottie
-                  animationData={successAnimation}
-                  loop={false}
-                  className="mx-auto h-48 w-48 animate-sheet-up drop-shadow-2xl"
-                />
-              ) : (
-                <div className="mx-auto h-48 w-48 animate-sheet-up rounded-full bg-brand-accent/15" />
-              )}
-              <p className="animate-sheet-up text-2xl font-semibold text-stone-50">
-                Записав!
-              </p>
-            </div>
-          ) : null}
         </div>
+
+        {showSuccess ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-brand-surface px-6 text-center">
+            {successAnimation ? (
+              <Lottie
+                animationData={successAnimation}
+                loop={false}
+                className="mx-auto h-[min(68vw,300px)] w-[min(68vw,300px)] animate-sheet-up drop-shadow-2xl"
+              />
+            ) : (
+              <div className="mx-auto h-[min(68vw,300px)] w-[min(68vw,300px)] animate-sheet-up rounded-full bg-brand-accent/15" />
+            )}
+            <p className="mt-3 animate-sheet-up text-4xl font-bold tracking-tight text-stone-50">
+              Записав!
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

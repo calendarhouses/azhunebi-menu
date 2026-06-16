@@ -18,7 +18,6 @@ import {
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
 import type { CSSProperties, ReactNode } from "react";
-import { useRef } from "react";
 
 type PremiumCheckoutProps = {
   open: boolean;
@@ -68,12 +67,12 @@ export default function PremiumCheckout({
   isSubmitting,
   total,
 }: PremiumCheckoutProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const { mounted, visible } = useSheetPresence(open);
   const maxHeight = useStableSheetHeight(mounted);
   const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
-  const { keyboardInset, visibleHeight, handleFieldFocus, handleFieldBlur } =
-    useKeyboardFieldScroll(mounted && cart.length > 0, scrollRef);
+  const { keyboardInset, visibleHeight } = useKeyboardFieldScroll(
+    mounted && cart.length > 0
+  );
 
   useBodyScrollLock(mounted);
 
@@ -165,8 +164,7 @@ export default function PremiumCheckout({
         </div>
 
         <div
-          ref={scrollRef}
-          className={`relative min-h-0 flex-1 touch-pan-y overscroll-contain ${
+          className={`relative min-h-0 flex-1 touch-pan-y ${
             cart.length === 0 ? "overflow-hidden" : "overflow-y-auto px-5 pb-4"
           }`}
         >
@@ -216,8 +214,6 @@ export default function PremiumCheckout({
                     type="text"
                     value={locationNote}
                     onChange={(event) => onLocationNoteChange(event.target.value)}
-                    onFocus={(event) => handleFieldFocus(event.currentTarget)}
-                    onBlur={handleFieldBlur}
                     placeholder="Будиночок 7"
                     className={inputClassName}
                   />
@@ -228,8 +224,6 @@ export default function PremiumCheckout({
                   <textarea
                     value={comment}
                     onChange={(event) => onCommentChange(event.target.value)}
-                    onFocus={(event) => handleFieldFocus(event.currentTarget)}
-                    onBlur={handleFieldBlur}
                     placeholder="Побажання, алергії..."
                     rows={2}
                     className={`${inputClassName} resize-none`}
