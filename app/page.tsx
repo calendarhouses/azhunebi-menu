@@ -8,7 +8,6 @@ import DishCard from "@/components/DishCard";
 import DishModal from "@/components/DishModal";
 import ErrorState from "@/components/ErrorState";
 import MenuHeader from "@/components/MenuHeader";
-import SearchBar from "@/components/SearchBar";
 import MenuSkeleton from "@/components/MenuSkeleton";
 import { resolveLogoUrl, type TenantSettings } from "@/lib/branding";
 import { checkAdminAccess } from "@/lib/adminApi";
@@ -45,7 +44,6 @@ export default function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedDish, setSelectedDish] = useState<MenuItemRow | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [showAdminLink, setShowAdminLink] = useState(false);
   const [orders, setOrders] = useState<TrackedOrder[]>([]);
   const [ordersOpen, setOrdersOpen] = useState(false);
@@ -417,24 +415,10 @@ export default function Home() {
   const showFloatingCart = cartTotal > 0 && !cartOpen && !isSubmitting;
 
   const filteredItems = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
     return items.filter((item) => {
-      const matchesCategory =
-        activeCategory === "all" || item.category === activeCategory;
-
-      if (!matchesCategory) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      const haystack = `${item.name} ${item.description || ""} ${item.category || ""} ${item.allergens || ""}`.toLowerCase();
-      return haystack.includes(normalizedQuery);
+      return activeCategory === "all" || item.category === activeCategory;
     });
-  }, [items, activeCategory, searchQuery]);
+  }, [items, activeCategory]);
 
   function updateCart(updater: (prev: CartItem[]) => CartItem[]) {
     setCart(updater);
@@ -499,13 +483,10 @@ export default function Home() {
     });
   }
 
-  const sectionTitle =
-    activeCategory === "all" ? "Усе меню" : activeCategory;
-
   return (
     <div className="min-h-full bg-brand-bg text-stone-100">
       {orderToast && !ordersOpen ? (
-        <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-zinc-900/95 px-4 py-3 shadow-xl backdrop-blur-md">
+        <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-brand-surface/95 px-4 py-3 shadow-xl backdrop-blur-md">
           <p className="text-sm font-medium text-amber-200">{orderToast}</p>
           <button
             type="button"
@@ -530,10 +511,6 @@ export default function Home() {
         onOpenCart={() => setCartOpen(true)}
       />
 
-      <div className="mx-auto max-w-3xl px-4 pt-4">
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
-      </div>
-
       <CategoryBar
         categories={categories}
         activeCategory={activeCategory}
@@ -541,17 +518,8 @@ export default function Home() {
       />
 
       <main
-        className={`mx-auto max-w-3xl px-4 py-6 ${showFloatingCart ? "pb-32" : "pb-12"}`}
+        className={`mx-auto max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-32" : "pb-12"}`}
       >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-100">{sectionTitle}</h2>
-          {!loading && !loadError && (
-            <span className="text-sm text-zinc-500">
-              {filteredItems.length} поз.
-            </span>
-          )}
-        </div>
-
         {loading ? (
           <MenuSkeleton count={5} />
         ) : loadError ? (
@@ -573,14 +541,10 @@ export default function Home() {
         ) : (
           <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
             <p className="text-base text-stone-300">
-              {searchQuery.trim()
-                ? "За вашим запитом нічого не знайдено"
-                : "У цій категорії поки немає страв"}
+              У цій категорії поки немає страв
             </p>
-            <p className="mt-2 text-sm text-stone-500">
-              {searchQuery.trim()
-                ? "Спробуйте інший пошук або категорію"
-                : "Спробуйте обрати іншу категорію"}
+            <p className="mt-2 text-sm text-brand-muted">
+              Спробуйте обрати іншу категорію
             </p>
           </div>
         )}

@@ -1,7 +1,7 @@
 import type { MenuItemRow } from "@/lib/supabase";
 
 export const BASE_PATH = "/azhunebi-menu";
-export const DEFAULT_LOGO_PATH = `${BASE_PATH}/logo.png`;
+export const DEFAULT_LOGO_PATH = `${BASE_PATH}/logo2.webp`;
 
 export type TenantSettings = {
   tenant_id?: string;

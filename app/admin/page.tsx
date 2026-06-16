@@ -268,8 +268,8 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a120e] px-4 text-white">
-        <div className="w-full max-w-md space-y-4 rounded-3xl border border-white/10 bg-[#101812] p-8 text-center">
+      <div className="flex min-h-screen items-center justify-center bg-brand-bg px-4 text-white">
+        <div className="w-full max-w-md space-y-4 rounded-3xl border border-white/10 bg-brand-surface p-8 text-center">
           <p className="text-xs uppercase tracking-[0.2em] text-amber-400/70">
             Аж у небі
           </p>
@@ -297,8 +297,8 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a120e] text-white">
-      <header className="border-b border-white/10 bg-[#101812]">
+    <div className="min-h-screen bg-brand-bg text-white">
+      <header className="border-b border-white/10 bg-brand-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-amber-400/70">
@@ -327,7 +327,7 @@ export default function AdminPage() {
               onClick={() => setTab(id)}
               className={`rounded-full px-4 py-2 text-sm ${
                 tab === id
-                  ? "bg-amber-400 text-[#0a120e]"
+                  ? "bg-amber-400 text-amber-950"
                   : "border border-white/10 bg-white/[0.04]"
               }`}
             >
@@ -391,7 +391,7 @@ export default function AdminPage() {
 
             <form
               onSubmit={saveDish}
-              className="space-y-3 rounded-2xl border border-white/10 bg-[#101812] p-5"
+              className="space-y-3 rounded-2xl border border-white/10 bg-brand-surface p-5"
             >
               <h2 className="text-lg font-medium">
                 {editingDishId ? "Редагувати страву" : "Нова страва"}
@@ -457,7 +457,7 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="flex-1 rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-[#0a120e]"
+                  className="flex-1 rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-amber-950"
                 >
                   {editingDishId ? "Зберегти" : "Додати"}
                 </button>
@@ -502,7 +502,7 @@ export default function AdminPage() {
 
             <form
               onSubmit={saveCategory}
-              className="space-y-3 rounded-2xl border border-white/10 bg-[#101812] p-5"
+              className="space-y-3 rounded-2xl border border-white/10 bg-brand-surface p-5"
             >
               <h2 className="text-lg font-medium">Нова категорія</h2>
               <label className="block">
@@ -526,7 +526,7 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-[#0a120e]"
+                className="w-full rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-amber-950"
               >
                 Додати категорію
               </button>
@@ -535,7 +535,7 @@ export default function AdminPage() {
         )}
 
         {tab === "brand" && (
-          <div className="max-w-lg space-y-5 rounded-2xl border border-white/10 bg-[#101812] p-6">
+          <div className="max-w-lg space-y-5 rounded-2xl border border-white/10 bg-brand-surface p-6">
             <h2 className="text-lg font-medium">Лого бренду</h2>
             <div className="relative mx-auto h-32 w-32 overflow-hidden rounded-2xl border border-white/10">
               <Image
@@ -559,7 +559,7 @@ export default function AdminPage() {
                   uploadLogo(file);
                 }
               }}
-              className="block w-full text-sm text-white/60 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-400 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#0a120e]"
+              className="block w-full text-sm text-white/60 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-400 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-amber-950"
             />
           </div>
         )}
@@ -596,7 +596,7 @@ export default function AdminPage() {
 
             <form
               onSubmit={addAdmin}
-              className="space-y-3 rounded-2xl border border-white/10 bg-[#101812] p-5"
+              className="space-y-3 rounded-2xl border border-white/10 bg-brand-surface p-5"
             >
               <h2 className="text-lg font-medium">Додати адміна</h2>
               <label className="block">
@@ -614,7 +614,7 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-[#0a120e]"
+                className="w-full rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-amber-950"
               >
                 Додати доступ
               </button>

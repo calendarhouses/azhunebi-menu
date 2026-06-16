@@ -27,13 +27,13 @@ export default function OrderStepper({ order }: OrderStepperProps) {
   const currentStep = ORDER_STEPS[currentIndex] || ORDER_STEPS[0];
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-5">
+    <div className="overflow-hidden rounded-[24px] border border-stone-600/20 bg-brand-input p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-amber-400/70">
             Статус замовлення
           </p>
-          <p className="mt-1 text-lg font-semibold text-white transition-all duration-300">
+          <p className="mt-1 text-lg font-semibold text-stone-50 transition-all duration-300">
             {currentStep.label}
           </p>
         </div>
@@ -42,7 +42,7 @@ export default function OrderStepper({ order }: OrderStepperProps) {
         </div>
       </div>
 
-      <div className="mb-5 h-2 overflow-hidden rounded-full bg-white/10">
+      <div className="mb-5 h-2 overflow-hidden rounded-full bg-brand-surface-elevated">
         <div
           className="h-full rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-300 transition-[width,background-color,opacity] duration-300 ease-out"
           style={{ width: `${progress}%` }}
@@ -59,19 +59,19 @@ export default function OrderStepper({ order }: OrderStepperProps) {
               key={step.key}
               className={`rounded-2xl border px-3 py-3 transition-all duration-300 ease-out ${
                 isCurrent
-                  ? "border-amber-400/40 bg-amber-400/10 shadow-[0_0_24px_rgba(251,191,36,0.12)]"
+                    ? "border-amber-400/40 bg-amber-400/10 shadow-[0_0_24px_rgba(251,191,36,0.12)]"
                   : isComplete
                     ? "border-emerald-400/20 bg-emerald-400/5"
-                    : "border-white/8 bg-white/[0.02]"
+                    : "border-stone-600/20 bg-brand-surface/50"
               }`}
             >
               <div
                 className={`mb-2 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ease-out ${
                   isCurrent
-                    ? "bg-amber-400 text-[#0a120e]"
+                    ? "bg-amber-500 text-amber-950"
                     : isComplete
                       ? "bg-emerald-400/20 text-emerald-200"
-                      : "bg-white/10 text-white/35"
+                      : "bg-brand-surface-elevated text-brand-muted"
                 }`}
               >
                 {isComplete ? "✓" : index + 1}
@@ -81,8 +81,8 @@ export default function OrderStepper({ order }: OrderStepperProps) {
                   isCurrent
                     ? "font-medium text-amber-100"
                     : isComplete
-                      ? "text-white/70"
-                      : "text-white/35"
+                      ? "text-stone-300"
+                      : "text-brand-muted"
                 }`}
               >
                 {step.label}

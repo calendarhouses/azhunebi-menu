@@ -11,17 +11,15 @@ type BrandLogoProps = {
 export default function BrandLogo({
   src,
   alt = "Аж у небі",
-  className = "h-full w-full object-cover",
+  className = "h-full w-full object-contain",
 }: BrandLogoProps) {
   const [hasError, setHasError] = useState(false);
 
   if (!src || hasError) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-800 via-stone-900 to-stone-950">
-        <span className="text-lg font-semibold tracking-tight text-amber-500/90">
-          Аж
-        </span>
-      </div>
+      <span className="text-xl font-semibold tracking-tight text-amber-500/90">
+        Аж
+      </span>
     );
   }
 

@@ -16,7 +16,7 @@ type QuantityControlProps = {
 const STEPPER_WIDTH = "w-[6.5rem]";
 
 const stepperButtonClass =
-  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-lg leading-none text-amber-500 transition-all duration-200 hover:bg-zinc-700 active:scale-95";
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-surface-elevated text-lg leading-none text-amber-500 transition-all duration-200 hover:bg-brand-surface active:scale-95";
 
 function Stepper({
   quantity,
@@ -56,7 +56,7 @@ function Stepper({
       >
         −
       </button>
-      <span className="w-8 shrink-0 text-center text-sm font-medium tabular-nums text-zinc-100">
+      <span className="w-8 shrink-0 text-center text-sm font-medium tabular-nums text-stone-100">
         {quantity}
       </span>
       <button

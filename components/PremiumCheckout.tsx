@@ -31,11 +31,14 @@ type PremiumCheckoutProps = {
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+    <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-brand-muted">
       {children}
     </p>
   );
 }
+
+const inputClassName =
+  "w-full rounded-xl border border-stone-600/25 bg-brand-input px-4 py-3 text-sm text-stone-100 placeholder:text-stone-500 outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20";
 
 export default function PremiumCheckout({
   open,
@@ -98,30 +101,31 @@ export default function PremiumCheckout({
       <button
         type="button"
         aria-label="Закрити"
-        className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+        className="absolute inset-0 bg-brand-overlay backdrop-blur-sm"
         onClick={onClose}
       />
 
-      <div className="animate-sheet-up relative flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] border border-zinc-800/50 bg-zinc-900 shadow-2xl">
-        <div className="mx-auto mt-3 h-1 w-12 shrink-0 rounded-full bg-zinc-700" />
+      <div className="sheet-panel animate-sheet-up relative flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] border shadow-2xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.1),transparent_70%)]" />
+        <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 shrink-0 rounded-full" />
 
-        <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
+        <div className="relative flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-amber-500/80">
               Оформлення
             </p>
-            <h2 className="text-lg font-semibold text-zinc-100">Ваше замовлення</h2>
+            <h2 className="text-lg font-semibold text-stone-50">Ваше замовлення</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-zinc-800/50 bg-zinc-800 px-3 py-1 text-sm text-zinc-400"
+            className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1 text-sm text-brand-muted"
           >
             Закрити
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+        <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-4">
           {cart.length === 0 ? (
             <EmptyStateScreen
               title="Ваш кошик сумує"
@@ -136,13 +140,13 @@ export default function PremiumCheckout({
                   {cart.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-800/50 bg-zinc-950 px-4 py-3"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-zinc-100">
+                        <p className="truncate text-sm font-semibold text-stone-50">
                           {item.name}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-brand-muted">
                           {formatPrice(item.price)} × {item.quantity} ={" "}
                           {formatPrice(item.price * item.quantity)}
                         </p>
@@ -162,7 +166,7 @@ export default function PremiumCheckout({
               <section className="mb-5 space-y-3">
                 <SectionTitle>Деталі</SectionTitle>
                 <label className="block">
-                  <span className="mb-1.5 block text-sm text-zinc-400">
+                  <span className="mb-1.5 block text-sm text-brand-muted">
                     Стіл / будиночок *
                   </span>
                   <input
@@ -170,12 +174,12 @@ export default function PremiumCheckout({
                     value={locationNote}
                     onChange={(event) => onLocationNoteChange(event.target.value)}
                     placeholder="Наприклад: Будиночок 7"
-                    className="w-full rounded-xl border border-zinc-800/50 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20"
+                    className={inputClassName}
                   />
                 </label>
 
                 <label className="block">
-                  <span className="mb-1.5 block text-sm text-zinc-400">
+                  <span className="mb-1.5 block text-sm text-brand-muted">
                     Коментар
                   </span>
                   <textarea
@@ -183,21 +187,21 @@ export default function PremiumCheckout({
                     onChange={(event) => onCommentChange(event.target.value)}
                     placeholder="Поб побажання, алергії..."
                     rows={2}
-                    className="w-full resize-none rounded-xl border border-zinc-800/50 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20"
+                    className={`${inputClassName} resize-none`}
                   />
                 </label>
               </section>
 
               <section className="mb-5">
                 <SectionTitle>Час подачі</SectionTitle>
-                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-800/50 bg-zinc-950 p-1">
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-stone-600/20 bg-brand-input p-1">
                   <button
                     type="button"
                     onClick={() => setOrderTiming(false)}
                     className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                       !isScheduledOrder
                         ? "bg-amber-500 text-amber-950"
-                        : "text-zinc-400"
+                        : "text-brand-muted"
                     }`}
                   >
                     Зараз
@@ -208,7 +212,7 @@ export default function PremiumCheckout({
                     className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                       isScheduledOrder
                         ? "bg-amber-500 text-amber-950"
-                        : "text-zinc-400"
+                        : "text-brand-muted"
                     }`}
                   >
                     Наперед
@@ -217,7 +221,7 @@ export default function PremiumCheckout({
 
                 {isScheduledOrder ? (
                   <label className="mt-3 block">
-                    <span className="mb-1.5 block text-sm text-zinc-400">
+                    <span className="mb-1.5 block text-sm text-brand-muted">
                       Оберіть час
                     </span>
                     <input
@@ -227,9 +231,9 @@ export default function PremiumCheckout({
                       onChange={(event) =>
                         onScheduledForChange(event.target.value)
                       }
-                      className="w-full rounded-xl border border-zinc-800/50 bg-zinc-950 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20"
+                      className={inputClassName}
                     />
-                    <p className="mt-1.5 text-xs text-zinc-500">
+                    <p className="mt-1.5 text-xs text-brand-muted">
                       «Готуємо» почнеться автоматично за 1 год до подачі
                     </p>
                   </label>
@@ -240,7 +244,7 @@ export default function PremiumCheckout({
         </div>
 
         {cart.length > 0 ? (
-          <div className="shrink-0 border-t border-zinc-800/50 bg-zinc-900 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="relative shrink-0 border-t border-stone-600/20 bg-brand-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               disabled={isSubmitting}

@@ -3,7 +3,7 @@
 import BrandLogo from "@/components/BrandLogo";
 import { CartIcon, OrdersIcon, SettingsIcon } from "@/components/HeaderIcons";
 import Link from "next/link";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 type MenuHeaderProps = {
   logoUrl: string;
@@ -15,32 +15,57 @@ type MenuHeaderProps = {
   onOpenCart: () => void;
 };
 
-function HeaderActionButton({
+function ActionTile({
   children,
+  label,
   badge,
   badgeLabel,
   className = "",
   ...props
 }: ComponentProps<"button"> & {
+  label: string;
   badge?: number;
   badgeLabel?: string;
+  children: ReactNode;
 }) {
   return (
     <button
       type="button"
-      className={`relative flex h-11 w-11 items-center justify-center rounded-2xl border border-stone-700/40 bg-brand-surface-elevated/80 text-stone-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-amber-500/25 hover:text-amber-100 active:scale-95 ${className}`}
+      className={`group relative flex flex-col items-center gap-2 rounded-2xl px-2 py-3 transition hover:bg-white/[0.04] active:scale-[0.98] ${className}`}
       {...props}
     >
-      {children}
-      {badge && badge > 0 ? (
-        <span
-          className="absolute -right-1 -top-1 flex h-5 min-w-5 animate-badge-pop items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-amber-950"
-          aria-label={badgeLabel}
-        >
-          {badge > 99 ? "99+" : badge}
-        </span>
-      ) : null}
+      <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-stone-600/25 bg-brand-surface-elevated/70 text-stone-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition group-hover:border-amber-500/30 group-hover:text-amber-100">
+        {children}
+        {badge && badge > 0 ? (
+          <span
+            className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 animate-badge-pop items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-amber-950"
+            aria-label={badgeLabel}
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+        ) : null}
+      </span>
+      <span className="text-[11px] font-medium tracking-wide text-stone-400 group-hover:text-stone-200">
+        {label}
+      </span>
     </button>
+  );
+}
+
+function AdminTile() {
+  return (
+    <Link
+      href="/admin"
+      className="group flex flex-col items-center gap-2 rounded-2xl px-2 py-3 transition hover:bg-white/[0.04] active:scale-[0.98]"
+      aria-label="Адмін-панель"
+    >
+      <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-stone-600/25 bg-brand-surface-elevated/70 text-stone-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition group-hover:border-amber-500/30 group-hover:text-amber-100">
+        <SettingsIcon />
+      </span>
+      <span className="text-[11px] font-medium tracking-wide text-stone-400 group-hover:text-stone-200">
+        Адмін
+      </span>
+    </Link>
   );
 }
 
@@ -53,58 +78,61 @@ export default function MenuHeader({
   onOpenOrders,
   onOpenCart,
 }: MenuHeaderProps) {
-  return (
-    <header className="sticky top-0 z-20 border-b border-stone-700/30 bg-brand-bg/90 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.07),transparent_55%)]" />
+  const actionCount =
+    (showOrdersLink ? 1 : 0) + (showAdminLink ? 1 : 0) + 1;
 
-      <div className="relative mx-auto max-w-3xl px-4 pb-5 pt-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="mb-3 flex items-center gap-3">
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-stone-700/40 bg-brand-surface shadow-lg shadow-black/25">
-                <BrandLogo src={logoUrl} />
-              </div>
-              <h1 className="text-2xl font-semibold tracking-tight text-stone-50 sm:text-3xl">
-                Аж у небі
-              </h1>
-            </div>
-            <p className="max-w-sm text-sm leading-relaxed text-stone-400">
+  return (
+    <header className="relative border-b border-stone-600/20 bg-brand-bg">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_60%)]" />
+
+      <div className="relative mx-auto max-w-3xl px-4 pb-4 pt-5">
+        <div className="flex items-center gap-4">
+          <BrandLogo
+            src={logoUrl}
+            className="h-[4.5rem] w-[4.5rem] shrink-0 object-contain drop-shadow-lg"
+          />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight text-stone-50 sm:text-[1.75rem]">
+              Аж у небі
+            </h1>
+            <p className="mt-1 max-w-xs text-sm leading-relaxed text-brand-muted">
               Оберіть страви та оформіть замовлення за кілька кроків.
             </p>
           </div>
+        </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {showOrdersLink ? (
-              <HeaderActionButton
-                onClick={onOpenOrders}
-                badge={ordersCount}
-                badgeLabel={`Активних замовлень: ${ordersCount}`}
-                aria-label="Мої замовлення"
-              >
-                <OrdersIcon />
-              </HeaderActionButton>
-            ) : null}
-
-            {showAdminLink ? (
-              <Link
-                href="/admin"
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-stone-700/40 bg-brand-surface-elevated/80 text-stone-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-amber-500/25 hover:text-amber-100 active:scale-95"
-                aria-label="Адмін-панель"
-              >
-                <SettingsIcon />
-              </Link>
-            ) : null}
-
-            <HeaderActionButton
-              onClick={onOpenCart}
-              badge={cartCount}
-              badgeLabel={`Позицій у кошику: ${cartCount}`}
-              aria-label="Відкрити кошик"
-              className="hover:border-amber-500/35"
+        <div
+          className={`mt-5 grid gap-1 rounded-[22px] border border-stone-600/20 bg-brand-surface/55 p-1.5 backdrop-blur-sm ${
+            actionCount === 3
+              ? "grid-cols-3"
+              : actionCount === 2
+                ? "grid-cols-2"
+                : "grid-cols-1"
+          }`}
+        >
+          {showOrdersLink ? (
+            <ActionTile
+              onClick={onOpenOrders}
+              label="Замовлення"
+              badge={ordersCount}
+              badgeLabel={`Активних замовлень: ${ordersCount}`}
+              aria-label="Мої замовлення"
             >
-              <CartIcon />
-            </HeaderActionButton>
-          </div>
+              <OrdersIcon />
+            </ActionTile>
+          ) : null}
+
+          {showAdminLink ? <AdminTile /> : null}
+
+          <ActionTile
+            onClick={onOpenCart}
+            label="Кошик"
+            badge={cartCount}
+            badgeLabel={`Позицій у кошику: ${cartCount}`}
+            aria-label="Відкрити кошик"
+          >
+            <CartIcon />
+          </ActionTile>
         </div>
       </div>
     </header>

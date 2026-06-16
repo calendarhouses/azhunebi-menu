@@ -43,12 +43,12 @@ export default function OrdersPanel({
       <button
         type="button"
         aria-label="Закрити"
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        className="absolute inset-0 bg-brand-overlay backdrop-blur-md"
         onClick={onClose}
       />
 
-      <div className="animate-sheet-up relative max-h-[92vh] overflow-hidden rounded-t-[32px] border border-white/10 bg-[#0a120e] shadow-2xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.16),transparent_65%)]" />
+      <div className="sheet-panel animate-sheet-up relative max-h-[92vh] overflow-hidden rounded-t-[32px] border shadow-2xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.12),transparent_65%)]" />
 
         {toastMessage ? (
           <div className="animate-toast-in relative mx-4 mt-4 flex items-start justify-between gap-3 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3">
@@ -63,26 +63,26 @@ export default function OrdersPanel({
           </div>
         ) : null}
 
-        <div className="relative mx-auto mt-3 h-1 w-12 rounded-full bg-white/20" />
+        <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 rounded-full" />
 
         <div className="relative flex items-start justify-between px-5 pb-3 pt-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-400/70">
+            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/75">
               Мої замовлення
             </p>
-            <h2 className="mt-1 text-xl font-semibold text-white">
+            <h2 className="mt-1 text-xl font-semibold text-stone-50">
               {selectedOrder
                 ? `Замовлення ${selectedOrder.id.slice(0, 8)}`
                 : "Статус замовлення"}
             </h2>
-            <p className="mt-1 text-sm text-white/45">
+            <p className="mt-1 text-sm text-brand-muted">
               Оновлення кожні кілька секунд, поки апп відкритий
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-sm text-white/70"
+            className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
           >
             Закрити
           </button>
@@ -97,8 +97,8 @@ export default function OrdersPanel({
                 onClick={() => onSelectOrder(order.id)}
                 className={`shrink-0 rounded-full px-4 py-2 text-sm transition ${
                   selectedOrder?.id === order.id
-                    ? "bg-amber-400 text-[#0a120e]"
-                    : "border border-white/10 bg-white/[0.04] text-white/70"
+                    ? "bg-amber-500 text-amber-950"
+                    : "border border-stone-600/25 bg-brand-input text-brand-muted"
                 }`}
               >
                 {formatOrderDateTime(order.createdAt)} · {formatPrice(order.total)}
@@ -117,7 +117,7 @@ export default function OrdersPanel({
                 <button
                   type="button"
                   onClick={onRetry}
-                  className="mt-4 rounded-xl bg-white/10 px-4 py-2 text-sm"
+                  className="mt-4 rounded-xl border border-stone-600/25 bg-brand-surface-elevated px-4 py-2 text-sm"
                 >
                   Спробувати знову
                 </button>
@@ -127,24 +127,24 @@ export default function OrdersPanel({
             <div className="space-y-5">
               <OrderStepper order={selectedOrder} />
 
-              <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/40">
+              <div className="rounded-[24px] border border-stone-600/20 bg-brand-input p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-brand-muted">
                   Деталі
                 </p>
-                <div className="mt-3 space-y-2 text-sm text-white/70">
+                <div className="mt-3 space-y-2 text-sm text-stone-300">
                   <p>📍 {selectedOrder.locationNote || "—"}</p>
                   {selectedOrder.scheduledFor ? (
                     <p>🕐 Подача: {formatOrderDateTime(selectedOrder.scheduledFor)}</p>
                   ) : null}
                   {selectedOrder.comment ? (
-                    <p className="text-white/55">💬 {selectedOrder.comment}</p>
+                    <p className="text-brand-muted">💬 {selectedOrder.comment}</p>
                   ) : null}
                 </div>
-                <ul className="mt-4 space-y-2 border-t border-white/10 pt-4">
+                <ul className="mt-4 space-y-2 border-t border-stone-600/20 pt-4">
                   {selectedOrder.cart.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center justify-between text-sm text-white/70"
+                      className="flex items-center justify-between text-sm text-stone-300"
                     >
                       <span>
                         {item.name} × {item.quantity}
@@ -153,9 +153,9 @@ export default function OrdersPanel({
                     </li>
                   ))}
                 </ul>
-                <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-                  <span className="text-sm text-white/45">Разом</span>
-                  <span className="text-lg font-semibold text-amber-300">
+                <div className="mt-4 flex items-center justify-between border-t border-stone-600/20 pt-4">
+                  <span className="text-sm text-brand-muted">Разом</span>
+                  <span className="text-lg font-semibold text-amber-400">
                     {formatPrice(selectedOrder.total)}
                   </span>
                 </div>
