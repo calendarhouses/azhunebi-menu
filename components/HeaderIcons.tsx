@@ -60,3 +60,23 @@ export function CartIcon({ className = "h-5 w-5" }: IconProps) {
     </svg>
   );
 }
+
+export function CheckoutIcon({ className = "h-6 w-6" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M7 3h10l1 4H6l1-4Z" />
+      <path d="M6 7h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7Z" />
+      <path d="M9 11h6" />
+      <path d="M9 15h4" />
+    </svg>
+  );
+}

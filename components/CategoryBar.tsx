@@ -6,7 +6,7 @@ type CategoryBarProps = {
 
 function categoryButtonClass(isActive: boolean) {
   if (isActive) {
-    return "shrink-0 rounded-full bg-amber-500 px-5 py-2 text-sm font-medium text-amber-950 shadow-[0_4px_14px_rgba(245,158,11,0.22)] transition-all";
+    return "shrink-0 rounded-full bg-brand-accent px-5 py-2 text-sm font-medium text-brand-accent-text shadow-[0_4px_14px_rgba(196,165,116,0.2)] transition-all";
   }
 
   return "shrink-0 rounded-full border border-stone-600/25 bg-brand-surface/80 px-5 py-2 text-sm text-brand-muted transition-all hover:border-stone-500/35 hover:text-stone-200";

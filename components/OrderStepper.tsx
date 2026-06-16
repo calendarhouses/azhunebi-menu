@@ -68,7 +68,7 @@ export default function OrderStepper({ order }: OrderStepperProps) {
               <div
                 className={`mb-2 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ease-out ${
                   isCurrent
-                    ? "bg-amber-500 text-amber-950"
+                    ? "bg-brand-accent text-brand-accent-text"
                     : isComplete
                       ? "bg-emerald-400/20 text-emerald-200"
                       : "bg-brand-surface-elevated text-brand-muted"

@@ -47,7 +47,7 @@ export default function DishCard({
           </div>
         </button>
 
-        <p className="mt-2 text-base font-semibold tracking-tight text-amber-400">
+        <p className="mt-2 text-base font-semibold tracking-tight text-brand-accent">
           {formatPrice(item.price)}
         </p>
 

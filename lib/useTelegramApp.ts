@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 const BRAND_BG = "#221f1c";
-const BRAND_ACCENT = "#fbbf24";
+const BRAND_ACCENT = "#c4a574";
 
 export function useTelegramApp(options?: {
   backVisible?: boolean;

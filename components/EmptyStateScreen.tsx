@@ -64,7 +64,7 @@ export default function EmptyStateScreen({
       <button
         type="button"
         onClick={onGoToMenu}
-        className="mt-6 rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-amber-950 transition hover:bg-amber-400 active:scale-[0.98]"
+        className="btn-accent mt-6 rounded-xl px-6 py-3 text-sm font-semibold transition active:scale-[0.98]"
       >
         {actionLabel}
       </button>

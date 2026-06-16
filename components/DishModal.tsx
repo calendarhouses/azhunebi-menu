@@ -64,7 +64,7 @@ export default function DishModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               {item.category ? (
-                <p className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-amber-500/80">
+                <p className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-brand-accent/90">
                   {item.category}
                 </p>
               ) : null}
@@ -88,7 +88,7 @@ export default function DishModal({
               </span>
             ) : null}
             {formatAllergens(item.allergens) ? (
-              <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs text-amber-200/80">
+              <span className="rounded-full border border-brand-accent/20 bg-brand-accent/10 px-3 py-1 text-xs text-brand-accent">
                 ⚠ {formatAllergens(item.allergens)}
               </span>
             ) : null}
@@ -101,19 +101,19 @@ export default function DishModal({
                 triggerImpact("medium");
                 onAdd();
               }}
-              className="w-full rounded-2xl bg-amber-500 px-4 py-3.5 text-sm font-semibold text-amber-950 transition active:scale-[0.98]"
+              className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition active:scale-[0.98]"
             >
               Додати до замовлення
             </button>
           ) : (
-            <div className="flex items-center justify-between rounded-2xl border border-amber-500/20 bg-amber-500/10 p-2">
+            <div className="flex items-center justify-between rounded-2xl border border-brand-accent/20 bg-brand-accent/10 p-2">
               <button
                 type="button"
                 onClick={() => {
                   triggerImpact("light");
                   onDecrement();
                 }}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-input text-xl font-semibold text-amber-400"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-input text-xl font-semibold text-brand-accent"
               >
                 −
               </button>
@@ -127,7 +127,7 @@ export default function DishModal({
                   triggerImpact("light");
                   onIncrement();
                 }}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500 text-xl font-semibold text-amber-950"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-accent text-xl font-semibold text-brand-accent-text"
               >
                 +
               </button>

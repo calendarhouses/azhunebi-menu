@@ -9,9 +9,11 @@
   --brand-input: #1a1816;
   --brand-border: rgba(250, 250, 249, 0.1);
   --brand-muted: #a8a29e;
-  --brand-accent: #f59e0b;
-  --brand-accent-soft: rgba(245, 158, 11, 0.12);
-  --brand-overlay: rgba(12, 10, 9, 0.62);
+  --brand-accent: #c4a574;
+  --brand-accent-hover: #d6bc94;
+  --brand-accent-text: #1c1814;
+  --brand-accent-soft: rgba(196, 165, 116, 0.14);
+  --brand-overlay: rgba(12, 10, 9, 0.72);
 }
 
 @theme inline {
@@ -23,6 +25,9 @@
   --color-brand-input: var(--brand-input);
   --color-brand-muted: var(--brand-muted);
   --color-brand-overlay: var(--brand-overlay);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-hover: var(--brand-accent-hover);
+  --color-brand-accent-text: var(--brand-accent-text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -41,6 +46,15 @@ body {
 
 .sheet-handle {
   background: color-mix(in srgb, var(--brand-muted) 45%, transparent);
+}
+
+.btn-accent {
+  background: var(--brand-accent);
+  color: var(--brand-accent-text);
+}
+
+.btn-accent:hover {
+  background: var(--brand-accent-hover);
 }
 
 @keyframes sheet-up {

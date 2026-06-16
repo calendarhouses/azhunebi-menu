@@ -16,7 +16,7 @@ type QuantityControlProps = {
 const STEPPER_WIDTH = "w-[6.5rem]";
 
 const stepperButtonClass =
-  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-surface-elevated text-lg leading-none text-amber-500 transition-all duration-200 hover:bg-brand-surface active:scale-95";
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-surface-elevated text-lg leading-none text-brand-accent transition-all duration-200 hover:bg-brand-surface active:scale-95";
 
 function Stepper({
   quantity,
@@ -114,7 +114,7 @@ export default function QuantityControl({
           onClick={wrapClick(onAdd)}
           aria-hidden={showStepper}
           tabIndex={showStepper ? -1 : 0}
-          className={`col-start-1 row-start-1 inline-flex h-9 w-full items-center justify-center rounded-xl bg-amber-500 text-xs font-semibold text-amber-950 transition-all duration-200 hover:bg-amber-400 active:scale-[0.98] ${
+          className={`col-start-1 row-start-1 inline-flex h-9 w-full items-center justify-center rounded-xl bg-brand-accent text-xs font-semibold text-brand-accent-text transition-all duration-200 hover:bg-brand-accent-hover active:scale-[0.98] ${
             showStepper
               ? "pointer-events-none scale-95 opacity-0"
               : "scale-100 opacity-100"

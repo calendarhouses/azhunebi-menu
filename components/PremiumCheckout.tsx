@@ -1,13 +1,16 @@
 "use client";
 
 import EmptyStateScreen from "@/components/EmptyStateScreen";
+import { CheckoutIcon } from "@/components/HeaderIcons";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
+import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
 import type { CartItem } from "@/lib/cart";
 import {
   minScheduledDateTimeLocal,
   validateScheduledDateTimeLocal,
 } from "@/lib/orderStatus";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import type { ReactNode } from "react";
 
 type PremiumCheckoutProps = {
@@ -38,7 +41,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
 }
 
 const inputClassName =
-  "w-full rounded-xl border border-stone-600/25 bg-brand-input px-4 py-3 text-sm text-stone-100 placeholder:text-stone-500 outline-none focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20";
+  "w-full rounded-xl border border-stone-600/25 bg-brand-input px-4 py-3 text-sm text-stone-100 placeholder:text-stone-500 outline-none focus:border-brand-accent/40 focus:ring-1 focus:ring-brand-accent/20";
 
 export default function PremiumCheckout({
   open,
@@ -58,13 +61,15 @@ export default function PremiumCheckout({
   isSubmitting,
   total,
 }: PremiumCheckoutProps) {
+  useBodyScrollLock(open);
+
   if (!open) {
     return null;
   }
 
   function handleSubmit() {
     if (!locationNote.trim()) {
-      window.Telegram?.WebApp.showAlert("Вкажіть номер столика або будиночка.");
+      window.Telegram?.WebApp.showAlert("Вкажіть, в якому будинку ви проживаєте.");
       return;
     }
 
@@ -97,167 +102,145 @@ export default function PremiumCheckout({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <button
-        type="button"
-        aria-label="Закрити"
-        className="absolute inset-0 bg-brand-overlay backdrop-blur-sm"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-[60] flex flex-col bg-brand-surface">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top,rgba(196,165,116,0.12),transparent_70%)]" />
 
-      <div className="sheet-panel animate-sheet-up relative flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] border shadow-2xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.1),transparent_70%)]" />
-        <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 shrink-0 rounded-full" />
+      <div className="relative flex shrink-0 items-center justify-between border-b border-stone-600/20 px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20">
+            <CheckoutIcon />
+          </span>
+          <h2 className="text-base font-semibold uppercase tracking-[0.14em] text-stone-50">
+            Ваше замовлення
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
+        >
+          Закрити
+        </button>
+      </div>
 
-        <div className="relative flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-amber-500/80">
-              Оформлення
-            </p>
-            <h2 className="text-lg font-semibold text-stone-50">Ваше замовлення</h2>
-          </div>
+      <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+        {cart.length === 0 ? (
+          <EmptyStateScreen
+            title="Ваш кошик сумує"
+            subtitle="Додайте кілька страв, щоб ми почали готувати магію"
+            onGoToMenu={onClose}
+          />
+        ) : (
+          <>
+            <section className="mb-5">
+              <SectionTitle>Кошик</SectionTitle>
+              <ul className="space-y-2">
+                {cart.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-stone-50">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-brand-muted">
+                        {formatPrice(item.price)} × {item.quantity} ={" "}
+                        {formatPrice(item.price * item.quantity)}
+                      </p>
+                    </div>
+                    <QuantityControl
+                      quantity={item.quantity}
+                      hideAdd
+                      onAdd={() => onIncrement(item.id)}
+                      onIncrement={() => onIncrement(item.id)}
+                      onDecrement={() => onDecrement(item.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="mb-5 space-y-3">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-brand-muted">
+                  В якому будинку ви проживаєте?
+                </span>
+                <input
+                  type="text"
+                  value={locationNote}
+                  onChange={(event) => onLocationNoteChange(event.target.value)}
+                  placeholder="Будиночок 7"
+                  className={inputClassName}
+                />
+              </label>
+
+              <label className="block">
+                <SectionTitle>Коментар</SectionTitle>
+                <textarea
+                  value={comment}
+                  onChange={(event) => onCommentChange(event.target.value)}
+                  placeholder="Побажання, алергії..."
+                  rows={2}
+                  className={`${inputClassName} resize-none`}
+                />
+              </label>
+            </section>
+
+            <section className="mb-5">
+              <SectionTitle>Час подачі</SectionTitle>
+              <div className="grid grid-cols-2 gap-2 rounded-2xl border border-stone-600/20 bg-brand-input p-1">
+                <button
+                  type="button"
+                  onClick={() => setOrderTiming(false)}
+                  className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                    !isScheduledOrder
+                      ? "bg-brand-accent text-brand-accent-text"
+                      : "text-brand-muted"
+                  }`}
+                >
+                  Якнайшвидше
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderTiming(true)}
+                  className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                    isScheduledOrder
+                      ? "bg-brand-accent text-brand-accent-text"
+                      : "text-brand-muted"
+                  }`}
+                >
+                  Запланувати
+                </button>
+              </div>
+
+              {isScheduledOrder ? (
+                <div className="mt-4">
+                  <ScheduledDateTimePicker
+                    value={scheduledFor}
+                    onChange={onScheduledForChange}
+                  />
+                </div>
+              ) : null}
+            </section>
+          </>
+        )}
+      </div>
+
+      {cart.length > 0 ? (
+        <div className="relative shrink-0 border-t border-stone-600/20 bg-brand-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1 text-sm text-brand-muted"
+            disabled={isSubmitting}
+            onClick={handleSubmit}
+            className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition disabled:opacity-50"
           >
-            Закрити
+            {isSubmitting
+              ? "Відправка..."
+              : `Оформити замовлення на ${formatPrice(total)}`}
           </button>
         </div>
-
-        <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-          {cart.length === 0 ? (
-            <EmptyStateScreen
-              title="Ваш кошик сумує"
-              subtitle="Додайте кілька страв, щоб ми почали готувати магію"
-              onGoToMenu={onClose}
-            />
-          ) : (
-            <>
-              <section className="mb-5">
-                <SectionTitle>Кошик</SectionTitle>
-                <ul className="space-y-2">
-                  {cart.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-stone-50">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-brand-muted">
-                          {formatPrice(item.price)} × {item.quantity} ={" "}
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
-                      </div>
-                      <QuantityControl
-                        quantity={item.quantity}
-                        hideAdd
-                        onAdd={() => onIncrement(item.id)}
-                        onIncrement={() => onIncrement(item.id)}
-                        onDecrement={() => onDecrement(item.id)}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="mb-5 space-y-3">
-                <SectionTitle>Деталі</SectionTitle>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm text-brand-muted">
-                    Стіл / будиночок *
-                  </span>
-                  <input
-                    type="text"
-                    value={locationNote}
-                    onChange={(event) => onLocationNoteChange(event.target.value)}
-                    placeholder="Наприклад: Будиночок 7"
-                    className={inputClassName}
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-sm text-brand-muted">
-                    Коментар
-                  </span>
-                  <textarea
-                    value={comment}
-                    onChange={(event) => onCommentChange(event.target.value)}
-                    placeholder="Поб побажання, алергії..."
-                    rows={2}
-                    className={`${inputClassName} resize-none`}
-                  />
-                </label>
-              </section>
-
-              <section className="mb-5">
-                <SectionTitle>Час подачі</SectionTitle>
-                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-stone-600/20 bg-brand-input p-1">
-                  <button
-                    type="button"
-                    onClick={() => setOrderTiming(false)}
-                    className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                      !isScheduledOrder
-                        ? "bg-amber-500 text-amber-950"
-                        : "text-brand-muted"
-                    }`}
-                  >
-                    Зараз
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOrderTiming(true)}
-                    className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                      isScheduledOrder
-                        ? "bg-amber-500 text-amber-950"
-                        : "text-brand-muted"
-                    }`}
-                  >
-                    Наперед
-                  </button>
-                </div>
-
-                {isScheduledOrder ? (
-                  <label className="mt-3 block">
-                    <span className="mb-1.5 block text-sm text-brand-muted">
-                      Оберіть час
-                    </span>
-                    <input
-                      type="datetime-local"
-                      value={scheduledFor}
-                      min={minScheduledDateTimeLocal()}
-                      onChange={(event) =>
-                        onScheduledForChange(event.target.value)
-                      }
-                      className={inputClassName}
-                    />
-                    <p className="mt-1.5 text-xs text-brand-muted">
-                      «Готуємо» почнеться автоматично за 1 год до подачі
-                    </p>
-                  </label>
-                ) : null}
-              </section>
-            </>
-          )}
-        </div>
-
-        {cart.length > 0 ? (
-          <div className="relative shrink-0 border-t border-stone-600/20 bg-brand-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={handleSubmit}
-              className="w-full rounded-2xl bg-amber-500 px-4 py-3.5 text-sm font-semibold text-amber-950 transition disabled:opacity-50"
-            >
-              {isSubmitting
-                ? "Відправка..."
-                : `Оформити замовлення на ${formatPrice(total)}`}
-            </button>
-          </div>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }

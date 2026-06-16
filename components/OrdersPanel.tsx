@@ -97,7 +97,7 @@ export default function OrdersPanel({
                 onClick={() => onSelectOrder(order.id)}
                 className={`shrink-0 rounded-full px-4 py-2 text-sm transition ${
                   selectedOrder?.id === order.id
-                    ? "bg-amber-500 text-amber-950"
+                    ? "bg-brand-accent text-brand-accent-text"
                     : "border border-stone-600/25 bg-brand-input text-brand-muted"
                 }`}
               >
@@ -155,7 +155,7 @@ export default function OrdersPanel({
                 </ul>
                 <div className="mt-4 flex items-center justify-between border-t border-stone-600/20 pt-4">
                   <span className="text-sm text-brand-muted">Разом</span>
-                  <span className="text-lg font-semibold text-amber-400">
+                  <span className="text-lg font-semibold text-brand-accent">
                     {formatPrice(selectedOrder.total)}
                   </span>
                 </div>
