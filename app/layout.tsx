@@ -36,7 +36,7 @@ export default function RootLayout({
       lang="uk"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#0a120e] font-sans text-white">
+      <body className="min-h-full bg-[var(--brand-bg,#0a120e)] font-sans text-white">
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"

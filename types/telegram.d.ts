@@ -6,6 +6,7 @@ declare global {
       WebApp: {
         ready: () => void;
         expand: () => void;
+        close: () => void;
         initData: string;
         initDataUnsafe: {
           user?: {
@@ -15,9 +16,22 @@ declare global {
             username?: string;
           };
         };
+        themeParams: {
+          bg_color?: string;
+          text_color?: string;
+          hint_color?: string;
+          link_color?: string;
+          button_color?: string;
+          button_text_color?: string;
+          secondary_bg_color?: string;
+        };
+        colorScheme: "light" | "dark";
         HapticFeedback: {
           impactOccurred: (
             style: "light" | "medium" | "heavy" | "rigid" | "soft"
+          ) => void;
+          notificationOccurred: (
+            type: "error" | "success" | "warning"
           ) => void;
         };
         MainButton: {
@@ -31,6 +45,13 @@ declare global {
             is_visible?: boolean;
           }) => void;
         };
+        BackButton: {
+          show: () => void;
+          hide: () => void;
+        };
+        setHeaderColor: (color: string) => void;
+        setBackgroundColor: (color: string) => void;
+        disableVerticalSwipes: () => void;
         onEvent: (eventType: string, callback: () => void) => void;
         offEvent: (eventType: string, callback: () => void) => void;
         showAlert: (message: string, callback?: () => void) => void;

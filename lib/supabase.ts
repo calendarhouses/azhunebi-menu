@@ -13,6 +13,8 @@ export type MenuItemRow = {
   image_url: string | null;
   category: string | null;
   description: string | null;
+  allergens: string | null;
+  weight_g: number | null;
   is_available: boolean;
   created_at: string;
 };

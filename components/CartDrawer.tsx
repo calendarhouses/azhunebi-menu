@@ -48,7 +48,7 @@ export default function CartDrawer({
         onClick={onClose}
       />
 
-      <div className="relative max-h-[85vh] overflow-hidden rounded-t-3xl border border-white/10 bg-[#101812] shadow-2xl">
+      <div className="animate-sheet-up relative max-h-[85vh] overflow-hidden rounded-t-3xl border border-white/10 bg-[#101812] shadow-2xl">
         <div className="mx-auto mt-3 h-1 w-12 rounded-full bg-white/20" />
 
         <div className="flex items-center justify-between px-5 pb-3 pt-4">
