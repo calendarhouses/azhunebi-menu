@@ -6,6 +6,7 @@ declare global {
       WebApp: {
         ready: () => void;
         expand: () => void;
+        initData: string;
         initDataUnsafe: {
           user?: {
             id: number;
@@ -32,6 +33,7 @@ declare global {
         };
         onEvent: (eventType: string, callback: () => void) => void;
         offEvent: (eventType: string, callback: () => void) => void;
+        showAlert: (message: string, callback?: () => void) => void;
       };
     };
   }

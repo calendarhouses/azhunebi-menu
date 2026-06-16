@@ -1,23 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import CartDrawer from "@/components/CartDrawer";
+import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
 import { supabase, TENANT_ID, type MenuItemRow } from "@/lib/supabase";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const CATEGORIES = [
-  "Сніданки",
-  "Перші страви",
-  "Другі страви",
-  "Салати",
-] as const;
+const ORDER_API_URL = "https://azhunebi-bot.vercel.app/api/order";
 
-type CategoryFilter = (typeof CATEGORIES)[number] | "all";
-
-type CartItem = {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-};
+type CategoryFilter = string | "all";
 
 function formatPrice(price: number) {
   return `${price} ₴`;
@@ -25,10 +15,6 @@ function formatPrice(price: number) {
 
 function triggerHaptic() {
   window.Telegram?.WebApp.HapticFeedback.impactOccurred("light");
-}
-
-function getCartTotal(cart: CartItem[]) {
-  return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }
 
 function ImagePlaceholder() {
@@ -147,7 +133,7 @@ function DishCard({
         ) : (
           <ImagePlaceholder />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a120e] via-transparent to-transparent pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0a120e] via-transparent to-transparent" />
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -181,11 +167,26 @@ function DishCard({
 
 export default function Home() {
   const [items, setItems] = useState<MenuItemRow[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [comment, setComment] = useState("");
+  const [locationNote, setLocationNote] = useState("");
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
 
+  const isSubmittingRef = useRef(false);
+  const cartRef = useRef(cart);
+  const commentRef = useRef(comment);
+  const locationNoteRef = useRef(locationNote);
+
+  cartRef.current = cart;
+  commentRef.current = comment;
+  locationNoteRef.current = locationNote;
+
   const cartTotal = useMemo(() => getCartTotal(cart), [cart]);
+  const cartCount = useMemo(() => getCartCount(cart), [cart]);
 
   const cartQuantities = useMemo(() => {
     return cart.reduce<Record<string, number>>((acc, item) => {
@@ -201,24 +202,97 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    async function fetchMenuItems() {
+    async function fetchData() {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("menu_items")
-        .select("*")
-        .eq("tenant_id", TENANT_ID)
-        .eq("is_available", true)
-        .order("created_at", { ascending: true });
+      const [menuResult, categoriesResult] = await Promise.all([
+        supabase
+          .from("menu_items")
+          .select("*")
+          .eq("tenant_id", TENANT_ID)
+          .eq("is_available", true)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("categories")
+          .select("name, sort_order")
+          .eq("tenant_id", TENANT_ID)
+          .order("sort_order", { ascending: true }),
+      ]);
 
-      if (!error && data) {
-        setItems(data as MenuItemRow[]);
+      if (!menuResult.error && menuResult.data) {
+        setItems(menuResult.data as MenuItemRow[]);
+      }
+
+      if (!categoriesResult.error && categoriesResult.data?.length) {
+        setCategories(categoriesResult.data.map((row) => row.name));
+      } else if (menuResult.data) {
+        const fallback = [
+          ...new Set(
+            menuResult.data
+              .map((item) => item.category)
+              .filter((value): value is string => Boolean(value))
+          ),
+        ];
+        setCategories(fallback);
       }
 
       setLoading(false);
     }
 
-    fetchMenuItems();
+    fetchData();
+  }, []);
+
+  const submitOrder = useCallback(async () => {
+    const webApp = window.Telegram?.WebApp;
+    if (!webApp || isSubmittingRef.current) {
+      return;
+    }
+
+    const currentCart = cartRef.current;
+    if (currentCart.length === 0) {
+      return;
+    }
+
+    if (!webApp.initData) {
+      webApp.showAlert("Відкрийте меню через Telegram-бота.");
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(ORDER_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          initData: webApp.initData,
+          cart: currentCart.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+          comment: commentRef.current.trim() || undefined,
+          locationNote: locationNoteRef.current.trim() || undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Order request failed");
+      }
+
+      setCart([]);
+      setComment("");
+      setLocationNote("");
+      setCartOpen(false);
+      webApp.showAlert("Замовлення успішно відправлено!");
+    } catch {
+      webApp.showAlert("Не вдалося відправити замовлення. Спробуйте ще раз.");
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -227,19 +301,21 @@ export default function Home() {
       return;
     }
 
-    if (cartTotal > 0) {
+    if (cartTotal > 0 || isSubmitting) {
       webApp.MainButton.setParams({
-        text: `ОФОРМИТИ ЗАМОВЛЕННЯ • ${cartTotal} ₴`,
+        text: isSubmitting
+          ? "Відправка..."
+          : `ОФОРМИТИ ЗАМОВЛЕННЯ • ${cartTotal} ₴`,
         color: "#fbbf24",
         text_color: "#0a120e",
-        is_active: true,
+        is_active: !isSubmitting,
         is_visible: true,
       });
       webApp.MainButton.show();
     } else {
       webApp.MainButton.hide();
     }
-  }, [cartTotal]);
+  }, [cartTotal, isSubmitting]);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -248,12 +324,10 @@ export default function Home() {
     }
 
     const handleMainButtonClick = () => {
-      const _user = webApp.initDataUnsafe?.user;
-      const total = getCartTotal(cart);
-
-      alert(
-        `Дані готові! Сума: ${total} ₴. Кошик: ${JSON.stringify(cart)}`
-      );
+      if (cartRef.current.length === 0) {
+        return;
+      }
+      setCartOpen(true);
     };
 
     webApp.onEvent("mainButtonClicked", handleMainButtonClick);
@@ -261,7 +335,7 @@ export default function Home() {
     return () => {
       webApp.offEvent("mainButtonClicked", handleMainButtonClick);
     };
-  }, [cart]);
+  }, []);
 
   const filteredItems = useMemo(() => {
     if (activeCategory === "all") {
@@ -337,20 +411,38 @@ export default function Home() {
     <div className="min-h-full bg-[#0a120e] text-white">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0a120e]/90 backdrop-blur-xl">
         <div className="mx-auto max-w-3xl px-4 pb-4 pt-5">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="text-lg" aria-hidden>
-              🌲
-            </span>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-amber-400/80">
-              Комплекс
-            </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <span className="text-lg" aria-hidden>
+                  🌲
+                </span>
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-amber-400/80">
+                  Комплекс
+                </p>
+              </div>
+              <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Аж у небі
+              </h1>
+              <p className="mt-1 text-sm text-white/50">
+                Меню ресторану серед гір і лісу
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              className="relative mt-1 flex h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] px-3 text-white transition hover:border-amber-400/30"
+              aria-label="Відкрити кошик"
+            >
+              <span className="text-lg">🛒</span>
+              {cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-[#0a120e]">
+                  {cartCount}
+                </span>
+              )}
+            </button>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-            Аж у небі
-          </h1>
-          <p className="mt-1 text-sm text-white/50">
-            Меню ресторану серед гір і лісу
-          </p>
         </div>
       </header>
 
@@ -369,7 +461,7 @@ export default function Home() {
               Усе меню
             </button>
 
-            {CATEGORIES.map((category) => {
+            {categories.map((category) => {
               const isActive = activeCategory === category;
 
               return (
@@ -433,6 +525,21 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        cart={cart}
+        comment={comment}
+        locationNote={locationNote}
+        onCommentChange={setComment}
+        onLocationNoteChange={setLocationNote}
+        onIncrement={incrementItem}
+        onDecrement={decrementItem}
+        onSubmit={submitOrder}
+        isSubmitting={isSubmitting}
+        total={cartTotal}
+      />
     </div>
   );
 }
