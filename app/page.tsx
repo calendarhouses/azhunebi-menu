@@ -11,7 +11,12 @@ import SearchBar from "@/components/SearchBar";
 import SkeletonCard from "@/components/SkeletonCard";
 import { resolveLogoUrl, type TenantSettings } from "@/lib/branding";
 import { checkAdminAccess } from "@/lib/adminApi";
-import { fetchActiveOrders } from "@/lib/ordersApi";
+import {
+  createOrderRequest,
+  fetchActiveOrders,
+  isTelegramWebApp,
+} from "@/lib/ordersApi";
+import { rememberOrderId } from "@/lib/orderStorage";
 import {
   getStatusChangeMessage,
   type OrderStatus,
@@ -24,8 +29,7 @@ import { useTelegramApp } from "@/lib/useTelegramApp";
 import { supabase, TENANT_ID, type MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const ORDER_API_URL = "https://azhunebi-bot.vercel.app/api/order";
-const ORDER_POLL_MS = 7000;
+const ORDER_POLL_MS = 5000;
 
 type CategoryFilter = string | "all";
 
@@ -45,6 +49,9 @@ export default function Home() {
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [orderToast, setOrderToast] = useState<string | null>(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [inTelegram, setInTelegram] = useState(false);
 
   const {
     cart,
@@ -70,7 +77,6 @@ export default function Home() {
   const isScheduledOrderRef = useRef(isScheduledOrder);
   const scheduledForRef = useRef(scheduledFor);
   const ordersRef = useRef<TrackedOrder[]>([]);
-  const ordersOpenRef = useRef(false);
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -79,9 +85,8 @@ export default function Home() {
   isScheduledOrderRef.current = isScheduledOrder;
   scheduledForRef.current = scheduledFor;
   ordersRef.current = orders;
-  ordersOpenRef.current = ordersOpen;
 
-  const showOrdersLink = orders.length > 0;
+  const showOrdersLink = inTelegram || orders.length > 0;
 
   const cartTotal = useMemo(() => getCartTotal(cart), [cart]);
   const cartCount = useMemo(() => getCartCount(cart), [cart]);
@@ -112,6 +117,15 @@ export default function Home() {
 
   const syncOrders = useCallback(
     async (options?: { openPanel?: boolean; focusOrderId?: string }) => {
+      if (!window.Telegram?.WebApp?.initData) {
+        setInTelegram(false);
+        return;
+      }
+
+      setInTelegram(true);
+      setOrdersLoading(true);
+      setOrdersError(null);
+
       try {
         const nextOrders = await fetchActiveOrders();
         const previousById = new Map(
@@ -152,8 +166,14 @@ export default function Home() {
         if (options?.openPanel) {
           setOrdersOpen(true);
         }
-      } catch {
-        // Ignore polling errors silently
+      } catch (error) {
+        setOrdersError(
+          error instanceof Error
+            ? error.message
+            : "Не вдалося завантажити статус замовлення"
+        );
+      } finally {
+        setOrdersLoading(false);
       }
     },
     []
@@ -221,23 +241,44 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    syncOrders();
+    let cancelled = false;
+    let attempts = 0;
 
-    if (window.location.hash === "#orders") {
-      setOrdersOpen(true);
-      window.history.replaceState(null, "", window.location.pathname);
-    }
+    const boot = async () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (!window.Telegram?.WebApp?.initData && attempts < 20) {
+        attempts += 1;
+        window.setTimeout(boot, 250);
+        return;
+      }
+
+      setInTelegram(isTelegramWebApp());
+
+      if (window.location.hash === "#orders") {
+        setOrdersOpen(true);
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+
+      await syncOrders();
+    };
+
+    boot();
+
+    return () => {
+      cancelled = true;
+    };
   }, [syncOrders]);
 
   useEffect(() => {
-    if (!window.Telegram?.WebApp?.initData) {
+    if (!isTelegramWebApp()) {
       return;
     }
 
     const intervalId = window.setInterval(() => {
-      if (ordersRef.current.length > 0 || ordersOpenRef.current) {
-        syncOrders();
-      }
+      syncOrders();
     }, ORDER_POLL_MS);
 
     return () => window.clearInterval(intervalId);
@@ -274,26 +315,24 @@ export default function Home() {
           ? new Date(scheduledForRef.current).toISOString()
           : undefined;
 
-      const response = await fetch(ORDER_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          initData: webApp.initData,
-          cart: currentCart.map((item) => ({
-            id: item.id,
-            quantity: item.quantity,
-          })),
-          comment: commentRef.current.trim() || undefined,
-          locationNote: currentLocation,
-          paymentMethod: paymentMethodRef.current,
-          scheduledFor: scheduledPayload,
-        }),
+      const result = await createOrderRequest({
+        initData: webApp.initData,
+        cart: currentCart.map((item) => ({
+          id: item.id,
+          quantity: item.quantity,
+        })),
+        comment: commentRef.current.trim() || undefined,
+        locationNote: currentLocation,
+        paymentMethod: paymentMethodRef.current,
+        scheduledFor: scheduledPayload,
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.ok) {
-        throw new Error(result.error || "Order request failed");
+      rememberOrderId(result.orderId);
+      if (result.order) {
+        setOrders((prev) => {
+          const rest = prev.filter((order) => order.id !== result.order.id);
+          return [result.order, ...rest];
+        });
       }
 
       clearStoredCart();
@@ -567,6 +606,9 @@ export default function Home() {
         onSelectOrder={setSelectedOrderId}
         toastMessage={orderToast}
         onDismissToast={() => setOrderToast(null)}
+        loading={ordersLoading}
+        error={ordersError}
+        onRetry={() => syncOrders()}
       />
     </div>
   );
