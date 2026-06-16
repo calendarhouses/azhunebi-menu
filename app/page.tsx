@@ -518,7 +518,7 @@ export default function Home() {
       />
 
       <main
-        className={`mx-auto max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-40" : "pb-12"}`}
+        className={`mx-auto max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-28" : "pb-12"}`}
       >
         {loading ? (
           <MenuSkeleton count={5} />

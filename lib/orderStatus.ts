@@ -90,6 +90,8 @@ export function getStatusChangeMessage(
 
 const SCHEDULED_MIN_LEAD_MS = 60 * 60 * 1000;
 const SCHEDULED_PICKER_BUFFER_MS = 5 * 60 * 1000;
+export const KITCHEN_ORDER_START_HOUR = 9;
+export const KITCHEN_ORDER_END_HOUR = 21;
 
 function pad2(value: number) {
   return String(value).padStart(2, "0");
@@ -99,10 +101,56 @@ export function formatDateTimeLocalValue(date: Date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
 
-export function minScheduledDateTimeLocal() {
-  return formatDateTimeLocalValue(
-    new Date(Date.now() + SCHEDULED_MIN_LEAD_MS + SCHEDULED_PICKER_BUFFER_MS)
+function roundUpToQuarterHour(date: Date) {
+  const rounded = new Date(date);
+  rounded.setSeconds(0, 0);
+  const remainder = rounded.getMinutes() % 15;
+  if (remainder !== 0) {
+    rounded.setMinutes(rounded.getMinutes() + (15 - remainder));
+  }
+  return rounded;
+}
+
+function isWithinKitchenHours(date: Date) {
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  return (
+    minutes >= KITCHEN_ORDER_START_HOUR * 60 &&
+    minutes <= KITCHEN_ORDER_END_HOUR * 60
   );
+}
+
+export function getNextKitchenSlot(from = new Date()) {
+  const minLead = new Date(from.getTime() + SCHEDULED_MIN_LEAD_MS);
+  let candidate = roundUpToQuarterHour(
+    new Date(from.getTime() + SCHEDULED_MIN_LEAD_MS + SCHEDULED_PICKER_BUFFER_MS)
+  );
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (candidate.getTime() < minLead.getTime()) {
+      candidate = roundUpToQuarterHour(
+        new Date(candidate.getTime() + 15 * 60 * 1000)
+      );
+      continue;
+    }
+
+    if (!isWithinKitchenHours(candidate)) {
+      if (candidate.getHours() >= KITCHEN_ORDER_END_HOUR) {
+        candidate.setDate(candidate.getDate() + 1);
+        candidate.setHours(KITCHEN_ORDER_START_HOUR, 0, 0, 0);
+      } else {
+        candidate.setHours(KITCHEN_ORDER_START_HOUR, 0, 0, 0);
+      }
+      continue;
+    }
+
+    return candidate;
+  }
+
+  return candidate;
+}
+
+export function minScheduledDateTimeLocal() {
+  return formatDateTimeLocalValue(getNextKitchenSlot());
 }
 
 export function dateTimeLocalToIso(localValue: string) {
@@ -125,6 +173,14 @@ export function dateTimeLocalToIso(localValue: string) {
 
   if (date.getTime() < Date.now() + SCHEDULED_MIN_LEAD_MS) {
     throw new Error("Час подачі має бути щонайменше через 1 годину від зараз");
+  }
+
+  const timeMinutes = hour * 60 + minute;
+  const openMinutes = KITCHEN_ORDER_START_HOUR * 60;
+  const closeMinutes = KITCHEN_ORDER_END_HOUR * 60;
+
+  if (timeMinutes < openMinutes || timeMinutes > closeMinutes) {
+    throw new Error("Замовлення можна запланувати лише з 9:00 до 21:00");
   }
 
   return date.toISOString();

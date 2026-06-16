@@ -2,6 +2,8 @@
 
 import {
   formatDateTimeLocalValue,
+  KITCHEN_ORDER_END_HOUR,
+  KITCHEN_ORDER_START_HOUR,
   minScheduledDateTimeLocal,
 } from "@/lib/orderStatus";
 import { useMemo } from "react";
@@ -54,12 +56,16 @@ function dateKey(date: Date) {
 function buildTimeSlots(day: Date, minAllowed: Date) {
   const slots: Date[] = [];
   const start = new Date(day);
-  start.setHours(8, 0, 0, 0);
+  start.setHours(KITCHEN_ORDER_START_HOUR, 0, 0, 0);
 
   const end = new Date(day);
-  end.setHours(23, 45, 0, 0);
+  end.setHours(KITCHEN_ORDER_END_HOUR, 0, 0, 0);
 
-  for (let cursor = new Date(start); cursor <= end; cursor.setMinutes(cursor.getMinutes() + 15)) {
+  for (
+    let cursor = new Date(start);
+    cursor <= end;
+    cursor.setMinutes(cursor.getMinutes() + 15)
+  ) {
     const slot = new Date(cursor);
     if (slot.getTime() >= minAllowed.getTime()) {
       slots.push(slot);

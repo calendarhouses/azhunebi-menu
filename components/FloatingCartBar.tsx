@@ -26,7 +26,7 @@ export default function FloatingCartBar({
   return (
     <>
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-40 bg-gradient-to-t from-brand-bg via-brand-bg/92 to-transparent backdrop-blur-md"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-20 bg-gradient-to-t from-brand-bg/95 via-brand-bg/55 to-transparent backdrop-blur-[2px]"
         aria-hidden
       />
 

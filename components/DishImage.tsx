@@ -48,10 +48,10 @@ export default function DishImage({
 
   return (
     <div
-      className={`relative h-full w-full overflow-hidden bg-zinc-800 ${className}`}
+      className={`relative h-full w-full overflow-hidden bg-brand-surface-elevated ${className}`}
     >
       <div
-        className={`absolute inset-0 bg-zinc-800 transition-opacity duration-500 ${
+        className={`absolute inset-0 bg-brand-surface-elevated transition-opacity duration-500 ${
           loaded ? "opacity-0" : "opacity-100"
         }`}
         aria-hidden
