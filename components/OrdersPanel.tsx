@@ -37,6 +37,7 @@ export default function OrdersPanel({
 
   const selectedOrder =
     orders.find((order) => order.id === selectedOrderId) || orders[0] || null;
+  const isEmptyState = !loading && !error && !selectedOrder;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -65,49 +66,57 @@ export default function OrdersPanel({
 
         <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 rounded-full" />
 
-        <div className="relative flex items-start justify-between px-5 pb-3 pt-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/75">
-              Мої замовлення
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-stone-50">
-              {selectedOrder
-                ? `Замовлення ${selectedOrder.id.slice(0, 8)}`
-                : "Статус замовлення"}
-            </h2>
-            <p className="mt-1 text-sm text-brand-muted">
-              Оновлення кожні кілька секунд, поки апп відкритий
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
-          >
-            Закрити
-          </button>
-        </div>
-
-        {orders.length > 1 ? (
-          <div className="relative flex gap-2 overflow-x-auto px-5 pb-4">
-            {orders.map((order) => (
+        {!isEmptyState ? (
+          <>
+            <div className="relative flex items-start justify-between px-5 pb-3 pt-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-500/75">
+                  Мої замовлення
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-stone-50">
+                  {selectedOrder
+                    ? `Замовлення ${selectedOrder.id.slice(0, 8)}`
+                    : "Статус замовлення"}
+                </h2>
+                <p className="mt-1 text-sm text-brand-muted">
+                  Оновлення кожні кілька секунд, поки апп відкритий
+                </p>
+              </div>
               <button
-                key={order.id}
                 type="button"
-                onClick={() => onSelectOrder(order.id)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm transition ${
-                  selectedOrder?.id === order.id
-                    ? "bg-brand-accent text-brand-accent-text"
-                    : "border border-stone-600/25 bg-brand-input text-brand-muted"
-                }`}
+                onClick={onClose}
+                className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
               >
-                {formatOrderDateTime(order.createdAt)} · {formatPrice(order.total)}
+                Закрити
               </button>
-            ))}
-          </div>
+            </div>
+
+            {orders.length > 1 ? (
+              <div className="relative flex gap-2 overflow-x-auto px-5 pb-4">
+                {orders.map((order) => (
+                  <button
+                    key={order.id}
+                    type="button"
+                    onClick={() => onSelectOrder(order.id)}
+                    className={`shrink-0 rounded-full px-4 py-2 text-sm transition ${
+                      selectedOrder?.id === order.id
+                        ? "bg-brand-accent text-brand-accent-text"
+                        : "border border-stone-600/25 bg-brand-input text-brand-muted"
+                    }`}
+                  >
+                    {formatOrderDateTime(order.createdAt)} · {formatPrice(order.total)}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </>
         ) : null}
 
-        <div className="relative max-h-[58vh] overflow-y-auto px-5 pb-8">
+        <div
+          className={`relative overflow-y-auto px-5 ${
+            isEmptyState ? "pb-8 pt-2" : "max-h-[58vh] pb-8"
+          }`}
+        >
           {loading && orders.length === 0 ? (
             <OrderStatusSkeleton />
           ) : error && orders.length === 0 ? (

@@ -52,6 +52,8 @@ declare global {
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
         disableVerticalSwipes: () => void;
+        viewportHeight?: number;
+        viewportStableHeight?: number;
         onEvent: (eventType: string, callback: () => void) => void;
         offEvent: (eventType: string, callback: () => void) => void;
         showAlert: (message: string, callback?: () => void) => void;

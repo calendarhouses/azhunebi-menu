@@ -11,8 +11,14 @@ import {
   validateScheduledDateTimeLocal,
 } from "@/lib/orderStatus";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
+import {
+  scrollFieldIntoView,
+  useSheetPresence,
+  useStableSheetHeight,
+} from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useRef } from "react";
 
 type PremiumCheckoutProps = {
   open: boolean;
@@ -62,10 +68,14 @@ export default function PremiumCheckout({
   isSubmitting,
   total,
 }: PremiumCheckoutProps) {
-  useBodyScrollLock(open);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { mounted, visible } = useSheetPresence(open);
+  const maxHeight = useStableSheetHeight(mounted);
   const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
 
-  if (!open) {
+  useBodyScrollLock(mounted);
+
+  if (!mounted) {
     return null;
   }
 
@@ -103,46 +113,59 @@ export default function PremiumCheckout({
     }
   }
 
+  const panelStyle: CSSProperties = {
+    ...sheetStyle,
+    maxHeight,
+  };
+
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60]">
       <button
         type="button"
         aria-label="Закрити"
-        className="absolute inset-0 bg-brand-overlay backdrop-blur-sm"
+        className={`sheet-overlay absolute inset-0 bg-brand-overlay backdrop-blur-sm ${
+          visible ? "is-visible" : ""
+        }`}
         onClick={onClose}
       />
 
       <div
-        style={sheetStyle}
-        className="sheet-panel animate-sheet-up-premium relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] border shadow-2xl"
+        style={panelStyle}
+        className={`sheet-panel sheet-panel-motion fixed inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
+          visible ? "is-visible" : ""
+        }`}
       >
-        <div
-          className="shrink-0 touch-pan-y"
-          {...swipeAreaProps}
-        >
+        <div className="shrink-0 touch-pan-y" {...swipeAreaProps}>
           <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(196,165,116,0.1),transparent_70%)]" />
           <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 shrink-0 rounded-full" />
 
-          <div className="relative flex items-center justify-between px-5 pb-3 pt-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20">
-                <CheckoutIcon />
-              </span>
-              <h2 className="text-base font-semibold uppercase tracking-[0.14em] text-stone-50">
-                Ваше замовлення
-              </h2>
+          {cart.length > 0 ? (
+            <div className="relative flex items-center justify-between px-5 pb-3 pt-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20">
+                  <CheckoutIcon />
+                </span>
+                <h2 className="text-base font-semibold uppercase tracking-[0.14em] text-stone-50">
+                  Ваше замовлення
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
+              >
+                Закрити
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
-            >
-              Закрити
-            </button>
-          </div>
+          ) : null}
         </div>
 
-        <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4">
+        <div
+          ref={scrollRef}
+          className={`relative min-h-0 flex-1 overscroll-contain ${
+            cart.length === 0 ? "overflow-hidden" : "overflow-y-auto px-5 pb-4"
+          }`}
+        >
           {cart.length === 0 ? (
             <EmptyStateScreen
               title="Ваш кошик сумує"
@@ -189,6 +212,9 @@ export default function PremiumCheckout({
                     type="text"
                     value={locationNote}
                     onChange={(event) => onLocationNoteChange(event.target.value)}
+                    onFocus={(event) =>
+                      scrollFieldIntoView(event.currentTarget, scrollRef.current)
+                    }
                     placeholder="Будиночок 7"
                     className={inputClassName}
                   />
@@ -199,6 +225,9 @@ export default function PremiumCheckout({
                   <textarea
                     value={comment}
                     onChange={(event) => onCommentChange(event.target.value)}
+                    onFocus={(event) =>
+                      scrollFieldIntoView(event.currentTarget, scrollRef.current)
+                    }
                     placeholder="Побажання, алергії..."
                     rows={2}
                     className={`${inputClassName} resize-none`}
@@ -212,7 +241,7 @@ export default function PremiumCheckout({
                   <button
                     type="button"
                     onClick={() => setOrderTiming(false)}
-                    className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                    className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-300 ${
                       !isScheduledOrder
                         ? "bg-brand-accent text-brand-accent-text"
                         : "text-brand-muted"
@@ -223,7 +252,7 @@ export default function PremiumCheckout({
                   <button
                     type="button"
                     onClick={() => setOrderTiming(true)}
-                    className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                    className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-300 ${
                       isScheduledOrder
                         ? "bg-brand-accent text-brand-accent-text"
                         : "text-brand-muted"
@@ -233,14 +262,20 @@ export default function PremiumCheckout({
                   </button>
                 </div>
 
-                {isScheduledOrder ? (
-                  <div className="mt-4">
+                <div
+                  className={`grid transition-[grid-template-rows,margin-top,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    isScheduledOrder
+                      ? "mt-4 grid-rows-[1fr] opacity-100"
+                      : "mt-0 grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="min-h-0 overflow-hidden">
                     <ScheduledDateTimePicker
                       value={scheduledFor}
                       onChange={onScheduledForChange}
                     />
                   </div>
-                ) : null}
+                </div>
               </section>
             </>
           )}

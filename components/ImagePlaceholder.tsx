@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 export function formatPrice(price: number) {
   return `${price} ₴`;
 }
@@ -8,7 +10,7 @@ type ImagePlaceholderProps = {
 };
 
 function PlaceholderArt({ compact = false }: { compact?: boolean }) {
-  const size = compact ? 28 : 44;
+  const size = compact ? 24 : 44;
 
   return (
     <svg
@@ -38,7 +40,7 @@ function PlaceholderArt({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export default function ImagePlaceholder({
+function ImagePlaceholder({
   large = false,
   compact = false,
 }: ImagePlaceholderProps) {
@@ -50,14 +52,18 @@ export default function ImagePlaceholder({
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(196,165,116,0.16),transparent_62%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.03),transparent_45%)]" />
-      <div className="relative flex flex-col items-center gap-2">
+      <div className="relative flex flex-col items-center gap-1.5 px-1">
         <PlaceholderArt compact={compact} />
-        {!compact ? (
-          <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-brand-accent/60">
-            Фото скоро
-          </span>
-        ) : null}
+        <span
+          className={`font-medium uppercase tracking-[0.18em] text-brand-accent/60 ${
+            compact ? "text-[8px] leading-tight" : "text-[10px]"
+          }`}
+        >
+          Фото скоро
+        </span>
       </div>
     </div>
   );
 }
+
+export default memo(ImagePlaceholder);

@@ -1,7 +1,13 @@
 "use client";
 
 import ImagePlaceholder from "@/components/ImagePlaceholder";
-import { useEffect, useRef, useState } from "react";
+import {
+  isImageCached,
+  isImageFailed,
+  markImageCached,
+  markImageFailed,
+} from "@/lib/imageLoadCache";
+import { memo, useEffect, useRef, useState } from "react";
 
 type DishImageProps = {
   src: string;
@@ -11,7 +17,7 @@ type DishImageProps = {
   compact?: boolean;
 };
 
-export default function DishImage({
+function DishImage({
   src,
   alt,
   className = "",
@@ -19,24 +25,31 @@ export default function DishImage({
   compact = false,
 }: DishImageProps) {
   const imgRef = useRef<HTMLImageElement>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [loaded, setLoaded] = useState(() => Boolean(src && isImageCached(src)));
+  const [hasError, setHasError] = useState(() => Boolean(src && isImageFailed(src)));
 
   useEffect(() => {
-    setLoaded(false);
-    setHasError(false);
+    if (!src) {
+      setLoaded(false);
+      setHasError(false);
+      return;
+    }
+
+    setLoaded(isImageCached(src));
+    setHasError(isImageFailed(src));
   }, [src]);
 
   useEffect(() => {
     const img = imgRef.current;
-    if (!img || !src) {
+    if (!img || !src || hasError) {
       return;
     }
 
     if (img.complete && img.naturalWidth > 0) {
+      markImageCached(src);
       setLoaded(true);
     }
-  }, [src]);
+  }, [hasError, src]);
 
   if (!src || hasError) {
     return (
@@ -46,16 +59,17 @@ export default function DishImage({
     );
   }
 
+  const showImage = loaded;
+
   return (
     <div
       className={`relative h-full w-full overflow-hidden bg-brand-surface-elevated ${className}`}
     >
-      <div
-        className={`absolute inset-0 bg-brand-surface-elevated transition-opacity duration-500 ${
-          loaded ? "opacity-0" : "opacity-100"
-        }`}
-        aria-hidden
-      />
+      {!showImage ? (
+        <div className="absolute inset-0" aria-hidden>
+          <ImagePlaceholder large={large} compact={compact} />
+        </div>
+      ) : null}
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -63,12 +77,21 @@ export default function DishImage({
         src={src}
         alt={alt}
         decoding="async"
-        onLoad={() => setLoaded(true)}
-        onError={() => setHasError(true)}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-          loaded ? "opacity-100" : "opacity-0"
+        onLoad={() => {
+          markImageCached(src);
+          setLoaded(true);
+        }}
+        onError={() => {
+          markImageFailed(src);
+          setHasError(true);
+          setLoaded(false);
+        }}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+          showImage ? "opacity-100" : "opacity-0"
         }`}
       />
     </div>
   );
 }
+
+export default memo(DishImage);

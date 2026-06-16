@@ -48,37 +48,39 @@ function PremiumActionCard({
   compact?: boolean;
   children: ReactNode;
 }) {
+  if (compact) {
+    return (
+      <button
+        type="button"
+        className={`group relative flex min-h-[4.75rem] flex-col items-center justify-center gap-2 rounded-[20px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99] ${className}`}
+        {...props}
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18">
+          {children}
+        </span>
+        <span className="text-xs font-semibold leading-tight text-stone-50">
+          {title}
+        </span>
+        <ActionBadge count={badge ?? 0} label={badgeLabel ?? title} />
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
-      className={`group relative flex min-w-0 items-center rounded-[22px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99] ${
-        compact
-          ? "min-h-[5rem] flex-col justify-center gap-2 p-2.5 text-center"
-          : "min-h-[5.5rem] flex-1 gap-3.5 p-4"
-      } ${className}`}
+      className={`group relative flex min-h-[5.5rem] min-w-0 flex-1 items-center gap-3.5 rounded-[22px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99] ${className}`}
       {...props}
     >
-      <span
-        className={`flex shrink-0 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18 ${
-          compact ? "h-10 w-10" : "h-12 w-12"
-        }`}
-      >
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18">
         {children}
       </span>
-      <span className={`min-w-0 ${compact ? "w-full px-1" : "flex-1 pr-4"}`}>
-        <span
-          className={`block font-semibold leading-tight text-stone-50 ${
-            compact ? "text-xs" : "text-[15px]"
-          }`}
-        >
+      <span className="min-w-0 flex-1 pr-4">
+        <span className="block text-[15px] font-semibold leading-tight text-stone-50">
           {title}
         </span>
         {hint ? (
-          <span
-            className={`mt-0.5 block text-brand-muted ${
-              compact ? "truncate text-[10px] leading-snug" : "text-xs"
-            }`}
-          >
+          <span className="mt-0.5 block truncate text-xs text-brand-muted">
             {hint}
           </span>
         ) : null}
@@ -89,38 +91,37 @@ function PremiumActionCard({
 }
 
 function AdminActionCard({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <Link
+        href="/admin"
+        className="group relative flex min-h-[4.75rem] flex-col items-center justify-center gap-2 rounded-[20px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99]"
+        aria-label="Адмін-панель"
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18">
+          <SettingsIcon className="h-5 w-5" />
+        </span>
+        <span className="text-xs font-semibold leading-tight text-stone-50">
+          Адмін
+        </span>
+      </Link>
+    );
+  }
+
   return (
     <Link
       href="/admin"
-      className={`group relative flex min-w-0 items-center rounded-[22px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99] ${
-        compact
-          ? "min-h-[5rem] flex-col justify-center gap-2 p-2.5 text-center"
-          : "min-h-[5.5rem] flex-1 gap-3.5 p-4"
-      }`}
+      className="group relative flex min-h-[5.5rem] min-w-0 flex-1 items-center gap-3.5 rounded-[22px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99]"
       aria-label="Адмін-панель"
     >
-      <span
-        className={`flex shrink-0 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18 ${
-          compact ? "h-10 w-10" : "h-12 w-12"
-        }`}
-      >
-        <SettingsIcon className={compact ? "h-5 w-5" : "h-6 w-6"} />
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18">
+        <SettingsIcon className="h-6 w-6" />
       </span>
-      <span className={`min-w-0 ${compact ? "w-full px-1" : "flex-1"}`}>
-        <span
-          className={`block font-semibold leading-tight text-stone-50 ${
-            compact ? "text-xs" : "text-[15px]"
-          }`}
-        >
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold leading-tight text-stone-50">
           Адмін
         </span>
-        <span
-          className={`mt-0.5 block text-brand-muted ${
-            compact ? "truncate text-[10px] leading-snug" : "text-xs"
-          }`}
-        >
-          Керування меню
-        </span>
+        <span className="mt-0.5 block text-xs text-brand-muted">Керування меню</span>
       </span>
     </Link>
   );
@@ -165,7 +166,7 @@ export default function MenuHeader({
             <PremiumActionCard
               onClick={onOpenOrders}
               title="Замовлення"
-              hint="Статус подачі"
+              hint={compactActions ? undefined : "Статус подачі"}
               badge={ordersCount}
               badgeLabel={`Активних замовлень: ${ordersCount}`}
               compact={compactActions}
@@ -180,7 +181,7 @@ export default function MenuHeader({
           <PremiumActionCard
             onClick={onOpenCart}
             title="Кошик"
-            hint={formatPositionLabel(cartCount)}
+            hint={compactActions ? undefined : formatPositionLabel(cartCount)}
             badge={cartCount}
             badgeLabel={`Позицій у кошику: ${cartCount}`}
             compact={compactActions}
