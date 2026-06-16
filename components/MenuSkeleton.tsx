@@ -1,6 +1,7 @@
 function MenuSkeletonItem() {
   return (
     <div className="flex gap-3 rounded-[20px] border border-stone-700/35 bg-brand-surface p-3.5">
+      <div className="h-[7.5rem] w-[7.5rem] shrink-0 animate-pulse rounded-2xl bg-stone-800/80" />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="h-5 w-3/5 animate-pulse rounded-lg bg-stone-800/80" />
@@ -9,7 +10,6 @@ function MenuSkeletonItem() {
         <div className="h-5 w-16 animate-pulse rounded-lg bg-stone-800/80" />
         <div className="h-9 w-[6.5rem] animate-pulse rounded-xl bg-stone-800/80" />
       </div>
-      <div className="h-[7.5rem] w-[7.5rem] shrink-0 animate-pulse rounded-2xl bg-stone-800/80" />
     </div>
   );
 }

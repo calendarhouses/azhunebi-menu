@@ -5,6 +5,7 @@ import DishImage from "@/components/DishImage";
 import { formatAllergens, formatWeight } from "@/lib/branding";
 import type { MenuItemRow } from "@/lib/supabase";
 import { triggerImpact } from "@/lib/haptic";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 type DishModalProps = {
   item: MenuItemRow | null;
@@ -23,12 +24,14 @@ export default function DishModal({
   onIncrement,
   onDecrement,
 }: DishModalProps) {
+  useBodyScrollLock(Boolean(item));
+
   if (!item) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[55] flex flex-col justify-end">
       <button
         type="button"
         aria-label="Закрити"
@@ -36,10 +39,8 @@ export default function DishModal({
         onClick={onClose}
       />
 
-      <div className="sheet-panel animate-sheet-up relative max-h-[92vh] overflow-hidden rounded-t-[28px] border shadow-2xl">
-        <div className="sheet-handle mx-auto mt-3 h-1 w-12 rounded-full" />
-
-        <div className="relative aspect-[16/10] overflow-hidden">
+      <div className="sheet-panel sheet-panel-motion is-visible relative max-h-[92vh] overflow-hidden rounded-t-[28px] border shadow-2xl">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-t-[28px]">
           {item.image_url ? (
             <DishImage
               src={item.image_url}
@@ -60,7 +61,7 @@ export default function DishModal({
           </button>
         </div>
 
-        <div className="space-y-4 px-5 pb-8 pt-2">
+        <div className="max-h-[50vh] space-y-4 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               {item.category ? (

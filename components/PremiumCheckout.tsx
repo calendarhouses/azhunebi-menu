@@ -11,8 +11,8 @@ import {
   validateScheduledDateTimeLocal,
 } from "@/lib/orderStatus";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
+import { useKeyboardFieldScroll } from "@/lib/useKeyboardFieldScroll";
 import {
-  scrollFieldIntoView,
   useSheetPresence,
   useStableSheetHeight,
 } from "@/lib/useSheetPresence";
@@ -72,6 +72,8 @@ export default function PremiumCheckout({
   const { mounted, visible } = useSheetPresence(open);
   const maxHeight = useStableSheetHeight(mounted);
   const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
+  const { keyboardInset, handleFieldFocus, handleFieldBlur } =
+    useKeyboardFieldScroll(mounted && cart.length > 0, scrollRef);
 
   useBodyScrollLock(mounted);
 
@@ -165,6 +167,11 @@ export default function PremiumCheckout({
           className={`relative min-h-0 flex-1 overscroll-contain ${
             cart.length === 0 ? "overflow-hidden" : "overflow-y-auto px-5 pb-4"
           }`}
+          style={
+            keyboardInset > 0
+              ? { paddingBottom: `${keyboardInset + 24}px` }
+              : undefined
+          }
         >
           {cart.length === 0 ? (
             <EmptyStateScreen
@@ -212,9 +219,8 @@ export default function PremiumCheckout({
                     type="text"
                     value={locationNote}
                     onChange={(event) => onLocationNoteChange(event.target.value)}
-                    onFocus={(event) =>
-                      scrollFieldIntoView(event.currentTarget, scrollRef.current)
-                    }
+                    onFocus={(event) => handleFieldFocus(event.currentTarget)}
+                    onBlur={handleFieldBlur}
                     placeholder="Будиночок 7"
                     className={inputClassName}
                   />
@@ -225,9 +231,8 @@ export default function PremiumCheckout({
                   <textarea
                     value={comment}
                     onChange={(event) => onCommentChange(event.target.value)}
-                    onFocus={(event) =>
-                      scrollFieldIntoView(event.currentTarget, scrollRef.current)
-                    }
+                    onFocus={(event) => handleFieldFocus(event.currentTarget)}
+                    onBlur={handleFieldBlur}
                     placeholder="Побажання, алергії..."
                     rows={2}
                     className={`${inputClassName} resize-none`}

@@ -33,6 +33,20 @@ export default function DishCard({
 
   return (
     <article className="flex gap-3 overflow-hidden rounded-[20px] border border-stone-700/35 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-surface-elevated/70 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_24px_rgba(0,0,0,0.18)] transition hover:border-stone-600/40">
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="relative h-[7.5rem] w-[7.5rem] shrink-0 overflow-hidden rounded-2xl border border-stone-700/30 bg-brand-surface-elevated shadow-inner shadow-black/20"
+        aria-label={`Відкрити ${item.name}`}
+      >
+        <DishImage
+          src={item.image_url || ""}
+          alt={item.name}
+          compact
+          className="h-full w-full object-cover"
+        />
+      </button>
+
       <div className="flex min-w-0 flex-1 flex-col">
         <button type="button" onClick={handleOpen} className="text-left">
           <div className="flex items-start justify-between gap-3">
@@ -61,20 +75,6 @@ export default function DishCard({
           />
         </div>
       </div>
-
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="relative h-[7.5rem] w-[7.5rem] shrink-0 overflow-hidden rounded-2xl border border-stone-700/30 bg-brand-surface-elevated shadow-inner shadow-black/20"
-        aria-label={`Відкрити ${item.name}`}
-      >
-        <DishImage
-          src={item.image_url || ""}
-          alt={item.name}
-          compact
-          className="h-full w-full object-cover"
-        />
-      </button>
     </article>
   );
 }

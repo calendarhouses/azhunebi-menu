@@ -412,7 +412,8 @@ export default function Home() {
     webApp.MainButton.hide();
   }, []);
 
-  const showFloatingCart = cartTotal > 0 && !cartOpen && !isSubmitting;
+  const showFloatingCart =
+    cartTotal > 0 && !cartOpen && !isSubmitting && !selectedDish;
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
