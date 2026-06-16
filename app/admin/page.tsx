@@ -1,5 +1,6 @@
 "use client";
 
+import AdminPageSkeleton from "@/components/AdminPageSkeleton";
 import { resolveLogoUrl } from "@/lib/branding";
 import {
   adminRequest,
@@ -262,11 +263,7 @@ export default function AdminPage() {
   }
 
   if (!sessionReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a120e] text-white">
-        Завантаження...
-      </div>
-    );
+    return <AdminPageSkeleton />;
   }
 
   if (!isAdmin) {

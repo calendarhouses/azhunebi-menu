@@ -33,18 +33,18 @@ export default function OrderStepper({ order }: OrderStepperProps) {
           <p className="text-xs uppercase tracking-[0.18em] text-amber-400/70">
             Статус замовлення
           </p>
-          <p className="mt-1 text-lg font-semibold text-white">
+          <p className="mt-1 text-lg font-semibold text-white transition-all duration-300">
             {currentStep.label}
           </p>
         </div>
-        <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-100">
+        <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-100 transition-all duration-300">
           {currentIndex + 1}/{ORDER_STEPS.length}
         </div>
       </div>
 
       <div className="mb-5 h-2 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-300 transition-all duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-300 transition-[width,background-color,opacity] duration-300 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -57,7 +57,7 @@ export default function OrderStepper({ order }: OrderStepperProps) {
           return (
             <div
               key={step.key}
-              className={`rounded-2xl border px-3 py-3 transition ${
+              className={`rounded-2xl border px-3 py-3 transition-all duration-300 ease-out ${
                 isCurrent
                   ? "border-amber-400/40 bg-amber-400/10 shadow-[0_0_24px_rgba(251,191,36,0.12)]"
                   : isComplete
@@ -66,7 +66,7 @@ export default function OrderStepper({ order }: OrderStepperProps) {
               }`}
             >
               <div
-                className={`mb-2 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                className={`mb-2 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ease-out ${
                   isCurrent
                     ? "bg-amber-400 text-[#0a120e]"
                     : isComplete
@@ -77,7 +77,7 @@ export default function OrderStepper({ order }: OrderStepperProps) {
                 {isComplete ? "✓" : index + 1}
               </div>
               <p
-                className={`text-xs leading-snug ${
+                className={`text-xs leading-snug transition-colors duration-300 ${
                   isCurrent
                     ? "font-medium text-amber-100"
                     : isComplete
@@ -93,14 +93,14 @@ export default function OrderStepper({ order }: OrderStepperProps) {
       </div>
 
       {order.scheduledFor && order.status === "accepted" ? (
-        <p className="mt-4 rounded-2xl border border-sky-400/15 bg-sky-400/5 px-4 py-3 text-xs leading-relaxed text-sky-100/80">
+        <p className="mt-4 rounded-2xl border border-sky-400/15 bg-sky-400/5 px-4 py-3 text-xs leading-relaxed text-sky-100/80 transition-all duration-300">
           🕐 Подача о {formatOrderDateTime(order.scheduledFor)}. Статус «Готуємо»
           увімкнеться автоматично за 1 годину до цього часу.
         </p>
       ) : null}
 
       {order.status === "ready" ? (
-        <p className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100">
+        <p className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition-all duration-300">
           🍽 Можна забирати
           {order.readyAt
             ? ` · ${formatOrderDateTime(order.readyAt)}`

@@ -1,5 +1,7 @@
 "use client";
 
+import EmptyStateScreen from "@/components/EmptyStateScreen";
+import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
@@ -106,11 +108,9 @@ export default function OrdersPanel({
         ) : null}
 
         <div className="relative max-h-[58vh] overflow-y-auto px-5 pb-8">
-          {loading ? (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-6 py-12 text-center text-white/60">
-              Завантаження статусу...
-            </div>
-          ) : error ? (
+          {loading && orders.length === 0 ? (
+            <OrderStatusSkeleton />
+          ) : error && orders.length === 0 ? (
             <div className="rounded-[24px] border border-red-400/20 bg-red-400/5 px-6 py-8 text-center">
               <p className="text-sm text-red-100">{error}</p>
               {onRetry ? (
@@ -162,13 +162,11 @@ export default function OrdersPanel({
               </div>
             </div>
           ) : (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center">
-              <p className="text-base text-white/75">Активних замовлень немає</p>
-              <p className="mt-2 text-sm text-white/40">
-                Оформіть замовлення з меню — трекер з&apos;явиться одразу після
-                відправки
-              </p>
-            </div>
+            <EmptyStateScreen
+              title="Немає активних замовлень"
+              subtitle="Оформіть замовлення з меню — трекер з'явиться одразу після відправки"
+              onGoToMenu={onClose}
+            />
           )}
         </div>
       </div>

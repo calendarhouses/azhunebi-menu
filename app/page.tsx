@@ -1,14 +1,15 @@
 "use client";
 
 import OrdersPanel from "@/components/OrdersPanel";
-import PremiumCheckout, { type PaymentMethod } from "@/components/PremiumCheckout";
+import FloatingCartBar from "@/components/FloatingCartBar";
+import PremiumCheckout from "@/components/PremiumCheckout";
 import CategoryBar from "@/components/CategoryBar";
 import DishCard from "@/components/DishCard";
 import DishModal from "@/components/DishModal";
 import ErrorState from "@/components/ErrorState";
 import MenuHeader from "@/components/MenuHeader";
 import SearchBar from "@/components/SearchBar";
-import SkeletonCard from "@/components/SkeletonCard";
+import MenuSkeleton from "@/components/MenuSkeleton";
 import { resolveLogoUrl, type TenantSettings } from "@/lib/branding";
 import { checkAdminAccess } from "@/lib/adminApi";
 import {
@@ -20,7 +21,6 @@ import { rememberOrderId } from "@/lib/orderStorage";
 import {
   getStatusChangeMessage,
   dateTimeLocalToIso,
-  minScheduledDateTimeLocal,
   type OrderStatus,
   type TrackedOrder,
 } from "@/lib/orderStatus";
@@ -62,8 +62,6 @@ export default function Home() {
     setComment,
     locationNote,
     setLocationNote,
-    paymentMethod,
-    setPaymentMethod,
     isScheduledOrder,
     setIsScheduledOrder,
     scheduledFor,
@@ -75,15 +73,14 @@ export default function Home() {
   const cartRef = useRef(cart);
   const commentRef = useRef(comment);
   const locationNoteRef = useRef(locationNote);
-  const paymentMethodRef = useRef(paymentMethod);
   const isScheduledOrderRef = useRef(isScheduledOrder);
   const scheduledForRef = useRef(scheduledFor);
   const ordersRef = useRef<TrackedOrder[]>([]);
+  const ordersLoadedOnceRef = useRef(false);
 
   cartRef.current = cart;
   commentRef.current = comment;
   locationNoteRef.current = locationNote;
-  paymentMethodRef.current = paymentMethod;
   isScheduledOrderRef.current = isScheduledOrder;
   scheduledForRef.current = scheduledFor;
   ordersRef.current = orders;
@@ -118,15 +115,24 @@ export default function Home() {
   });
 
   const syncOrders = useCallback(
-    async (options?: { openPanel?: boolean; focusOrderId?: string }) => {
+    async (options?: {
+      openPanel?: boolean;
+      focusOrderId?: string;
+      silent?: boolean;
+    }) => {
       if (!window.Telegram?.WebApp?.initData) {
         setInTelegram(false);
         return;
       }
 
       setInTelegram(true);
-      setOrdersLoading(true);
-      setOrdersError(null);
+
+      const silent = options?.silent ?? ordersLoadedOnceRef.current;
+
+      if (!silent) {
+        setOrdersLoading(true);
+        setOrdersError(null);
+      }
 
       try {
         const nextOrders = await fetchActiveOrders();
@@ -151,7 +157,26 @@ export default function Home() {
           }
         }
 
-        setOrders(nextOrders);
+        setOrders((prev) => {
+          const prevById = new Map(prev.map((order) => [order.id, order]));
+
+          return nextOrders.map((next) => {
+            const existing = prevById.get(next.id);
+
+            if (
+              existing &&
+              existing.status === next.status &&
+              existing.updatedAt === next.updatedAt &&
+              existing.readyAt === next.readyAt
+            ) {
+              return existing;
+            }
+
+            return next;
+          });
+        });
+
+        ordersLoadedOnceRef.current = true;
 
         setSelectedOrderId((current) => {
           if (options?.focusOrderId) {
@@ -169,13 +194,17 @@ export default function Home() {
           setOrdersOpen(true);
         }
       } catch (error) {
-        setOrdersError(
-          error instanceof Error
-            ? error.message
-            : "Не вдалося завантажити статус замовлення"
-        );
+        if (!silent || ordersRef.current.length === 0) {
+          setOrdersError(
+            error instanceof Error
+              ? error.message
+              : "Не вдалося завантажити статус замовлення"
+          );
+        }
       } finally {
-        setOrdersLoading(false);
+        if (!silent) {
+          setOrdersLoading(false);
+        }
       }
     },
     []
@@ -280,7 +309,7 @@ export default function Home() {
     }
 
     const intervalId = window.setInterval(() => {
-      syncOrders();
+      syncOrders({ silent: true });
     }, ORDER_POLL_MS);
 
     return () => window.clearInterval(intervalId);
@@ -340,7 +369,7 @@ export default function Home() {
         })),
         comment: commentRef.current.trim() || undefined,
         locationNote: currentLocation,
-        paymentMethod: paymentMethodRef.current,
+        paymentMethod: "cash",
         scheduledFor: scheduledPayload,
       });
 
@@ -360,6 +389,7 @@ export default function Home() {
       await syncOrders({
         openPanel: true,
         focusOrderId: result.orderId as string,
+        silent: true,
       });
     } catch (error) {
       triggerError();
@@ -377,45 +407,14 @@ export default function Home() {
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
-    if (!webApp) {
+    if (!webApp?.MainButton) {
       return;
     }
 
-    if (cartTotal > 0 || isSubmitting) {
-      webApp.MainButton.setParams({
-        text: isSubmitting
-          ? "Відправка..."
-          : `ОФОРМИТИ ЗАМОВЛЕННЯ • ${cartTotal} ₴`,
-        color: "#fbbf24",
-        text_color: "#0a120e",
-        is_active: !isSubmitting,
-        is_visible: true,
-      });
-      webApp.MainButton.show();
-    } else {
-      webApp.MainButton.hide();
-    }
-  }, [cartTotal, isSubmitting]);
-
-  useEffect(() => {
-    const webApp = window.Telegram?.WebApp;
-    if (!webApp) {
-      return;
-    }
-
-    const handleMainButtonClick = () => {
-      if (cartRef.current.length === 0) {
-        return;
-      }
-      setCartOpen(true);
-    };
-
-    webApp.onEvent("mainButtonClicked", handleMainButtonClick);
-
-    return () => {
-      webApp.offEvent("mainButtonClicked", handleMainButtonClick);
-    };
+    webApp.MainButton.hide();
   }, []);
+
+  const showFloatingCart = cartTotal > 0 && !cartOpen && !isSubmitting;
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -504,10 +503,10 @@ export default function Home() {
     activeCategory === "all" ? "Усе меню" : activeCategory;
 
   return (
-    <div className="min-h-full bg-[var(--brand-bg,#0a120e)] text-white">
+    <div className="min-h-full bg-zinc-950 text-zinc-100">
       {orderToast && !ordersOpen ? (
-        <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-400/25 bg-[#101812]/95 px-4 py-3 shadow-xl backdrop-blur-md">
-          <p className="text-sm font-medium text-amber-100">{orderToast}</p>
+        <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-zinc-900/95 px-4 py-3 shadow-xl backdrop-blur-md">
+          <p className="text-sm font-medium text-amber-200">{orderToast}</p>
           <button
             type="button"
             onClick={() => setOrderToast(null)}
@@ -525,7 +524,7 @@ export default function Home() {
         showOrdersLink={showOrdersLink}
         onOpenOrders={() => {
           setOrdersOpen(true);
-          syncOrders();
+          syncOrders({ silent: ordersLoadedOnceRef.current });
         }}
         onOpenCart={() => setCartOpen(true)}
       />
@@ -541,27 +540,23 @@ export default function Home() {
       />
 
       <main
-        className={`mx-auto max-w-3xl px-4 py-5 ${cartTotal > 0 ? "pb-28" : "pb-10"}`}
+        className={`mx-auto max-w-3xl px-4 py-6 ${showFloatingCart ? "pb-32" : "pb-12"}`}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-white">{sectionTitle}</h2>
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-zinc-100">{sectionTitle}</h2>
           {!loading && !loadError && (
-            <span className="text-sm text-white/40">
+            <span className="text-sm text-zinc-500">
               {filteredItems.length} поз.
             </span>
           )}
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <SkeletonCard key={index} />
-            ))}
-          </div>
+          <MenuSkeleton count={5} />
         ) : loadError ? (
           <ErrorState onRetry={fetchData} />
         ) : filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-4">
             {filteredItems.map((item) => (
               <DishCard
                 key={item.id}
@@ -575,13 +570,13 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-12 text-center">
-            <p className="text-base text-white/70">
+          <div className="rounded-2xl border border-zinc-800/50 bg-zinc-900 px-6 py-12 text-center">
+            <p className="text-base text-zinc-300">
               {searchQuery.trim()
                 ? "За вашим запитом нічого не знайдено"
                 : "У цій категорії поки немає страв"}
             </p>
-            <p className="mt-2 text-sm text-white/40">
+            <p className="mt-2 text-sm text-zinc-500">
               {searchQuery.trim()
                 ? "Спробуйте інший пошук або категорію"
                 : "Спробуйте обрати іншу категорію"}
@@ -605,24 +600,23 @@ export default function Home() {
         cart={cart}
         comment={comment}
         locationNote={locationNote}
-        paymentMethod={paymentMethod}
         isScheduledOrder={isScheduledOrder}
         scheduledFor={scheduledFor}
         onCommentChange={setComment}
         onLocationNoteChange={setLocationNote}
-        onPaymentMethodChange={setPaymentMethod}
-        onIsScheduledOrderChange={(value) => {
-          setIsScheduledOrder(value);
-          if (value && !scheduledFor) {
-            setScheduledFor(minScheduledDateTimeLocal());
-          }
-        }}
+        onIsScheduledOrderChange={setIsScheduledOrder}
         onScheduledForChange={setScheduledFor}
         onIncrement={incrementItem}
         onDecrement={decrementItem}
         onSubmit={submitOrder}
         isSubmitting={isSubmitting}
         total={cartTotal}
+      />
+
+      <FloatingCartBar
+        total={cartTotal}
+        visible={showFloatingCart}
+        onOpenCheckout={() => setCartOpen(true)}
       />
 
       <OrdersPanel
@@ -635,7 +629,7 @@ export default function Home() {
         onDismissToast={() => setOrderToast(null)}
         loading={ordersLoading}
         error={ordersError}
-        onRetry={() => syncOrders()}
+        onRetry={() => syncOrders({ silent: false })}
       />
     </div>
   );

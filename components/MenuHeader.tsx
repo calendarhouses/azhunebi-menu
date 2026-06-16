@@ -21,14 +21,14 @@ export default function MenuHeader({
   onOpenCart,
 }: MenuHeaderProps) {
   return (
-    <header className="sticky top-0 z-20 overflow-hidden border-b border-white/10 bg-[var(--brand-bg,#0a120e)]/90 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.12),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_40%)]" />
+    <header className="sticky top-0 z-20 border-b border-zinc-800/50 bg-zinc-950/90 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_50%)]" />
 
-      <div className="relative mx-auto max-w-3xl px-4 pb-4 pt-5">
+      <div className="relative mx-auto max-w-3xl px-4 pb-5 pt-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="mb-2 flex items-center gap-3">
-              <div className="relative h-14 w-14 overflow-hidden rounded-2xl border border-emerald-400/20 bg-[#0f2d1f] shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="relative h-14 w-14 overflow-hidden rounded-2xl border border-zinc-800/50 bg-zinc-900 shadow-lg shadow-black/20">
                 <Image
                   src={logoUrl}
                   alt="Аж у небі"
@@ -39,15 +39,15 @@ export default function MenuHeader({
                 />
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-amber-400/80">
+                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-amber-500/80">
                   Гірський комплекс
                 </p>
-                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                <h1 className="text-2xl font-semibold tracking-tight text-zinc-100 sm:text-3xl">
                   Аж у небі
                 </h1>
               </div>
             </div>
-            <p className="max-w-sm text-sm leading-relaxed text-white/50">
+            <p className="max-w-sm text-sm leading-relaxed text-zinc-400">
               Преміальне меню серед лісу та неба. Оберіть страви та оформіть замовлення за кілька дотиків.
             </p>
           </div>
@@ -57,7 +57,7 @@ export default function MenuHeader({
               <button
                 type="button"
                 onClick={onOpenOrders}
-                className="mt-1 flex h-12 min-w-12 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10 px-3 text-white transition hover:border-sky-400/40 active:scale-95"
+                className="mt-1 flex h-11 min-w-11 items-center justify-center rounded-2xl border border-zinc-800/50 bg-zinc-900 text-zinc-200 transition hover:border-zinc-700 active:scale-95"
                 aria-label="Мої замовлення"
               >
                 <span className="text-lg">📋</span>
@@ -67,7 +67,7 @@ export default function MenuHeader({
             {showAdminLink ? (
               <Link
                 href="/admin"
-                className="mt-1 flex h-12 min-w-12 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 text-white transition hover:border-emerald-400/40 active:scale-95"
+                className="mt-1 flex h-11 min-w-11 items-center justify-center rounded-2xl border border-zinc-800/50 bg-zinc-900 text-zinc-200 transition hover:border-zinc-700 active:scale-95"
                 aria-label="Адмін-панель"
               >
                 <span className="text-lg">⚙️</span>
@@ -77,12 +77,12 @@ export default function MenuHeader({
             <button
               type="button"
               onClick={onOpenCart}
-              className="relative mt-1 flex h-12 min-w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] px-3 text-white transition hover:border-amber-400/30 hover:bg-white/[0.08] active:scale-95"
+              className="relative mt-1 flex h-11 min-w-11 items-center justify-center rounded-2xl border border-zinc-800/50 bg-zinc-900 text-zinc-200 transition hover:border-amber-500/30 active:scale-95"
               aria-label="Відкрити кошик"
             >
               <span className="text-lg">🛒</span>
               {cartCount > 0 ? (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 animate-badge-pop items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-[#0a120e]">
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 animate-badge-pop items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-amber-950">
                   {cartCount}
                 </span>
               ) : null}

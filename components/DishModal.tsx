@@ -36,8 +36,8 @@ export default function DishModal({
         onClick={onClose}
       />
 
-      <div className="animate-sheet-up relative max-h-[92vh] overflow-hidden rounded-t-[28px] border border-white/10 bg-[#101812] shadow-2xl">
-        <div className="mx-auto mt-3 h-1 w-12 rounded-full bg-white/20" />
+      <div className="animate-sheet-up relative max-h-[92vh] overflow-hidden rounded-t-[28px] border border-zinc-800/50 bg-zinc-900 shadow-2xl">
+        <div className="mx-auto mt-3 h-1 w-12 rounded-full bg-zinc-700" />
 
         <div className="relative aspect-[16/10] overflow-hidden">
           {item.image_url ? (
@@ -50,7 +50,7 @@ export default function DishModal({
           ) : (
             <DishImage src="" alt={item.name} large className="h-full w-full" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#101812] via-[#101812]/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/20 to-transparent" />
           <button
             type="button"
             onClick={onClose}
@@ -64,31 +64,31 @@ export default function DishModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               {item.category ? (
-                <p className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-amber-400/75">
+                <p className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-amber-500/80">
                   {item.category}
                 </p>
               ) : null}
-              <h2 className="text-2xl font-semibold text-white">{item.name}</h2>
+              <h2 className="text-2xl font-semibold text-zinc-100">{item.name}</h2>
             </div>
-            <span className="rounded-full bg-amber-400/15 px-3 py-1.5 text-base font-semibold text-amber-300">
+            <span className="rounded-full bg-zinc-800 px-3 py-1.5 text-base font-medium text-white">
               {formatPrice(item.price)}
             </span>
           </div>
 
           {item.description ? (
-            <p className="text-sm leading-7 text-white/60">{item.description}</p>
+            <p className="text-sm leading-7 text-zinc-400">{item.description}</p>
           ) : (
-            <p className="text-sm text-white/40">Смачна страва від нашого шеф-кухаря</p>
+            <p className="text-sm text-zinc-500">Смачна страва від нашого шеф-кухаря</p>
           )}
 
           <div className="flex flex-wrap gap-2">
             {formatWeight(item.weight_g) ? (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/65">
+              <span className="rounded-full border border-zinc-800/50 bg-zinc-800/50 px-3 py-1 text-xs text-zinc-400">
                 ⚖ {formatWeight(item.weight_g)}
               </span>
             ) : null}
             {formatAllergens(item.allergens) ? (
-              <span className="rounded-full border border-amber-400/15 bg-amber-400/5 px-3 py-1 text-xs text-amber-100/80">
+              <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs text-amber-200/80">
                 ⚠ {formatAllergens(item.allergens)}
               </span>
             ) : null}
@@ -101,25 +101,25 @@ export default function DishModal({
                 triggerImpact("medium");
                 onAdd();
               }}
-              className="w-full rounded-2xl bg-amber-400 px-4 py-3.5 text-sm font-semibold text-[#0a120e] transition active:scale-[0.98]"
+              className="w-full rounded-2xl bg-amber-500 px-4 py-3.5 text-sm font-semibold text-amber-950 transition active:scale-[0.98]"
             >
               Додати до замовлення
             </button>
           ) : (
-            <div className="flex items-center justify-between rounded-2xl border border-amber-400/30 bg-amber-400/10 p-2">
+            <div className="flex items-center justify-between rounded-2xl border border-amber-500/20 bg-amber-500/10 p-2">
               <button
                 type="button"
                 onClick={() => {
                   triggerImpact("light");
                   onDecrement();
                 }}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0a120e]/40 text-xl font-semibold text-amber-300"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-950/60 text-xl font-semibold text-amber-400"
               >
                 −
               </button>
               <div className="text-center">
-                <p className="text-xs uppercase tracking-wide text-white/45">У кошику</p>
-                <p className="text-lg font-semibold text-white">{quantity}</p>
+                <p className="text-xs uppercase tracking-wide text-zinc-500">У кошику</p>
+                <p className="text-lg font-semibold text-zinc-100">{quantity}</p>
               </div>
               <button
                 type="button"
@@ -127,7 +127,7 @@ export default function DishModal({
                   triggerImpact("light");
                   onIncrement();
                 }}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-400 text-xl font-semibold text-[#0a120e]"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500 text-xl font-semibold text-amber-950"
               >
                 +
               </button>
