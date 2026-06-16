@@ -124,6 +124,7 @@ export default function PremiumCheckout({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
           {cart.length === 0 ? (
             <EmptyStateScreen
+              variant="cart"
               title="Ваш кошик сумує"
               subtitle="Додайте кілька страв, щоб ми почали готувати магію"
               onGoToMenu={onClose}
