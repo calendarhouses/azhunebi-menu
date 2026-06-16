@@ -7,6 +7,8 @@ type MenuHeaderProps = {
   logoUrl: string;
   cartCount: number;
   showAdminLink?: boolean;
+  showOrdersLink?: boolean;
+  onOpenOrders?: () => void;
   onOpenCart: () => void;
 };
 
@@ -14,6 +16,8 @@ export default function MenuHeader({
   logoUrl,
   cartCount,
   showAdminLink = false,
+  showOrdersLink = false,
+  onOpenOrders,
   onOpenCart,
 }: MenuHeaderProps) {
   return (
@@ -49,6 +53,17 @@ export default function MenuHeader({
           </div>
 
           <div className="flex items-center gap-2">
+            {showOrdersLink ? (
+              <button
+                type="button"
+                onClick={onOpenOrders}
+                className="mt-1 flex h-12 min-w-12 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10 px-3 text-white transition hover:border-sky-400/40 active:scale-95"
+                aria-label="Мої замовлення"
+              >
+                <span className="text-lg">📋</span>
+              </button>
+            ) : null}
+
             {showAdminLink ? (
               <Link
                 href="/admin"

@@ -2,6 +2,7 @@
 
 import { formatPrice } from "@/components/ImagePlaceholder";
 import type { CartItem } from "@/lib/cart";
+import { formatOrderDateTime, minScheduledDateTimeLocal } from "@/lib/orderStatus";
 import { useState } from "react";
 
 export type PaymentMethod = "cash" | "card";
@@ -13,9 +14,13 @@ type PremiumCheckoutProps = {
   comment: string;
   locationNote: string;
   paymentMethod: PaymentMethod;
+  isScheduledOrder: boolean;
+  scheduledFor: string;
   onCommentChange: (value: string) => void;
   onLocationNoteChange: (value: string) => void;
   onPaymentMethodChange: (value: PaymentMethod) => void;
+  onIsScheduledOrderChange: (value: boolean) => void;
+  onScheduledForChange: (value: string) => void;
   onIncrement: (itemId: string) => void;
   onDecrement: (itemId: string) => void;
   onSubmit: () => void;
@@ -32,9 +37,13 @@ export default function PremiumCheckout({
   comment,
   locationNote,
   paymentMethod,
+  isScheduledOrder,
+  scheduledFor,
   onCommentChange,
   onLocationNoteChange,
   onPaymentMethodChange,
+  onIsScheduledOrderChange,
+  onScheduledForChange,
   onIncrement,
   onDecrement,
   onSubmit,
@@ -63,6 +72,12 @@ export default function PremiumCheckout({
         window.Telegram?.WebApp.showAlert("Вкажіть номер столика або будиночка.");
         return;
       }
+
+      if (isScheduledOrder && !scheduledFor) {
+        window.Telegram?.WebApp.showAlert("Оберіть час подачі замовлення.");
+        return;
+      }
+
       setStep("confirm");
     }
   }
@@ -196,6 +211,45 @@ export default function PremiumCheckout({
                 />
               </label>
 
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={isScheduledOrder}
+                    onChange={(event) =>
+                      onIsScheduledOrderChange(event.target.checked)
+                    }
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-white">
+                      Замовлення наперед
+                    </span>
+                    <span className="mt-1 block text-xs text-white/45">
+                      Оберіть час подачі — «Готуємо» почнеться автоматично за
+                      1 годину до цього часу
+                    </span>
+                  </span>
+                </label>
+
+                {isScheduledOrder ? (
+                  <label className="mt-4 block">
+                    <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/45">
+                      Час подачі *
+                    </span>
+                    <input
+                      type="datetime-local"
+                      value={scheduledFor}
+                      min={minScheduledDateTimeLocal()}
+                      onChange={(event) =>
+                        onScheduledForChange(event.target.value)
+                      }
+                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-amber-400/40"
+                    />
+                  </label>
+                ) : null}
+              </div>
+
               <div>
                 <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-white/45">
                   Спосіб оплати
@@ -243,6 +297,16 @@ export default function PremiumCheckout({
                     Коментар
                   </p>
                   <p className="mt-1 text-sm text-white/75">{comment}</p>
+                </div>
+              ) : null}
+              {isScheduledOrder && scheduledFor ? (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-white/40">
+                    Час подачі
+                  </p>
+                  <p className="mt-1 text-sm text-white">
+                    {formatOrderDateTime(new Date(scheduledFor).toISOString())}
+                  </p>
                 </div>
               ) : null}
               <div>

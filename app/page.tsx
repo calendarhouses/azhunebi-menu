@@ -1,5 +1,6 @@
 "use client";
 
+import OrdersPanel from "@/components/OrdersPanel";
 import PremiumCheckout, { type PaymentMethod } from "@/components/PremiumCheckout";
 import CategoryBar from "@/components/CategoryBar";
 import DishCard from "@/components/DishCard";
@@ -10,6 +11,12 @@ import SearchBar from "@/components/SearchBar";
 import SkeletonCard from "@/components/SkeletonCard";
 import { resolveLogoUrl, type TenantSettings } from "@/lib/branding";
 import { checkAdminAccess } from "@/lib/adminApi";
+import { fetchActiveOrders } from "@/lib/ordersApi";
+import {
+  getStatusChangeMessage,
+  type OrderStatus,
+  type TrackedOrder,
+} from "@/lib/orderStatus";
 import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
@@ -18,6 +25,7 @@ import { supabase, TENANT_ID, type MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const ORDER_API_URL = "https://azhunebi-bot.vercel.app/api/order";
+const ORDER_POLL_MS = 7000;
 
 type CategoryFilter = string | "all";
 
@@ -33,6 +41,10 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdminLink, setShowAdminLink] = useState(false);
+  const [orders, setOrders] = useState<TrackedOrder[]>([]);
+  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [orderToast, setOrderToast] = useState<string | null>(null);
 
   const {
     cart,
@@ -43,6 +55,10 @@ export default function Home() {
     setLocationNote,
     paymentMethod,
     setPaymentMethod,
+    isScheduledOrder,
+    setIsScheduledOrder,
+    scheduledFor,
+    setScheduledFor,
     clearStoredCart,
   } = useCartStorage();
 
@@ -51,11 +67,21 @@ export default function Home() {
   const commentRef = useRef(comment);
   const locationNoteRef = useRef(locationNote);
   const paymentMethodRef = useRef(paymentMethod);
+  const isScheduledOrderRef = useRef(isScheduledOrder);
+  const scheduledForRef = useRef(scheduledFor);
+  const ordersRef = useRef<TrackedOrder[]>([]);
+  const ordersOpenRef = useRef(false);
 
   cartRef.current = cart;
   commentRef.current = comment;
   locationNoteRef.current = locationNote;
   paymentMethodRef.current = paymentMethod;
+  isScheduledOrderRef.current = isScheduledOrder;
+  scheduledForRef.current = scheduledFor;
+  ordersRef.current = orders;
+  ordersOpenRef.current = ordersOpen;
+
+  const showOrdersLink = orders.length > 0;
 
   const cartTotal = useMemo(() => getCartTotal(cart), [cart]);
   const cartCount = useMemo(() => getCartCount(cart), [cart]);
@@ -68,17 +94,70 @@ export default function Home() {
   }, [cart]);
 
   const handleBack = useCallback(() => {
+    if (ordersOpen) {
+      setOrdersOpen(false);
+      return;
+    }
     if (cartOpen) {
       setCartOpen(false);
       return;
     }
     setSelectedDish(null);
-  }, [cartOpen]);
+  }, [cartOpen, ordersOpen]);
 
   useTelegramApp({
-    backVisible: cartOpen || Boolean(selectedDish),
+    backVisible: ordersOpen || cartOpen || Boolean(selectedDish),
     onBack: handleBack,
   });
+
+  const syncOrders = useCallback(
+    async (options?: { openPanel?: boolean; focusOrderId?: string }) => {
+      try {
+        const nextOrders = await fetchActiveOrders();
+        const previousById = new Map(
+          ordersRef.current.map((order) => [order.id, order.status])
+        );
+
+        for (const order of nextOrders) {
+          const previousStatus = previousById.get(order.id);
+          if (!previousStatus || previousStatus === order.status) {
+            continue;
+          }
+
+          const message = getStatusChangeMessage(
+            previousStatus as OrderStatus,
+            order.status
+          );
+
+          if (message) {
+            setOrderToast(message);
+            triggerSuccess();
+          }
+        }
+
+        setOrders(nextOrders);
+
+        setSelectedOrderId((current) => {
+          if (options?.focusOrderId) {
+            return options.focusOrderId;
+          }
+
+          if (current && nextOrders.some((order) => order.id === current)) {
+            return current;
+          }
+
+          return nextOrders[0]?.id ?? null;
+        });
+
+        if (options?.openPanel) {
+          setOrdersOpen(true);
+        }
+      } catch {
+        // Ignore polling errors silently
+      }
+    },
+    []
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -141,6 +220,29 @@ export default function Home() {
     });
   }, []);
 
+  useEffect(() => {
+    syncOrders();
+
+    if (window.location.hash === "#orders") {
+      setOrdersOpen(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [syncOrders]);
+
+  useEffect(() => {
+    if (!window.Telegram?.WebApp?.initData) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (ordersRef.current.length > 0 || ordersOpenRef.current) {
+        syncOrders();
+      }
+    }, ORDER_POLL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [syncOrders]);
+
   const submitOrder = useCallback(async () => {
     const webApp = window.Telegram?.WebApp;
     if (!webApp || isSubmittingRef.current) {
@@ -167,6 +269,11 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
+      const scheduledPayload =
+        isScheduledOrderRef.current && scheduledForRef.current
+          ? new Date(scheduledForRef.current).toISOString()
+          : undefined;
+
       const response = await fetch(ORDER_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,6 +286,7 @@ export default function Home() {
           comment: commentRef.current.trim() || undefined,
           locationNote: currentLocation,
           paymentMethod: paymentMethodRef.current,
+          scheduledFor: scheduledPayload,
         }),
       });
 
@@ -192,9 +300,11 @@ export default function Home() {
       setCartOpen(false);
       setSelectedDish(null);
       triggerSuccess();
-      webApp.showAlert(
-        "Замовлення успішно відправлено! Статус можна переглянути в боті — /orders"
-      );
+      setOrderToast("Замовлення відправлено — очікуємо підтвердження");
+      await syncOrders({
+        openPanel: true,
+        focusOrderId: result.orderId as string,
+      });
     } catch {
       triggerError();
       webApp.showAlert("Не вдалося відправити замовлення. Спробуйте ще раз.");
@@ -202,7 +312,7 @@ export default function Home() {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
-  }, [clearStoredCart]);
+  }, [clearStoredCart, syncOrders]);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -334,10 +444,28 @@ export default function Home() {
 
   return (
     <div className="min-h-full bg-[var(--brand-bg,#0a120e)] text-white">
+      {orderToast && !ordersOpen ? (
+        <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-400/25 bg-[#101812]/95 px-4 py-3 shadow-xl backdrop-blur-md">
+          <p className="text-sm font-medium text-amber-100">{orderToast}</p>
+          <button
+            type="button"
+            onClick={() => setOrderToast(null)}
+            className="text-sm text-amber-100/70"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       <MenuHeader
         logoUrl={logoUrl}
         cartCount={cartCount}
         showAdminLink={showAdminLink}
+        showOrdersLink={showOrdersLink}
+        onOpenOrders={() => {
+          setOrdersOpen(true);
+          syncOrders();
+        }}
         onOpenCart={() => setCartOpen(true)}
       />
 
@@ -417,14 +545,28 @@ export default function Home() {
         comment={comment}
         locationNote={locationNote}
         paymentMethod={paymentMethod}
+        isScheduledOrder={isScheduledOrder}
+        scheduledFor={scheduledFor}
         onCommentChange={setComment}
         onLocationNoteChange={setLocationNote}
         onPaymentMethodChange={setPaymentMethod}
+        onIsScheduledOrderChange={setIsScheduledOrder}
+        onScheduledForChange={setScheduledFor}
         onIncrement={incrementItem}
         onDecrement={decrementItem}
         onSubmit={submitOrder}
         isSubmitting={isSubmitting}
         total={cartTotal}
+      />
+
+      <OrdersPanel
+        open={ordersOpen}
+        onClose={() => setOrdersOpen(false)}
+        orders={orders}
+        selectedOrderId={selectedOrderId}
+        onSelectOrder={setSelectedOrderId}
+        toastMessage={orderToast}
+        onDismissToast={() => setOrderToast(null)}
       />
     </div>
   );
