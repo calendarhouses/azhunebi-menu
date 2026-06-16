@@ -10,50 +10,64 @@ export function isTelegramWebApp() {
   return Boolean(getInitData());
 }
 
-export async function fetchActiveOrders(): Promise<TrackedOrder[]> {
+async function orderRequest<T>(
+  action: "list" | "get" | "create",
+  payload: Record<string, unknown> = {}
+): Promise<T> {
   const initData = getInitData();
 
-  if (!initData) {
+  if (!initData && action !== "create") {
+    throw new Error("Відкрийте меню через Telegram-бота.");
+  }
+
+  const response = await fetch(`${BOT_API_URL}?action=${action}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Azhunebi-Action": action,
+    },
+    body: JSON.stringify({ initData, action, ...payload }),
+  });
+
+  let result: { ok?: boolean; error?: string; version?: string } & T;
+
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error(`Сервер повернув некоректну відповідь (${response.status})`);
+  }
+
+  if (!response.ok || !result.ok) {
+    throw new Error(result.error || `Помилка API (${response.status})`);
+  }
+
+  return result;
+}
+
+export async function fetchActiveOrders(): Promise<TrackedOrder[]> {
+  if (!getInitData()) {
     return [];
   }
 
-  const response = await fetch(BOT_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ initData, action: "list" }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok || !result.ok) {
-    throw new Error(result.error || "Failed to load orders");
-  }
-
-  return (result.orders || []) as TrackedOrder[];
+  const result = await orderRequest<{ orders: TrackedOrder[] }>("list");
+  return result.orders || [];
 }
 
 export async function fetchOrderById(
   orderId: string
 ): Promise<TrackedOrder | null> {
-  const initData = getInitData();
-
-  if (!initData) {
+  if (!getInitData()) {
     return null;
   }
 
-  const response = await fetch(BOT_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ initData, action: "get", orderId }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok || !result.ok) {
+  try {
+    const result = await orderRequest<{ order: TrackedOrder }>("get", {
+      orderId,
+    });
+    return result.order;
+  } catch {
     return null;
   }
-
-  return result.order as TrackedOrder;
 }
 
 export type CreateOrderResponse = {
@@ -70,10 +84,13 @@ export async function createOrderRequest(payload: {
   paymentMethod: string;
   scheduledFor?: string;
 }) {
-  const response = await fetch(BOT_API_URL, {
+  const response = await fetch(`${BOT_API_URL}?action=create`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+      "X-Azhunebi-Action": "create",
+    },
+    body: JSON.stringify({ ...payload, action: "create" }),
   });
 
   const result = await response.json();
@@ -83,4 +100,13 @@ export async function createOrderRequest(payload: {
   }
 
   return result as CreateOrderResponse;
+}
+
+export async function checkBotApiVersion() {
+  const response = await fetch(`${BOT_API_URL}`, { method: "GET" });
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
