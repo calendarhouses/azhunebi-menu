@@ -12,7 +12,6 @@ import { useAppReady } from "@/components/AppReadyProvider";
 import {
   createOrderRequest,
   fetchActiveOrders,
-  fetchOrderById,
   isTelegramWebApp,
 } from "@/lib/ordersApi";
 import {
@@ -161,21 +160,20 @@ export default function Home() {
         );
         const activeById = new Map(activeOrders.map((o) => [o.id, o]));
 
-        // Detect orders that vanished from the active list — the backend drops
-        // cancelled orders from the "list" endpoint immediately. Fetch each one
-        // individually to get its real final status.
-        const disappearedIds = ordersRef.current
-          .filter((o) => !activeById.has(o.id) && o.status !== "cancelled")
-          .map((o) => o.id);
-
-        const fetchedOrphans = await Promise.all(
-          disappearedIds.map((id) => fetchOrderById(id))
-        );
-
-        const cancelledOrphans = fetchedOrphans.filter(
-          (o): o is NonNullable<typeof o> =>
-            o !== null && o.status === "cancelled" && !dismissedIds.has(o.id)
-        );
+        // The backend removes cancelled orders from the "active" list immediately,
+        // so they never appear with status "cancelled" in fetchActiveOrders.
+        // If an order was in progress (pending/accepted/preparing) and suddenly
+        // vanishes from the list, the only explanation is cancellation.
+        // We synthesise a "cancelled" record locally so the sad-bear screen shows.
+        const IN_PROGRESS_STATUSES = new Set(["pending", "accepted", "preparing"]);
+        const cancelledOrphans = ordersRef.current
+          .filter(
+            (o) =>
+              IN_PROGRESS_STATUSES.has(o.status) &&
+              !activeById.has(o.id) &&
+              !dismissedIds.has(o.id)
+          )
+          .map((o) => ({ ...o, status: "cancelled" as const }));
 
         const nextOrders = [...activeOrders, ...cancelledOrphans];
 
