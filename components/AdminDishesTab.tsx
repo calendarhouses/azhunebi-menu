@@ -2,10 +2,12 @@
 
 import AdminBottomSheet from "@/components/AdminBottomSheet";
 import AdminDishForm from "@/components/AdminDishForm";
+import DishImage from "@/components/DishImage";
 import { adminRequest } from "@/lib/adminApi";
+import { prefetchMenuImages } from "@/lib/prefetchMenuImages";
 import { useFlipList } from "@/lib/useFlipList";
 import type { MenuItemRow } from "@/lib/supabase";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type CategoryRow = { id: string; name: string; sort_order: number };
 
@@ -45,43 +47,6 @@ function Toggle({
   );
 }
 
-function DishThumbPlaceholder() {
-  return (
-    <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-brand-surface-elevated text-white/20">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />
-        <path d="M7 2v20" />
-        <path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
-      </svg>
-    </div>
-  );
-}
-
-function DishThumb({ src, name }: { src: string | null; name: string }) {
-  const [err, setErr] = useState(false);
-
-  if (!src || err) return <DishThumbPlaceholder />;
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={name}
-      className="h-12 w-12 shrink-0 rounded-lg object-cover transition-[filter,opacity] duration-300"
-      onError={() => setErr(true)}
-    />
-  );
-}
-
 function sortDishes(list: MenuItemRow[]) {
   return [...list].sort((a, b) => {
     if (a.is_available !== b.is_available) {
@@ -105,21 +70,27 @@ export default function AdminDishesTab({
 
   useEffect(() => {
     setLocalDishes(dishes);
+    void prefetchMenuImages(dishes);
   }, [dishes]);
 
   const categoryNames = Array.from(
     new Set(localDishes.map((d) => d.category).filter(Boolean))
   ) as string[];
 
-  const filtered = useMemo(() => {
-    const base =
-      filterCategory === "all"
-        ? localDishes
-        : localDishes.filter((d) => d.category === filterCategory);
-    return sortDishes(base);
-  }, [localDishes, filterCategory]);
+  const sorted = useMemo(() => sortDishes(localDishes), [localDishes]);
 
-  const { setItemRef } = useFlipList(filtered);
+  const visibleDishes = useMemo(() => {
+    if (filterCategory === "all") return sorted;
+    return sorted.filter((d) => d.category === filterCategory);
+  }, [sorted, filterCategory]);
+
+  const isDishVisible = useCallback(
+    (dish: MenuItemRow) =>
+      filterCategory === "all" || dish.category === filterCategory,
+    [filterCategory]
+  );
+
+  const { setItemRef } = useFlipList(sorted);
 
   function openAdd() {
     setEditingDish(null);
@@ -222,70 +193,84 @@ export default function AdminDishesTab({
         </div>
       )}
 
-      {filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-white/30">
-          {filterCategory === "all"
-            ? "Страв ще немає"
-            : "У цій категорії немає страв"}
-        </p>
+      {localDishes.length === 0 ? (
+        <p className="py-8 text-center text-sm text-white/30">Страв ще немає</p>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((dish) => (
-            <div
-              key={dish.id}
-              ref={setItemRef(dish.id)}
-              className={`admin-list-card flex items-center gap-3 rounded-xl bg-brand-surface p-3 ${
-                dish.is_available ? "" : "admin-list-card--inactive"
-              }`}
-            >
-              <DishThumb src={dish.image_url} name={dish.name} />
+        <>
+          {visibleDishes.length === 0 ? (
+            <p className="py-8 text-center text-sm text-white/30">
+              У цій категорії немає страв
+            </p>
+          ) : null}
 
-              <div className="min-w-0 flex-1">
-                <p
-                  className={`truncate text-sm font-semibold transition-colors duration-300 ${
-                    dish.is_available ? "text-white" : "text-white/45"
-                  }`}
-                >
-                  {dish.name}
-                  {!dish.is_available && (
-                    <span className="ml-2 text-xs font-normal text-red-400/80">
-                      стоп
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-white/35">
-                  {dish.price} ₴
-                  {dish.weight_g ? ` • ${dish.weight_g} г` : ""}
-                  {dish.category ? ` • ${dish.category}` : ""}
-                </p>
-              </div>
+          <div
+            className={`space-y-2 ${visibleDishes.length === 0 ? "hidden" : ""}`}
+          >
+            {sorted.map((dish) => (
+              <div
+                key={dish.id}
+                ref={setItemRef(dish.id)}
+                className={`admin-list-card flex items-center gap-3 rounded-xl bg-brand-surface p-3 ${
+                  dish.is_available ? "" : "admin-list-card--inactive"
+                } ${isDishVisible(dish) ? "" : "hidden"}`}
+                aria-hidden={!isDishVisible(dish)}
+              >
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+                  <DishImage
+                    src={dish.image_url || ""}
+                    alt={dish.name}
+                    compact
+                    className="h-full w-full object-cover"
+                  />
+                </div>
 
-              <div className="flex items-center gap-2.5">
-                <Toggle
-                  checked={dish.is_available}
-                  disabled={togglingId === dish.id}
-                  onChange={() => handleToggleAvailable(dish)}
-                />
-                <button
-                  type="button"
-                  onClick={() => openEdit(dish)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-brand-surface-elevated text-white/40 transition hover:text-brand-accent"
-                  aria-label="Редагувати"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-4 w-4"
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`truncate text-sm font-semibold transition-colors duration-300 ${
+                      dish.is_available ? "text-white" : "text-white/45"
+                    }`}
                   >
-                    <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
-                    <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
-                  </svg>
-                </button>
+                    {dish.name}
+                    {!dish.is_available && (
+                      <span className="ml-2 text-xs font-normal text-red-400/80">
+                        стоп
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-white/35">
+                    {dish.price} ₴
+                    {dish.weight_g ? ` • ${dish.weight_g} г` : ""}
+                    {dish.category ? ` • ${dish.category}` : ""}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <Toggle
+                    checked={dish.is_available}
+                    disabled={togglingId === dish.id}
+                    onChange={() => handleToggleAvailable(dish)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openEdit(dish)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-brand-surface-elevated text-white/40 transition hover:text-brand-accent"
+                    aria-label="Редагувати"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-4 w-4"
+                    >
+                      <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       <AdminBottomSheet

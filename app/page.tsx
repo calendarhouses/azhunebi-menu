@@ -266,6 +266,16 @@ export default function Home() {
   const fetchData = refreshMenu;
 
   useEffect(() => {
+    void refreshMenu();
+  }, [refreshMenu]);
+
+  useEffect(() => {
+    if (activeCategory !== "all" && !categories.includes(activeCategory)) {
+      setActiveCategory("all");
+    }
+  }, [activeCategory, categories]);
+
+  useEffect(() => {
     let cancelled = false;
     let attempts = 0;
 

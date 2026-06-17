@@ -8,7 +8,9 @@ import {
   checkAdminAccess,
   loadAdminPanelData,
 } from "@/lib/adminApi";
+import { prefetchMenuImages } from "@/lib/prefetchMenuImages";
 import { useTelegramApp } from "@/lib/useTelegramApp";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import type { MenuItemRow } from "@/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -57,17 +59,20 @@ export default function AdminPage() {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   useTelegramApp({ backVisible: true, onBack: () => window.history.back() });
+  useBodyScrollLock(true);
 
   const loadAdminData = useCallback(async () => {
     setLoadError(null);
 
     try {
       const data = await loadAdminPanelData();
-      setDishes((data.dishes || []) as MenuItemRow[]);
+      const dishList = (data.dishes || []) as MenuItemRow[];
+      setDishes(dishList);
       setCategories((data.categories || []) as CategoryRow[]);
       setAdmins((data.admins || []) as AdminRow[]);
       setCanManageAdmins(Boolean(data.canManageAdmins));
       setTelegramUsername(data.username || null);
+      void prefetchMenuImages(dishList);
     } catch (err) {
       setLoadError(
         err instanceof Error ? err.message : "Не вдалося завантажити дані"
@@ -165,7 +170,7 @@ export default function AdminPage() {
   if (canManageAdmins) tabs.push(["access", "Доступ"]);
 
   return (
-    <div className="min-h-screen bg-brand-bg text-white">
+    <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-white">
       {/* Toast */}
       {toast && (
         <div className="pointer-events-none fixed left-0 right-0 top-4 z-[200] flex justify-center px-4">
@@ -185,7 +190,7 @@ export default function AdminPage() {
       )}
 
       {/* Header */}
-      <header className="border-b border-white/10 bg-brand-surface">
+      <header className="shrink-0 border-b border-white/10 bg-brand-surface">
         <div className="mx-auto flex max-w-6xl items-start justify-between gap-4 px-4 py-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-brand-accent/70">
@@ -209,6 +214,7 @@ export default function AdminPage() {
         </div>
       </header>
 
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-none touch-pan-y">
       <div className="mx-auto max-w-6xl px-4 py-6">
         {/* iOS-style segmented control */}
         <div className="mb-6 inline-flex rounded-xl bg-white/5 p-1">
@@ -326,6 +332,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

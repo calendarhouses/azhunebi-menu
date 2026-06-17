@@ -82,10 +82,19 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
 
     bootstrap();
 
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshMenu();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [refreshMenu]);
 
   const value = useMemo(
     () => ({

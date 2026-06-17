@@ -8,6 +8,12 @@ export type MenuDataResult = {
   error: boolean;
 };
 
+type CategoryRow = {
+  name: string;
+  sort_order: number;
+  is_active?: boolean;
+};
+
 export async function fetchMenuData(): Promise<MenuDataResult> {
   const [menuResult, categoriesResult, settingsResult] = await Promise.all([
     supabase
@@ -18,13 +24,12 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
       .order("created_at", { ascending: true }),
     supabase
       .from("categories")
-      .select("name, sort_order")
+      .select("name, sort_order, is_active")
       .eq("tenant_id", TENANT_ID)
-      .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase
       .from("tenant_settings")
-      .select("tenant_id, logo_url")
+      .select("tenant_id")
       .eq("tenant_id", TENANT_ID)
       .maybeSingle(),
   ]);
@@ -40,23 +45,23 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
 
   const menuItemsRaw = (menuResult.data || []) as MenuItemRow[];
 
-  let categories: string[];
-  if (!categoriesResult.error && categoriesResult.data?.length) {
-    categories = categoriesResult.data.map((row) => row.name);
-  } else {
-    categories = [
-      ...new Set(
-        menuItemsRaw
-          .map((item) => item.category)
-          .filter((value): value is string => Boolean(value))
-      ),
-    ];
+  // Build active category list — never fall back to "all item categories"
+  let categories: string[] = [];
+
+  if (!categoriesResult.error && categoriesResult.data) {
+    categories = (categoriesResult.data as CategoryRow[])
+      .filter((row) => row.is_active !== false)
+      .map((row) => row.name);
   }
 
   const activeCategorySet = new Set(categories);
-  const menuItems = menuItemsRaw.filter(
-    (item) => !item.category || activeCategorySet.has(item.category)
-  );
+
+  const menuItems = menuItemsRaw.filter((item) => {
+    if (item.is_available === false) return false;
+    if (!item.category) return true;
+    // Hide dishes from inactive / unknown categories
+    return activeCategorySet.has(item.category);
+  });
 
   const logoUrl =
     !settingsResult.error && settingsResult.data
