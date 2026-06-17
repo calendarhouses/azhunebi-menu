@@ -1,5 +1,5 @@
 // Renders a premium receipt card to JPEG (base64) via html2canvas.
-// Brand palette matches app/globals.css — inline hex/rgb only for html2canvas.
+// Layout: CSS Grid (1fr auto) per row + fixed 24×24 icon column.
 
 export type OrderCardItem = {
   name: string;
@@ -20,11 +20,11 @@ const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
 const TEXT = 19;
+const LH = "1.3";
 
 const C = {
   bg: "#221f1c",
   card: "#2f2b27",
-  panel: "#3a3530",
   white: "#fafaf9",
   muted: "#a8a29e",
   accent: "#c4a574",
@@ -33,10 +33,8 @@ const C = {
   accentBorder: "rgba(196,165,116,0.28)",
 };
 
-/** Strict icon+text row — flex only, no margin-top / position hacks. */
-const FLEX_ROW = "display:flex;align-items:center;gap:10px";
-
-/** Divider with breathing room above and below. */
+const GRID_ROW = "display:grid;grid-template-columns:1fr auto;align-items:center";
+const RIGHT = "font-weight:700;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums";
 const DIVIDER = "margin:20px 0;border-bottom:1px solid rgba(255,255,255,0.1)";
 
 const ICON_PATHS = {
@@ -48,8 +46,25 @@ const ICON_PATHS = {
   chat: '<path d="M7 18l-3 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9.5L7 18z"/>',
 };
 
-function iconSvg(paths: string, size = 20): string {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${paths}</svg>`;
+function iconBox(paths: string): string {
+  return `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${paths}</svg></span>`;
+}
+
+function leftCell(iconPaths: string, label: string, labelColor = C.muted): string {
+  return `<span style="display:flex;align-items:center;gap:8px;min-width:0">${iconBox(iconPaths)}<span style="font-size:${TEXT}px;font-weight:500;color:${labelColor};line-height:${LH}">${label}</span></span>`;
+}
+
+function gridRow(
+  leftHtml: string,
+  rightHtml: string,
+  gap: number,
+  rowStyle = ""
+): string {
+  return `<div style="${GRID_ROW};gap:${gap}px;${rowStyle}">${leftHtml}${rightHtml}</div>`;
+}
+
+function rightCell(value: string, color = C.white, size = TEXT): string {
+  return `<span style="font-size:${size}px;color:${color};${RIGHT};line-height:${LH}">${value}</span>`;
 }
 
 function esc(value: string): string {
@@ -80,28 +95,28 @@ function formatDateTime(iso?: string | null): string {
   });
 }
 
-function metaRow(iconKey: keyof typeof ICON_PATHS, label: string, value: string): string {
-  return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-      <div style="${FLEX_ROW}">
-        ${iconSvg(ICON_PATHS[iconKey])}
-        <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted}">${label}</span>
-      </div>
-      <span style="font-size:${TEXT}px;font-weight:600;color:${C.white};white-space:nowrap;font-variant-numeric:tabular-nums">${value}</span>
-    </div>`;
+function metaRow(
+  iconKey: keyof typeof ICON_PATHS,
+  label: string,
+  value: string
+): string {
+  return gridRow(
+    leftCell(ICON_PATHS[iconKey], label),
+    rightCell(value),
+    20,
+    "padding:8px 0"
+  );
 }
 
 function itemRow(item: OrderCardItem, isLast: boolean): string {
   const lineTotal = item.price * item.quantity;
   const border = isLast
     ? ""
-    : "border-bottom:1px solid rgba(255,255,255,0.1);";
+    : "border-bottom:1px solid rgba(255,255,255,0.08);";
 
-  return `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;${border}">
-      <span style="font-size:${TEXT}px;font-weight:500;color:${C.white};min-width:0;flex:1">${esc(item.name)}<span style="color:${C.muted}"> ×${item.quantity}</span></span>
-      <span style="font-size:${TEXT}px;font-weight:600;color:${C.white};white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums">${lineTotal} ₴</span>
-    </div>`;
+  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.white};line-height:${LH};min-width:0">${esc(item.name)} <span style="opacity:0.5">×${item.quantity}</span></span>`;
+
+  return gridRow(left, rightCell(`${lineTotal} ₴`), 16, `padding:12px 0;${border}`);
 }
 
 function buildCardHtml(data: OrderCardData): string {
@@ -122,49 +137,46 @@ function buildCardHtml(data: OrderCardData): string {
   const commentBlock = data.comment
     ? `
     <div style="${DIVIDER}"></div>
-    <div style="${FLEX_ROW}">
-      ${iconSvg(ICON_PATHS.chat)}
-      <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted};flex:1">${esc(data.comment)}</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      ${iconBox(ICON_PATHS.chat)}
+      <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted};line-height:${LH};flex:1;min-width:0">${esc(data.comment)}</span>
     </div>`
     : "";
 
   return `
   <div style="width:800px;padding:36px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
-    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:20px;overflow:hidden">
+    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:20px;overflow:hidden;box-sizing:border-box">
 
       <div style="height:3px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
 
-      <div style="padding:30px 32px 34px">
+      <div style="padding:30px 32px 34px;font-family:${FONT};line-height:${LH};box-sizing:border-box">
 
-        <!-- Header: title + badge -->
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="${FLEX_ROW}">
-            ${iconSvg(ICON_PATHS.order, 22)}
-            <span style="font-size:26px;font-weight:700;color:${C.white}">Нове замовлення</span>
-          </div>
-          <span style="padding:8px 16px;border-radius:999px;font-size:${TEXT}px;font-weight:600;color:${C.accent};background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap">${badge}</span>
+          <span style="display:flex;align-items:center;gap:10px">
+            ${iconBox(ICON_PATHS.order)}
+            <span style="font-size:26px;font-weight:700;color:${C.white};line-height:${LH}">Нове замовлення</span>
+          </span>
+          <span style="padding:6px 14px;border-radius:20px;font-size:${TEXT}px;font-weight:600;color:${C.accent};background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap;line-height:${LH}">${badge}</span>
         </div>
 
-        <!-- Guest name -->
-        <div style="${FLEX_ROW};margin-top:20px">
-          ${iconSvg(ICON_PATHS.user)}
-          <span style="font-size:${TEXT}px;font-weight:600;color:${C.white}">${esc(data.guestName || "Гість")}</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:20px">
+          ${iconBox(ICON_PATHS.user)}
+          <span style="font-size:${TEXT}px;font-weight:600;color:${C.white};line-height:${LH}">${esc(data.guestName || "Гість")}</span>
         </div>
 
         <div style="${DIVIDER}"></div>
 
         ${metaRows}
 
-        <!-- Items panel -->
-        <div style="background:${C.panel};border-radius:12px;padding:0 16px;margin-bottom:24px">
+        <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:4px 16px;margin-bottom:24px;box-sizing:border-box">
           ${itemsHtml}
         </div>
 
-        <!-- Total -->
         <div style="${DIVIDER}"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:24px;font-weight:700;color:${C.white}">Сума</span>
-          <span style="font-size:26px;font-weight:700;color:${C.accent};font-variant-numeric:tabular-nums">${data.total} ₴</span>
+
+        <div style="${GRID_ROW};gap:16px;margin-top:16px">
+          <span style="font-size:24px;font-weight:800;color:${C.white};line-height:${LH}">Сума</span>
+          <span style="font-size:22px;font-weight:900;color:${C.accent};${RIGHT};line-height:${LH}">${data.total} ₴</span>
         </div>
 
         ${commentBlock}
