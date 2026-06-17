@@ -20,6 +20,7 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
       .from("categories")
       .select("name, sort_order")
       .eq("tenant_id", TENANT_ID)
+      .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase
       .from("tenant_settings")
@@ -37,7 +38,7 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
     };
   }
 
-  const menuItems = (menuResult.data || []) as MenuItemRow[];
+  const menuItemsRaw = (menuResult.data || []) as MenuItemRow[];
 
   let categories: string[];
   if (!categoriesResult.error && categoriesResult.data?.length) {
@@ -45,12 +46,17 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
   } else {
     categories = [
       ...new Set(
-        menuItems
+        menuItemsRaw
           .map((item) => item.category)
           .filter((value): value is string => Boolean(value))
       ),
     ];
   }
+
+  const activeCategorySet = new Set(categories);
+  const menuItems = menuItemsRaw.filter(
+    (item) => !item.category || activeCategorySet.has(item.category)
+  );
 
   const logoUrl =
     !settingsResult.error && settingsResult.data

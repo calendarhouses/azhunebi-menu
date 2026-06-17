@@ -1,58 +1,40 @@
-const MAX_DIMENSION = 800;
+const TARGET_BYTES = 80 * 1024; // 80 KB — sweet spot for menu photos
+const INITIAL_MAX_DIMENSION = 640;
+const MIN_MAX_DIMENSION = 360;
+const INITIAL_QUALITY = 0.72;
+const MIN_QUALITY = 0.42;
 
-/**
- * Converts any browser-readable image file (JPG, PNG, HEIC on iOS, etc.)
- * to a WebP Blob using an off-screen Canvas at ≤800px and quality 0.7.
- * Target size: 50–100 KB. Throws if the browser can't encode WebP.
- */
-export async function convertToWebP(
-  file: File,
-  quality = 0.7
-): Promise<Blob> {
+function scaleDimensions(
+  width: number,
+  height: number,
+  maxDimension: number
+): { w: number; h: number } {
+  let w = width;
+  let h = height;
+
+  if (w <= maxDimension && h <= maxDimension) {
+    return { w, h };
+  }
+
+  if (w >= h) {
+    h = Math.round((h * maxDimension) / w);
+    w = maxDimension;
+  } else {
+    w = Math.round((w * maxDimension) / h);
+    h = maxDimension;
+  }
+
+  return { w, h };
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
 
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
-
-      let w = img.naturalWidth;
-      let h = img.naturalHeight;
-
-      // Scale down proportionally if the image is too large
-      if (w > MAX_DIMENSION || h > MAX_DIMENSION) {
-        if (w >= h) {
-          h = Math.round((h * MAX_DIMENSION) / w);
-          w = MAX_DIMENSION;
-        } else {
-          w = Math.round((w * MAX_DIMENSION) / h);
-          h = MAX_DIMENSION;
-        }
-      }
-
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Canvas 2D context unavailable"));
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, w, h);
-
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error("WebP conversion failed (toBlob returned null)"));
-          }
-        },
-        "image/webp",
-        quality
-      );
+      resolve(img);
     };
 
     img.onerror = () => {
@@ -62,6 +44,82 @@ export async function convertToWebP(
 
     img.src = objectUrl;
   });
+}
+
+function encodeWebP(
+  canvas: HTMLCanvasElement,
+  quality: number
+): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob(resolve, "image/webp", quality);
+  });
+}
+
+/**
+ * Converts any browser-readable image to WebP, iteratively reducing
+ * quality and dimensions until the blob is ≤80 KB (or min limits hit).
+ */
+export async function convertToWebP(file: File): Promise<Blob> {
+  const img = await loadImage(file);
+
+  let maxDimension = INITIAL_MAX_DIMENSION;
+  let quality = INITIAL_QUALITY;
+
+  while (maxDimension >= MIN_MAX_DIMENSION) {
+    while (quality >= MIN_QUALITY) {
+      const { w, h } = scaleDimensions(
+        img.naturalWidth,
+        img.naturalHeight,
+        maxDimension
+      );
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Canvas 2D context unavailable");
+      }
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const blob = await encodeWebP(canvas, quality);
+      if (!blob) {
+        throw new Error("WebP conversion failed (toBlob returned null)");
+      }
+
+      if (blob.size <= TARGET_BYTES) {
+        return blob;
+      }
+
+      quality = Math.round((quality - 0.08) * 100) / 100;
+    }
+
+    maxDimension = Math.round(maxDimension * 0.82);
+    quality = INITIAL_QUALITY;
+  }
+
+  // Last resort — smallest settings
+  const { w, h } = scaleDimensions(
+    img.naturalWidth,
+    img.naturalHeight,
+    MIN_MAX_DIMENSION
+  );
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, w, h);
+
+  const blob = await encodeWebP(canvas, MIN_QUALITY);
+  if (!blob) throw new Error("WebP conversion failed");
+  return blob;
 }
 
 /** Returns a human-readable file size string, e.g. "142 KB". */

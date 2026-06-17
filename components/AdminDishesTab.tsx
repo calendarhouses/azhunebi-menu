@@ -3,8 +3,9 @@
 import AdminBottomSheet from "@/components/AdminBottomSheet";
 import AdminDishForm from "@/components/AdminDishForm";
 import { adminRequest } from "@/lib/adminApi";
+import { useFlipList } from "@/lib/useFlipList";
 import type { MenuItemRow } from "@/lib/supabase";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type CategoryRow = { id: string; name: string; sort_order: number };
 
@@ -18,22 +19,25 @@ type Props = {
 function Toggle({
   checked,
   onChange,
+  disabled,
 }: {
   checked: boolean;
   onChange: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onChange}
+      disabled={disabled}
       role="switch"
       aria-checked={checked}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none disabled:opacity-50 ${
         checked ? "bg-brand-accent" : "bg-white/15"
       }`}
     >
       <span
-        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           checked ? "translate-x-6" : "translate-x-1"
         }`}
       />
@@ -72,10 +76,19 @@ function DishThumb({ src, name }: { src: string | null; name: string }) {
     <img
       src={src}
       alt={name}
-      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+      className="h-12 w-12 shrink-0 rounded-lg object-cover transition-[filter,opacity] duration-300"
       onError={() => setErr(true)}
     />
   );
+}
+
+function sortDishes(list: MenuItemRow[]) {
+  return [...list].sort((a, b) => {
+    if (a.is_available !== b.is_available) {
+      return a.is_available ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name, "uk");
+  });
 }
 
 export default function AdminDishesTab({
@@ -84,20 +97,29 @@ export default function AdminDishesTab({
   onRefresh,
   onStatus,
 }: Props) {
+  const [localDishes, setLocalDishes] = useState(dishes);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [modalOpen, setModalOpen] = useState(false);
-  // null = add mode, MenuItemRow = edit mode
   const [editingDish, setEditingDish] = useState<MenuItemRow | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  useEffect(() => {
+    setLocalDishes(dishes);
+  }, [dishes]);
+
   const categoryNames = Array.from(
-    new Set(dishes.map((d) => d.category).filter(Boolean))
+    new Set(localDishes.map((d) => d.category).filter(Boolean))
   ) as string[];
 
-  const filtered =
-    filterCategory === "all"
-      ? dishes
-      : dishes.filter((d) => d.category === filterCategory);
+  const filtered = useMemo(() => {
+    const base =
+      filterCategory === "all"
+        ? localDishes
+        : localDishes.filter((d) => d.category === filterCategory);
+    return sortDishes(base);
+  }, [localDishes, filterCategory]);
+
+  const { setItemRef } = useFlipList(filtered);
 
   function openAdd() {
     setEditingDish(null);
@@ -115,7 +137,14 @@ export default function AdminDishesTab({
 
   async function handleToggleAvailable(dish: MenuItemRow) {
     if (togglingId) return;
+
+    const nextAvailable = !dish.is_available;
     setTogglingId(dish.id);
+    setLocalDishes((prev) =>
+      prev.map((d) =>
+        d.id === dish.id ? { ...d, is_available: nextAvailable } : d
+      )
+    );
 
     try {
       await adminRequest("saveDish", {
@@ -127,10 +156,14 @@ export default function AdminDishesTab({
         image_url: dish.image_url,
         allergens: dish.allergens,
         weight_g: dish.weight_g,
-        is_available: !dish.is_available,
+        is_available: nextAvailable,
       });
-      await onRefresh();
     } catch (error) {
+      setLocalDishes((prev) =>
+        prev.map((d) =>
+          d.id === dish.id ? { ...d, is_available: !nextAvailable } : d
+        )
+      );
       onStatus(error instanceof Error ? error.message : "Помилка оновлення");
     } finally {
       setTogglingId(null);
@@ -151,7 +184,6 @@ export default function AdminDishesTab({
 
   return (
     <>
-      {/* Add button */}
       <button
         type="button"
         onClick={openAdd}
@@ -160,7 +192,6 @@ export default function AdminDishesTab({
         + Додати нову страву
       </button>
 
-      {/* Category filter pills */}
       {categoryNames.length > 0 && (
         <div className="scrollbar-hide -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
           <button
@@ -191,7 +222,6 @@ export default function AdminDishesTab({
         </div>
       )}
 
-      {/* Dish list */}
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-white/30">
           {filterCategory === "all"
@@ -203,19 +233,22 @@ export default function AdminDishesTab({
           {filtered.map((dish) => (
             <div
               key={dish.id}
-              className="flex items-center gap-3 rounded-xl bg-brand-surface p-3"
+              ref={setItemRef(dish.id)}
+              className={`admin-list-card flex items-center gap-3 rounded-xl bg-brand-surface p-3 ${
+                dish.is_available ? "" : "admin-list-card--inactive"
+              }`}
             >
               <DishThumb src={dish.image_url} name={dish.name} />
 
               <div className="min-w-0 flex-1">
                 <p
-                  className={`truncate text-sm font-semibold ${
-                    dish.is_available ? "text-white" : "text-white/40"
+                  className={`truncate text-sm font-semibold transition-colors duration-300 ${
+                    dish.is_available ? "text-white" : "text-white/45"
                   }`}
                 >
                   {dish.name}
                   {!dish.is_available && (
-                    <span className="ml-2 text-xs font-normal text-red-400">
+                    <span className="ml-2 text-xs font-normal text-red-400/80">
                       стоп
                     </span>
                   )}
@@ -230,6 +263,7 @@ export default function AdminDishesTab({
               <div className="flex items-center gap-2.5">
                 <Toggle
                   checked={dish.is_available}
+                  disabled={togglingId === dish.id}
                   onChange={() => handleToggleAvailable(dish)}
                 />
                 <button
@@ -254,7 +288,6 @@ export default function AdminDishesTab({
         </div>
       )}
 
-      {/* Animated bottom sheet */}
       <AdminBottomSheet
         open={modalOpen}
         onClose={closeModal}
