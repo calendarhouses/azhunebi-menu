@@ -1,8 +1,8 @@
 "use client";
 
-import { ClockIcon, PickupIcon } from "@/components/HeaderIcons";
+import { PickupIcon } from "@/components/HeaderIcons";
 import Lottie from "lottie-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   ORDER_STEPS,
   formatOrderDateTime,
@@ -16,14 +16,6 @@ type OrderStepperProps = {
 };
 
 const LOTTIE_BASE_PATH = "/azhunebi-menu";
-
-function DetailIconTile({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
-      {children}
-    </span>
-  );
-}
 
 export default function OrderStepper({ order, onDismissCancelled }: OrderStepperProps) {
   const [badAnimation, setBadAnimation] = useState<object | null>(null);
@@ -147,18 +139,6 @@ export default function OrderStepper({ order, onDismissCancelled }: OrderStepper
           );
         })}
       </div>
-
-      {order.scheduledFor && order.status === "accepted" ? (
-        <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-brand-accent/15 bg-brand-accent/5 px-4 py-3 text-xs leading-relaxed text-stone-200/90 transition-all duration-300">
-          <DetailIconTile>
-            <ClockIcon />
-          </DetailIconTile>
-          <p>
-            Подача о {formatOrderDateTime(order.scheduledFor)}. Статус «Готуємо»
-            увімкнеться автоматично за 1 годину до цього часу.
-          </p>
-        </div>
-      ) : null}
 
       {order.status === "ready" ? (
         <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition-all duration-300">

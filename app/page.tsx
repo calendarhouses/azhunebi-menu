@@ -37,6 +37,7 @@ import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const ORDER_POLL_MS = 5000;
+const ORPHAN_CANCEL_THRESHOLD = 3;
 
 type CategoryFilter = string | "all";
 
@@ -84,6 +85,7 @@ export default function Home() {
   const scheduledForRef = useRef(scheduledFor);
   const ordersRef = useRef<TrackedOrder[]>([]);
   const ordersLoadedOnceRef = useRef(false);
+  const orphanMissCountsRef = useRef<Map<string, number>>(new Map());
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -181,14 +183,36 @@ export default function Home() {
           activeOrders = [...activeById.values()];
         }
 
-        // If an in-progress order vanishes from the API, treat as cancelled locally.
+        // If an in-progress order vanishes from the API repeatedly, treat as cancelled.
         const IN_PROGRESS_STATUSES = new Set(["pending", "accepted", "preparing"]);
+        const trackedIds = new Set(ordersRef.current.map((o) => o.id));
+
+        for (const id of trackedIds) {
+          const order = ordersRef.current.find((o) => o.id === id);
+          if (
+            !order ||
+            !IN_PROGRESS_STATUSES.has(order.status) ||
+            activeById.has(id) ||
+            dismissedIds.has(id)
+          ) {
+            orphanMissCountsRef.current.delete(id);
+            continue;
+          }
+
+          orphanMissCountsRef.current.set(
+            id,
+            (orphanMissCountsRef.current.get(id) || 0) + 1
+          );
+        }
+
         const cancelledOrphans = ordersRef.current
           .filter(
             (o) =>
               IN_PROGRESS_STATUSES.has(o.status) &&
               !activeById.has(o.id) &&
-              !dismissedIds.has(o.id)
+              !dismissedIds.has(o.id) &&
+              (orphanMissCountsRef.current.get(o.id) || 0) >=
+                ORPHAN_CANCEL_THRESHOLD
           )
           .map((o) => ({ ...o, status: "cancelled" as const }));
 
@@ -445,6 +469,7 @@ export default function Home() {
           : "Не вдалося відправити замовлення. Спробуйте ще раз.";
       console.error("[submitOrder] order submission failed", error);
       webApp.showAlert(message);
+      throw error;
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
