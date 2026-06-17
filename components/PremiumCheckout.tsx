@@ -1,7 +1,6 @@
 "use client";
 
 import EmptyStateScreen from "@/components/EmptyStateScreen";
-import { CheckoutIcon } from "@/components/HeaderIcons";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
 import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
@@ -168,14 +167,9 @@ export default function PremiumCheckout({
 
           {cart.length > 0 ? (
             <div className="relative flex items-center justify-between px-5 pb-3 pt-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20">
-                  <CheckoutIcon />
-                </span>
-                <h2 className="text-base font-semibold uppercase tracking-[0.14em] text-stone-50">
-                  Ваше замовлення
-                </h2>
-              </div>
+              <h2 className="text-base font-semibold text-stone-50">
+                Ваше замовлення
+              </h2>
               <button
                 type="button"
                 onClick={onClose}
@@ -323,7 +317,10 @@ export default function PremiumCheckout({
               <div className="mx-auto h-[min(68vw,280px)] w-[min(68vw,280px)] animate-sheet-up rounded-full bg-brand-accent/15" />
             )}
             <p className="mt-3 animate-sheet-up text-2xl font-bold tracking-tight text-stone-50">
-              Є! Чекайте на підтвердження!
+              Є!
+            </p>
+            <p className="mt-1 animate-sheet-up text-xl font-semibold text-stone-200">
+              Чекайте на підтвердження!
             </p>
           </div>
         ) : null}

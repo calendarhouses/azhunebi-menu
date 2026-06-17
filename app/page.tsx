@@ -332,7 +332,6 @@ export default function Home() {
 
       setSelectedDish(null);
       triggerSuccess();
-      setOrderToast("Замовлення відправлено — очікуйте на підтвердження");
       orderJustSubmittedRef.current = true;
       await syncOrders({
         focusOrderId: result.orderId as string,

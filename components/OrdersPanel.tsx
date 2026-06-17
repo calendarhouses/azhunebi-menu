@@ -5,6 +5,13 @@ import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
+import {
+  buildSheetPanelTransform,
+  useSheetPresence,
+} from "@/lib/useSheetPresence";
+import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
+import type { CSSProperties } from "react";
 
 type OrdersPanelProps = {
   open: boolean;
@@ -21,8 +28,7 @@ const chipBase =
   "shrink-0 rounded-2xl border px-4 py-2 text-sm font-medium transition active:scale-[0.98]";
 const chipActive =
   "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]";
-const chipInactive =
-  "border-stone-600/25 bg-brand-input text-brand-muted";
+const chipInactive = "border-stone-600/25 bg-brand-input text-brand-muted";
 
 export default function OrdersPanel({
   open,
@@ -34,7 +40,12 @@ export default function OrdersPanel({
   error = null,
   onRetry,
 }: OrdersPanelProps) {
-  if (!open) {
+  const { mounted, visible } = useSheetPresence(open);
+  const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
+
+  useBodyScrollLock(mounted);
+
+  if (!mounted) {
     return null;
   }
 
@@ -42,8 +53,16 @@ export default function OrdersPanel({
     orders.find((order) => order.id === selectedOrderId) || orders[0] || null;
   const isEmptyState = !loading && !error && !selectedOrder;
 
+  const panelStyle: CSSProperties = {
+    ...buildSheetPanelTransform(0, dragOffset, isDragging),
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div
+      className={`fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-300 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+    >
       <button
         type="button"
         aria-label="Закрити"
@@ -51,10 +70,15 @@ export default function OrdersPanel({
         onClick={onClose}
       />
 
-      <div className="sheet-panel animate-sheet-up relative flex max-h-[92vh] flex-col overflow-hidden rounded-t-[32px] border shadow-2xl">
+      <div
+        style={panelStyle}
+        className={`sheet-panel sheet-panel-motion relative flex max-h-[92vh] flex-col overflow-hidden rounded-t-[32px] border shadow-2xl ${
+          visible ? "is-visible" : ""
+        }`}
+      >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(196,165,116,0.1),transparent_65%)]" />
 
-        <div className="shrink-0">
+        <div className="shrink-0 touch-pan-y" {...swipeAreaProps}>
           <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 rounded-full" />
 
           {!isEmptyState ? (
