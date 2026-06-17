@@ -485,7 +485,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-full bg-brand-bg text-stone-100">
+    <div
+      className="bg-brand-bg text-stone-100"
+      style={{ minHeight: "var(--tg-viewport-stable-height, 100vh)" }}
+    >
       {orderToast && !ordersOpen ? (
         <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-brand-surface/95 px-4 py-3 shadow-xl backdrop-blur-md">
           <p className="text-sm font-medium text-amber-200">{orderToast}</p>

@@ -27,6 +27,10 @@ export function useTelegramApp(options?: {
     const root = document.documentElement;
     root.style.setProperty("--brand-bg", BRAND_BG);
     root.style.setProperty("--brand-accent", BRAND_ACCENT);
+    root.style.setProperty(
+      "--tg-viewport-stable-height",
+      `${webApp.viewportStableHeight || window.innerHeight}px`
+    );
 
     const theme = webApp.themeParams;
     if (theme.bg_color) {

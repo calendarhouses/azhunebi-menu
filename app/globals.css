@@ -3,6 +3,7 @@
 :root {
   --background: #221f1c;
   --foreground: #fafaf9;
+  --tg-viewport-stable-height: 100vh;
   --brand-bg: #221f1c;
   --brand-surface: #2f2b27;
   --brand-surface-elevated: #3a3530;
@@ -37,6 +38,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  touch-action: pan-y;
+}
+
+.checkout-form-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sheet-panel {

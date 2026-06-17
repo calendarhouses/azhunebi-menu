@@ -13,9 +13,7 @@ import {
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
   buildSheetPanelTransform,
-  useKeyboardLayoutOffset,
   useSheetPresence,
-  useStableSheetHeight,
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
 import type { CSSProperties, ReactNode } from "react";
@@ -50,6 +48,8 @@ function SectionTitle({ children }: { children: ReactNode }) {
 const inputClassName =
   "w-full rounded-xl border border-stone-600/25 bg-brand-input px-4 py-3 text-sm text-stone-100 placeholder:text-stone-500 outline-none focus:border-brand-accent/40 focus:ring-1 focus:ring-brand-accent/20";
 
+const STABLE_VIEWPORT_HEIGHT = "var(--tg-viewport-stable-height, 100vh)";
+
 export default function PremiumCheckout({
   open,
   onClose,
@@ -69,14 +69,18 @@ export default function PremiumCheckout({
   total,
 }: PremiumCheckoutProps) {
   const { mounted, visible } = useSheetPresence(open);
-  const maxHeight = useStableSheetHeight(mounted);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
-  const keyboardOffset = useKeyboardLayoutOffset(mounted && cart.length > 0);
 
   useBodyScrollLock(mounted);
 
   if (!mounted) {
     return null;
+  }
+
+  function scrollFieldIntoView(element: HTMLElement) {
+    window.requestAnimationFrame(() => {
+      element.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
   }
 
   function handleSubmit() {
@@ -114,12 +118,15 @@ export default function PremiumCheckout({
   }
 
   const panelStyle: CSSProperties = {
-    maxHeight,
-    ...buildSheetPanelTransform(keyboardOffset, dragOffset, isDragging),
+    maxHeight: `calc(${STABLE_VIEWPORT_HEIGHT} * 0.92)`,
+    ...buildSheetPanelTransform(0, dragOffset, isDragging),
   };
 
   return (
-    <div className="fixed inset-0 z-[60]">
+    <div
+      className="fixed inset-x-0 top-0 z-[60]"
+      style={{ minHeight: STABLE_VIEWPORT_HEIGHT, height: STABLE_VIEWPORT_HEIGHT }}
+    >
       <button
         type="button"
         aria-label="Закрити"
@@ -161,7 +168,7 @@ export default function PremiumCheckout({
         </div>
 
         <div
-          className={`relative min-h-0 flex-1 touch-pan-y ${
+          className={`checkout-form-scroll relative min-h-0 flex-1 touch-pan-y ${
             cart.length === 0 ? "overflow-hidden" : "overflow-y-auto px-5 pb-4"
           }`}
         >
@@ -211,6 +218,7 @@ export default function PremiumCheckout({
                     type="text"
                     value={locationNote}
                     onChange={(event) => onLocationNoteChange(event.target.value)}
+                    onFocus={(event) => scrollFieldIntoView(event.currentTarget)}
                     placeholder="Будиночок 7"
                     className={inputClassName}
                   />
@@ -221,6 +229,7 @@ export default function PremiumCheckout({
                   <textarea
                     value={comment}
                     onChange={(event) => onCommentChange(event.target.value)}
+                    onFocus={(event) => scrollFieldIntoView(event.currentTarget)}
                     placeholder="Побажання, алергії..."
                     rows={2}
                     className={`${inputClassName} resize-none`}
