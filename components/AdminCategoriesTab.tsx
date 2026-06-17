@@ -8,7 +8,6 @@ type CategoryRow = {
   id: string;
   name: string;
   sort_order: number;
-  is_active?: boolean;
 };
 
 type Props = {
@@ -16,32 +15,6 @@ type Props = {
   onRefresh: () => Promise<void>;
   onStatus: (msg: string) => void;
 };
-
-function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      aria-checked={checked}
-      role="switch"
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-        checked ? "bg-brand-accent" : "bg-white/15"
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-          checked ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-sm text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
@@ -55,14 +28,12 @@ export default function AdminCategoriesTab({
   const [editing, setEditing] = useState<CategoryRow | null>(null);
   const [formName, setFormName] = useState("");
   const [formSort, setFormSort] = useState("0");
-  const [formActive, setFormActive] = useState(true);
   const [busy, setBusy] = useState(false);
 
   function openAdd() {
     setEditing(null);
     setFormName("");
     setFormSort(String(categories.length));
-    setFormActive(true);
     setModalOpen(true);
   }
 
@@ -70,7 +41,6 @@ export default function AdminCategoriesTab({
     setEditing(cat);
     setFormName(cat.name);
     setFormSort(String(cat.sort_order));
-    setFormActive(cat.is_active !== false);
     setModalOpen(true);
   }
 
@@ -85,7 +55,6 @@ export default function AdminCategoriesTab({
         id: cat.id,
         name: cat.name,
         sort_order: cat.sort_order,
-        is_active: !(cat.is_active !== false),
       });
       await onRefresh();
     } catch (error) {
@@ -102,7 +71,6 @@ export default function AdminCategoriesTab({
         id: editing?.id ?? undefined,
         name: formName.trim(),
         sort_order: Number(formSort) || 0,
-        is_active: formActive,
       });
 
       onStatus(editing ? "Категорію оновлено" : "Категорію додано");
@@ -153,20 +121,13 @@ export default function AdminCategoriesTab({
         </p>
       ) : (
         <div className="space-y-2">
-          {categories.map((cat) => {
-            const active = cat.is_active !== false;
-
-            return (
+          {categories.map((cat) => (
               <div
                 key={cat.id}
                 className="flex items-center justify-between rounded-xl bg-brand-surface p-4"
               >
                 <div className="min-w-0 flex-1">
-                  <p
-                    className={`truncate font-medium ${
-                      active ? "text-white" : "text-white/40"
-                    }`}
-                  >
+                  <p className="truncate font-medium text-white">
                     {cat.name}
                   </p>
                   <p className="text-xs text-white/30">
@@ -175,11 +136,6 @@ export default function AdminCategoriesTab({
                 </div>
 
                 <div className="ml-4 flex items-center gap-3">
-                  <Toggle
-                    checked={active}
-                    onChange={() => handleToggle(cat)}
-                  />
-
                   <button
                     type="button"
                     onClick={() => openEdit(cat)}
@@ -198,8 +154,7 @@ export default function AdminCategoriesTab({
                   </button>
                 </div>
               </div>
-            );
-          })}
+          ))}
         </div>
       )}
 
@@ -234,14 +189,6 @@ export default function AdminCategoriesTab({
               className={inputCls}
             />
           </label>
-
-          <div className="flex items-center justify-between rounded-lg border border-white/10 bg-brand-input px-4 py-3">
-            <span className="text-sm text-white">Показувати в меню</span>
-            <Toggle
-              checked={formActive}
-              onChange={() => setFormActive((v) => !v)}
-            />
-          </div>
 
           <button
             type="submit"
