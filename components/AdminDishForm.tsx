@@ -2,69 +2,20 @@
 
 import CategorySelect from "@/components/CategorySelect";
 import { adminRequest, uploadDishImage } from "@/lib/adminApi";
-import { convertToWebP, formatFileSize } from "@/lib/imageUtils";
+import { formatFileSize } from "@/lib/imageUtils";
 import type { MenuItemRow } from "@/lib/supabase";
+import imageCompression from "browser-image-compression";
 import { DragEvent, FormEvent, useEffect, useRef, useState } from "react";
 
 type CategoryRow = { id: string; name: string; sort_order: number };
 
-/** Premium photo placeholder — shown when src is missing or broken */
-function PhotoPlaceholder() {
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center bg-brand-surface-elevated text-white/20">
-      {/* Utensils icon */}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="mb-1.5 h-7 w-7"
-      >
-        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />
-        <path d="M7 2v20" />
-        <path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
-      </svg>
-      <span className="text-[10px] font-bold uppercase tracking-wider">
-        Фото скоро
-      </span>
-    </div>
-  );
-}
-
-/** Renders the image with graceful fallback to PhotoPlaceholder */
-function PhotoPreview({ src }: { src: string }) {
-  const [broken, setBroken] = useState(false);
-
-  if (broken) {
-    return (
-      <div className="h-44 w-full overflow-hidden rounded-xl">
-        <PhotoPlaceholder />
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative h-44 w-full overflow-hidden rounded-xl bg-brand-surface-elevated">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-md saturate-125"
-      />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt="Превью"
-        className="relative z-10 h-full w-full object-contain"
-        onError={() => setBroken(true)}
-      />
-    </div>
-  );
-}
+const COMPRESS_OPTIONS = {
+  maxSizeMB: 0.1,
+  maxWidthOrHeight: 800,
+  useWebWorker: true,
+  fileType: "image/webp" as const,
+  initialQuality: 0.8,
+};
 
 type Props = {
   dish: MenuItemRow | null;
@@ -103,17 +54,15 @@ export default function AdminDishForm({
   // ----- image state -----
   // serverUrl: what's stored in the DB (or will be after upload)
   const [serverUrl, setServerUrl] = useState(dish?.image_url ?? "");
-  // pendingBlob: WebP Blob ready to be uploaded on submit
-  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
-  // pendingName: original filename for the server
-  const [pendingName, setPendingName] = useState("");
-  // previewUrl: local object URL shown while pendingBlob exists
+  // pendingFile: compressed WebP ready to upload on submit
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  // previewUrl: local object URL shown while pendingFile exists
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  // converting: while canvas is working
+  // converting: while compression is running
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState("");
-  // webpSize: size of the converted blob for display
-  const [webpSize, setWebpSize] = useState<number | null>(null);
+  // compressedSize: size of the compressed file for display
+  const [compressedSize, setCompressedSize] = useState<number | null>(null);
   // isDragging: drag-over visual state
   const [isDragging, setIsDragging] = useState(false);
 
@@ -144,18 +93,17 @@ export default function AdminDishForm({
 
     setConvertError("");
     setConverting(true);
-    setPendingBlob(null);
+    setPendingFile(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    setWebpSize(null);
+    setCompressedSize(null);
 
     try {
-      const webpBlob = await convertToWebP(file);
-      const url = URL.createObjectURL(webpBlob);
-      setPendingBlob(webpBlob);
-      setPendingName(file.name);
+      const compressedFile = await imageCompression(file, COMPRESS_OPTIONS);
+      const url = URL.createObjectURL(compressedFile);
+      setPendingFile(compressedFile);
       setPreviewUrl(url);
-      setWebpSize(webpBlob.size);
+      setCompressedSize(compressedFile.size);
     } catch (err) {
       setConvertError(
         err instanceof Error ? err.message : "Помилка конвертації"
@@ -190,10 +138,9 @@ export default function AdminDishForm({
   function clearImage() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    setPendingBlob(null);
-    setPendingName("");
+    setPendingFile(null);
     setServerUrl("");
-    setWebpSize(null);
+    setCompressedSize(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -213,9 +160,9 @@ export default function AdminDishForm({
       let finalImageUrl = serverUrl;
 
       // Step 1: upload WebP to Supabase Storage if user picked a new image
-      if (pendingBlob) {
+      if (pendingFile) {
         setSubmitStage("uploading");
-        finalImageUrl = await uploadDishImage(pendingBlob);
+        finalImageUrl = await uploadDishImage(pendingFile);
       }
 
       // Step 2: save dish record to the database
@@ -267,22 +214,25 @@ export default function AdminDishForm({
         <span className={labelCls}>Фото страви</span>
 
         {displayUrl ? (
-          <div className="relative overflow-hidden rounded-xl">
-            <PhotoPreview src={displayUrl} />
-            <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-3">
-              {webpSize && (
-                <span className="rounded-full bg-black/50 px-2 py-0.5 text-xs text-white/80">
-                  WebP · {formatFileSize(webpSize)}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={clearImage}
-                className="rounded-full bg-red-500/80 px-3 py-1 text-xs text-white backdrop-blur-sm"
-              >
-                Видалити фото
-              </button>
-            </div>
+          <div className="relative h-48 w-full overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={displayUrl}
+              alt="Превью"
+              className="h-full w-full object-cover"
+            />
+            {compressedSize !== null && (
+              <span className="absolute bottom-3 left-3 z-10 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white/80">
+                WebP · {formatFileSize(compressedSize)}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={clearImage}
+              className="absolute bottom-3 right-3 z-10 rounded-full bg-red-500/80 px-3 py-1 text-xs text-white backdrop-blur-sm"
+            >
+              Видалити фото
+            </button>
           </div>
         ) : (
           <>
@@ -320,9 +270,7 @@ export default function AdminDishForm({
                       d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
                     />
                   </svg>
-                  <span className="text-xs text-white/50">
-                    Конвертація в WebP…
-                  </span>
+                  <span className="text-xs text-white/50">Стиснення фото…</span>
                 </>
               ) : (
                 <>
@@ -345,7 +293,7 @@ export default function AdminDishForm({
                     <span className="text-brand-accent">оберіть файл</span>
                   </span>
                   <span className="mt-1 text-xs text-white/25">
-                    JPG, PNG, HEIC → WebP до ~140 KB без втрати якості
+                    JPG, PNG, HEIC → WebP до 100 KB
                   </span>
                 </>
               )}
