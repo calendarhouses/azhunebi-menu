@@ -10,26 +10,35 @@ export function isTelegramWebApp() {
   return Boolean(getInitData());
 }
 
+type OrderAction = "list" | "get" | "create" | "attachScreenshot";
+
 function buildRequestBody(
-  action: "list" | "get" | "create",
+  action: OrderAction,
   payload: Record<string, unknown> = {}
 ) {
+  const payloadInitData =
+    typeof payload.initData === "string" ? payload.initData : "";
+
   const initData =
-    action === "create" && typeof payload.initData === "string"
-      ? payload.initData
+    (action === "create" || action === "attachScreenshot") && payloadInitData
+      ? payloadInitData
       : getInitData();
 
   return { initData, action, ...payload };
 }
 
 async function orderRequest<T>(
-  action: "list" | "get" | "create",
+  action: OrderAction,
   payload: Record<string, unknown> = {}
 ): Promise<T> {
   const requestBody = buildRequestBody(action, payload);
   const url = `${BOT_API_URL}?action=${action}`;
 
-  if (!requestBody.initData && action !== "create") {
+  if (
+    !requestBody.initData &&
+    action !== "create" &&
+    action !== "attachScreenshot"
+  ) {
     throw new Error("Відкрийте меню через Telegram-бота.");
   }
 
@@ -129,14 +138,22 @@ export async function createOrderRequest(payload: {
   locationNote: string;
   paymentMethod: string;
   scheduledFor?: string;
-  screenshot?: string;
 }) {
   console.info("[order-api] create order request", {
     url: `${BOT_API_URL}?action=create`,
-    payload,
+    payload: { ...payload, initData: "[redacted]" },
   });
 
   return orderRequest<CreateOrderResponse>("create", payload);
+}
+
+/** Sends the rendered receipt card to admin after the order is already created. */
+export async function attachOrderScreenshot(payload: {
+  initData: string;
+  orderId: string;
+  screenshot: string;
+}) {
+  return orderRequest<{ ok: true }>("attachScreenshot", payload);
 }
 
 export async function checkBotApiVersion() {

@@ -1,5 +1,5 @@
-// Renders a premium dark receipt card to JPEG (base64) via html2canvas.
-// All styles are inline hex/rgb — html2canvas cannot parse Tailwind oklch vars.
+// Renders a premium receipt card to JPEG (base64) via html2canvas.
+// Brand palette matches app/globals.css — inline hex/rgb only for html2canvas.
 
 export type OrderCardItem = {
   name: string;
@@ -19,35 +19,47 @@ export type OrderCardData = {
 const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
+const TEXT = 18;
+
+// «Аж у небі» brand tokens
 const C = {
-  bg: "#09090b",
-  card: "#18181b",
-  panel: "#27272a",
-  border: "#3f3f46",
-  white: "#ffffff",
-  light: "#f4f4f5",
-  muted: "#a1a1aa",
-  accent: "#f59e0b",
-  accentSoft: "rgba(245,158,11,0.12)",
+  bg: "#221f1c",
+  card: "#2f2b27",
+  panel: "#3a3530",
+  input: "#1a1816",
+  border: "#4a4440",
+  white: "#fafaf9",
+  muted: "#a8a29e",
+  accent: "#c4a574",
+  accentHover: "#d6bc94",
+  accentSoft: "rgba(196,165,116,0.14)",
+  accentBorder: "rgba(196,165,116,0.28)",
 };
 
-function svg(path: string, size = 20): string {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;display:block">${path}</svg>`;
+function svg(paths: string, size = 16): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block">${paths}</svg>`;
+}
+
+/** Icon inside a soft accent tile — keeps glyphs vertically centred with text. */
+function iconTile(paths: string): string {
+  return `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:${C.accentSoft};border:1px solid ${C.accentBorder};flex-shrink:0">${svg(paths, 16)}</div>`;
 }
 
 const ICONS = {
-  bell: svg(
-    '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'
+  order: iconTile(
+    '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>'
   ),
-  user: svg(
-    '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
+  user: iconTile(
+    '<circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/>'
   ),
-  home: svg(
-    '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'
+  home: iconTile(
+    '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>'
   ),
-  clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
-  chat: svg(
-    '<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/>'
+  clock: iconTile(
+    '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l2.5 1.5"/>'
+  ),
+  chat: iconTile(
+    '<path d="M7 18l-3 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9.5L7 18z"/>'
   ),
 };
 
@@ -56,6 +68,17 @@ function esc(value: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/** 1 страва · 2–4 страви · 5+ страв */
+export function dishCountLabel(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${count} страва`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${count} страви`;
+  }
+  return `${count} страв`;
 }
 
 function formatDateTime(iso?: string | null): string {
@@ -68,29 +91,34 @@ function formatDateTime(iso?: string | null): string {
   });
 }
 
-/** Icon + label on the left, value on the right — strict flex row. */
+function text(size = TEXT, weight = 500, color = C.white): string {
+  return `font-size:${size}px;font-weight:${weight};color:${color};line-height:1.35`;
+}
+
 function metaRow(icon: string, label: string, value: string): string {
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0">
       <div style="display:flex;align-items:center;gap:12px;min-width:0">
         ${icon}
-        <span style="font-size:18px;color:${C.muted};font-weight:500">${label}</span>
+        <span style="${text(TEXT, 500, C.muted)}">${label}</span>
       </div>
-      <span style="font-size:18px;font-weight:700;color:${C.light};text-align:right;white-space:nowrap">${value}</span>
+      <span style="${text(TEXT, 600, C.white)};text-align:right;white-space:nowrap">${value}</span>
     </div>`;
 }
 
-function itemRow(item: OrderCardItem): string {
-  const total = item.price * item.quantity;
+function itemRow(item: OrderCardItem, isLast: boolean): string {
+  const lineTotal = item.price * item.quantity;
+  const border = isLast ? "" : `border-bottom:1px solid ${C.border};`;
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0">
-      <span style="font-size:17px;font-weight:600;color:${C.white};min-width:0;flex:1">${esc(item.name)}<span style="color:${C.muted};font-weight:500"> ×${item.quantity}</span></span>
-      <span style="font-size:17px;font-weight:700;color:${C.light};white-space:nowrap;flex-shrink:0">${total} ₴</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;${border}">
+      <span style="${text(TEXT, 500, C.white)};min-width:0;flex:1">${esc(item.name)}<span style="color:${C.muted}"> ×${item.quantity}</span></span>
+      <span style="${text(TEXT, 600, C.white)};white-space:nowrap;flex-shrink:0">${lineTotal} ₴</span>
     </div>`;
 }
 
 function buildCardHtml(data: OrderCardData): string {
   const itemsCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
+  const badge = dishCountLabel(itemsCount);
 
   const metaRows = [
     metaRow(ICONS.home, "Будинок", esc(data.house || "—")),
@@ -99,48 +127,50 @@ function buildCardHtml(data: OrderCardData): string {
       : "",
   ].join("");
 
-  const itemsHtml = data.items.map(itemRow).join("");
+  const itemsHtml = data.items
+    .map((item, index) => itemRow(item, index === data.items.length - 1))
+    .join("");
 
   const commentBlock = data.comment
     ? `
     <div style="display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid ${C.border}">
       ${ICONS.chat}
-      <span style="font-size:16px;color:${C.muted};line-height:1.5;flex:1">${esc(data.comment)}</span>
+      <span style="${text(TEXT, 500, C.muted)};flex:1">${esc(data.comment)}</span>
     </div>`
     : "";
 
   return `
-  <div style="width:800px;padding:40px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
+  <div style="width:800px;padding:36px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
     <div style="background:${C.card};border:1px solid ${C.border};border-radius:20px;overflow:hidden">
 
-      <div style="height:4px;background:linear-gradient(90deg, ${C.accent}, #fbbf24)"></div>
+      <div style="height:3px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
 
-      <div style="padding:32px 36px 36px">
+      <div style="padding:28px 32px 32px">
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <div style="display:flex;align-items:center;gap:12px">
-            ${ICONS.bell}
-            <span style="font-size:28px;font-weight:800;color:${C.white};letter-spacing:-0.3px">Нове замовлення</span>
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
+            ${ICONS.order}
+            <span style="${text(TEXT, 700, C.white)}">Нове замовлення</span>
           </div>
-          <span style="font-size:14px;font-weight:700;color:${C.accent};background:${C.accentSoft};padding:8px 14px;border-radius:999px;white-space:nowrap;border:1px solid rgba(245,158,11,0.25)">${itemsCount} страв</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;border-radius:999px;${text(TEXT, 600, C.accent)};background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap;flex-shrink:0">${badge}</span>
         </div>
 
-        <div style="display:flex;align-items:center;gap:12px;margin-top:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-top:18px">
           ${ICONS.user}
-          <span style="font-size:22px;font-weight:700;color:${C.white}">${esc(data.guestName || "Гість")}</span>
+          <span style="${text(TEXT, 600, C.white)}">${esc(data.guestName || "Гість")}</span>
         </div>
 
-        <div style="height:1px;background:${C.border};margin:20px 0"></div>
+        <div style="height:1px;background:${C.border};margin:18px 0"></div>
 
         ${metaRows}
 
-        <div style="background:${C.panel};border-radius:12px;padding:16px 20px;margin-top:8px">
+        <div style="background:${C.panel};border-radius:12px;padding:0 16px;margin-top:6px">
           ${itemsHtml}
         </div>
 
-        <div style="border-top:1px solid ${C.border};margin-top:24px;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <span style="font-size:20px;font-weight:700;color:${C.light}">Сума</span>
-          <span style="font-size:32px;font-weight:900;color:${C.accent};letter-spacing:-0.5px">${data.total} ₴</span>
+        <div style="border-top:1px solid ${C.border};margin-top:20px;padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <span style="${text(TEXT, 600, C.white)}">Сума</span>
+          <span style="${text(TEXT, 700, C.accent)}">${data.total} ₴</span>
         </div>
 
         ${commentBlock}
@@ -171,13 +201,13 @@ export async function captureOrderCard(
 
     const canvas = await html2canvas(target, {
       width: 800,
-      scale: 2,
+      scale: 1.5,
       backgroundColor: C.bg,
       logging: false,
       useCORS: true,
     });
 
-    return canvas.toDataURL("image/jpeg", 0.9);
+    return canvas.toDataURL("image/jpeg", 0.88);
   } catch (error) {
     console.error("[order-card] capture failed", error);
     return null;

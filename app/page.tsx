@@ -10,6 +10,7 @@ import ErrorState from "@/components/ErrorState";
 import MenuHeader from "@/components/MenuHeader";
 import { useAppReady } from "@/components/AppReadyProvider";
 import {
+  attachOrderScreenshot,
   createOrderRequest,
   fetchActiveOrders,
   isTelegramWebApp,
@@ -367,24 +368,6 @@ export default function Home() {
 
     try {
       const tgUser = webApp.initDataUnsafe?.user;
-      let screenshot: string | undefined;
-      try {
-        const card = await captureOrderCard({
-          guestName: tgUser?.first_name || "Гість",
-          house: currentLocation,
-          items: currentCart.map((item) => ({
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-          total: getCartTotal(currentCart),
-          scheduledFor: scheduledPayload || null,
-          comment: commentRef.current.trim() || null,
-        });
-        screenshot = card || undefined;
-      } catch (cardError) {
-        console.error("[submitOrder] card capture failed", cardError);
-      }
 
       const result = await createOrderRequest({
         initData: webApp.initData,
@@ -396,7 +379,6 @@ export default function Home() {
         locationNote: currentLocation,
         paymentMethod: "cash",
         scheduledFor: scheduledPayload,
-        screenshot,
       });
 
       rememberOrderId(result.orderId);
@@ -410,6 +392,32 @@ export default function Home() {
       setSelectedDish(null);
       triggerSuccess();
       orderJustSubmittedRef.current = true;
+
+      // Card capture + admin notify run in background — user sees success immediately.
+      const cardPayload = {
+        guestName: tgUser?.first_name || "Гість",
+        house: currentLocation,
+        items: currentCart.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        total: getCartTotal(currentCart),
+        scheduledFor: scheduledPayload || null,
+        comment: commentRef.current.trim() || null,
+      };
+      const initData = webApp.initData;
+      const orderId = result.orderId;
+
+      void captureOrderCard(cardPayload)
+        .then(async (card) => {
+          if (!card) return;
+          await attachOrderScreenshot({ initData, orderId, screenshot: card });
+        })
+        .catch((error) => {
+          console.error("[submitOrder] background card attach failed", error);
+        });
+
       await syncOrders({
         focusOrderId: result.orderId as string,
         silent: true,
