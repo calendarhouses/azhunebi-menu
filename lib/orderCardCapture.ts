@@ -20,19 +20,11 @@ const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
 const TEXT = 19;
-const ICON = 22;
-// Shared line box height. Icon container height == text line-height, so the two
-// always centre identically (html2canvas can't drift them apart).
-const ROW = 26;
-const TITLE_ROW = 32;
 
-// «Аж у небі» brand tokens
 const C = {
   bg: "#221f1c",
   card: "#2f2b27",
   panel: "#3a3530",
-  input: "#1a1816",
-  border: "#4a4440",
   white: "#fafaf9",
   muted: "#a8a29e",
   accent: "#c4a574",
@@ -41,30 +33,24 @@ const C = {
   accentBorder: "rgba(196,165,116,0.28)",
 };
 
-/** Bare icon (no tile). Container height == row line box so text+icon align. */
-function icon(paths: string, box: number = ROW, glyph: number = ICON): string {
-  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${box}px;height:${box}px;flex-shrink:0"><svg width="${glyph}" height="${glyph}" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block">${paths}</svg></span>`;
-}
+/** Strict icon+text row — flex only, no margin-top / position hacks. */
+const FLEX_ROW = "display:flex;align-items:center;gap:10px";
 
-const ICONS = {
-  order: icon(
+/** Divider with breathing room above and below. */
+const DIVIDER = "margin:20px 0;border-bottom:1px solid rgba(255,255,255,0.1)";
+
+const ICON_PATHS = {
+  order:
     '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>',
-    TITLE_ROW,
-    24
-  ),
-  user: icon(
-    '<circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/>'
-  ),
-  home: icon(
-    '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>'
-  ),
-  clock: icon(
-    '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l2.5 1.5"/>'
-  ),
-  chat: icon(
-    '<path d="M7 18l-3 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9.5L7 18z"/>'
-  ),
+  user: '<circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/>',
+  home: '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
+  clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l2.5 1.5"/>',
+  chat: '<path d="M7 18l-3 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9.5L7 18z"/>',
 };
+
+function iconSvg(paths: string, size = 20): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0">${paths}</svg>`;
+}
 
 function esc(value: string): string {
   return value
@@ -94,33 +80,27 @@ function formatDateTime(iso?: string | null): string {
   });
 }
 
-function text(
-  size = TEXT,
-  weight = 500,
-  color = C.white,
-  lh: number = ROW
-): string {
-  return `font-size:${size}px;font-weight:${weight};color:${color};line-height:${lh}px`;
-}
-
-function metaRow(iconHtml: string, label: string, value: string): string {
+function metaRow(iconKey: keyof typeof ICON_PATHS, label: string, value: string): string {
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 0">
-      <div style="display:flex;align-items:center;gap:12px;min-width:0">
-        ${iconHtml}
-        <span style="${text(TEXT, 500, C.muted)}">${label}</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div style="${FLEX_ROW}">
+        ${iconSvg(ICON_PATHS[iconKey])}
+        <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted}">${label}</span>
       </div>
-      <span style="${text(TEXT, 600, C.white)};text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${value}</span>
+      <span style="font-size:${TEXT}px;font-weight:600;color:${C.white};white-space:nowrap;font-variant-numeric:tabular-nums">${value}</span>
     </div>`;
 }
 
 function itemRow(item: OrderCardItem, isLast: boolean): string {
   const lineTotal = item.price * item.quantity;
-  const border = isLast ? "" : `border-bottom:1px solid ${C.border};`;
+  const border = isLast
+    ? ""
+    : "border-bottom:1px solid rgba(255,255,255,0.1);";
+
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;${border}">
-      <span style="${text(TEXT, 500, C.white)};min-width:0;flex:1">${esc(item.name)}<span style="color:${C.muted}"> ×${item.quantity}</span></span>
-      <span style="${text(TEXT, 600, C.white)};white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums">${lineTotal} ₴</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;${border}">
+      <span style="font-size:${TEXT}px;font-weight:500;color:${C.white};min-width:0;flex:1">${esc(item.name)}<span style="color:${C.muted}"> ×${item.quantity}</span></span>
+      <span style="font-size:${TEXT}px;font-weight:600;color:${C.white};white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums">${lineTotal} ₴</span>
     </div>`;
 }
 
@@ -129,9 +109,9 @@ function buildCardHtml(data: OrderCardData): string {
   const badge = dishCountLabel(itemsCount);
 
   const metaRows = [
-    metaRow(ICONS.home, "Будинок", esc(data.house || "—")),
+    metaRow("home", "Будинок", esc(data.house || "—")),
     data.scheduledFor
-      ? metaRow(ICONS.clock, "Подача", formatDateTime(data.scheduledFor))
+      ? metaRow("clock", "Подача", formatDateTime(data.scheduledFor))
       : "",
   ].join("");
 
@@ -141,44 +121,50 @@ function buildCardHtml(data: OrderCardData): string {
 
   const commentBlock = data.comment
     ? `
-    <div style="display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid ${C.border}">
-      ${ICONS.chat}
-      <span style="${text(TEXT, 500, C.muted)};flex:1">${esc(data.comment)}</span>
+    <div style="${DIVIDER}"></div>
+    <div style="${FLEX_ROW}">
+      ${iconSvg(ICON_PATHS.chat)}
+      <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted};flex:1">${esc(data.comment)}</span>
     </div>`
     : "";
 
   return `
   <div style="width:800px;padding:36px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
-    <div style="background:${C.card};border:1px solid ${C.border};border-radius:20px;overflow:hidden">
+    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:20px;overflow:hidden">
 
       <div style="height:3px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
 
       <div style="padding:30px 32px 34px">
 
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
-            ${ICONS.order}
-            <span style="font-size:26px;font-weight:700;color:${C.white};line-height:${TITLE_ROW}px">Нове замовлення</span>
+        <!-- Header: title + badge -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="${FLEX_ROW}">
+            ${iconSvg(ICON_PATHS.order, 22)}
+            <span style="font-size:26px;font-weight:700;color:${C.white}">Нове замовлення</span>
           </div>
-          <span style="display:inline-block;height:${TITLE_ROW}px;line-height:${TITLE_ROW}px;padding:0 18px;border-radius:999px;font-size:${TEXT}px;font-weight:600;color:${C.accent};text-align:center;background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap;flex-shrink:0">${badge}</span>
+          <span style="padding:8px 16px;border-radius:999px;font-size:${TEXT}px;font-weight:600;color:${C.accent};background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap">${badge}</span>
         </div>
 
-        <div style="display:flex;align-items:center;gap:12px;margin-top:20px">
-          ${ICONS.user}
-          <span style="${text(TEXT, 600, C.white)}">${esc(data.guestName || "Гість")}</span>
+        <!-- Guest name -->
+        <div style="${FLEX_ROW};margin-top:20px">
+          ${iconSvg(ICON_PATHS.user)}
+          <span style="font-size:${TEXT}px;font-weight:600;color:${C.white}">${esc(data.guestName || "Гість")}</span>
         </div>
 
-        <div style="height:1px;background:${C.border};margin:20px 0"></div>
+        <div style="${DIVIDER}"></div>
 
         ${metaRows}
 
-        <div style="background:${C.panel};border-radius:12px;padding:2px 16px;margin-top:8px">
+        <!-- Items panel -->
+        <div style="background:${C.panel};border-radius:12px;padding:0 16px;margin-bottom:24px">
           ${itemsHtml}
         </div>
 
-        <div style="border-top:1px solid ${C.border};margin-top:22px;padding-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <span style="font-size:24px;font-weight:700;color:${C.white};line-height:${TITLE_ROW}px">Сума</span>
-          <span style="font-size:26px;font-weight:700;color:${C.accent};line-height:${TITLE_ROW}px;font-variant-numeric:tabular-nums">${data.total} ₴</span>
+        <!-- Total -->
+        <div style="${DIVIDER}"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:24px;font-weight:700;color:${C.white}">Сума</span>
+          <span style="font-size:26px;font-weight:700;color:${C.accent};font-variant-numeric:tabular-nums">${data.total} ₴</span>
         </div>
 
         ${commentBlock}
