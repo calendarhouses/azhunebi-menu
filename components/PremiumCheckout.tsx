@@ -12,12 +12,13 @@ import {
 } from "@/lib/orderStatus";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
+  buildSheetPanelTransform,
+  useKeyboardLayoutOffset,
   useSheetPresence,
   useStableSheetHeight,
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useState } from "react";
 
 type PremiumCheckoutProps = {
   open: boolean;
@@ -69,37 +70,10 @@ export default function PremiumCheckout({
 }: PremiumCheckoutProps) {
   const { mounted, visible } = useSheetPresence(open);
   const maxHeight = useStableSheetHeight(mounted);
-  const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
+  const keyboardOffset = useKeyboardLayoutOffset(mounted && cart.length > 0);
 
   useBodyScrollLock(mounted);
-
-  useEffect(() => {
-    if (!mounted || cart.length === 0) {
-      setKeyboardOpen(false);
-      return;
-    }
-
-    const viewport = window.visualViewport;
-    if (!viewport) {
-      return;
-    }
-
-    const updateKeyboard = () => {
-      const inset = Math.max(
-        0,
-        window.innerHeight - viewport.height - viewport.offsetTop
-      );
-      setKeyboardOpen(inset > 48);
-    };
-
-    updateKeyboard();
-    viewport.addEventListener("resize", updateKeyboard);
-
-    return () => {
-      viewport.removeEventListener("resize", updateKeyboard);
-    };
-  }, [mounted, cart.length]);
 
   if (!mounted) {
     return null;
@@ -140,8 +114,8 @@ export default function PremiumCheckout({
   }
 
   const panelStyle: CSSProperties = {
-    ...sheetStyle,
     maxHeight,
+    ...buildSheetPanelTransform(keyboardOffset, dragOffset, isDragging),
   };
 
   return (
@@ -297,11 +271,7 @@ export default function PremiumCheckout({
                 </div>
               </section>
 
-              <div
-                className={`pb-[max(1rem,env(safe-area-inset-bottom))] pt-1 ${
-                  keyboardOpen ? "hidden" : ""
-                }`}
-              >
+              <div className="pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
                 <button
                   type="button"
                   disabled={isSubmitting}

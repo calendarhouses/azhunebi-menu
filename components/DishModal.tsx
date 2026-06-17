@@ -7,6 +7,7 @@ import type { MenuItemRow } from "@/lib/supabase";
 import { triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
+  buildSheetPanelTransform,
   useSheetPresence,
   useStableSheetHeight,
 } from "@/lib/useSheetPresence";
@@ -37,7 +38,7 @@ export default function DishModal({
   const open = Boolean(item);
   const { mounted, visible } = useSheetPresence(open);
   const maxHeight = useStableSheetHeight(mounted);
-  const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
+  const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -106,8 +107,8 @@ export default function DishModal({
   }
 
   const panelStyle: CSSProperties = {
-    ...sheetStyle,
     maxHeight,
+    ...buildSheetPanelTransform(0, dragOffset, isDragging),
   };
 
   return (

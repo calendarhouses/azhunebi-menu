@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 
 const SHEET_EXIT_MS = 620;
@@ -44,4 +45,64 @@ export function useStableSheetHeight(active: boolean) {
   }, [active]);
 
   return maxHeight;
+}
+
+export function useKeyboardLayoutOffset(active: boolean) {
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setOffset(0);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+
+    const update = () => {
+      const inset = Math.max(
+        0,
+        window.innerHeight - viewport.height - viewport.offsetTop
+      );
+      setOffset(inset);
+    };
+
+    const onViewportScroll = () => {
+      update();
+      if (viewport.offsetTop !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", onViewportScroll);
+
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", onViewportScroll);
+    };
+  }, [active]);
+
+  return offset;
+}
+
+export function buildSheetPanelTransform(
+  keyboardOffset: number,
+  dragOffset: number,
+  isDragging: boolean
+): Pick<CSSProperties, "transform" | "transition"> | undefined {
+  const total = keyboardOffset + dragOffset;
+  if (total <= 0) {
+    return undefined;
+  }
+
+  return {
+    transform: `translateY(${total}px)`,
+    transition: isDragging
+      ? "none"
+      : "transform 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
+  };
 }

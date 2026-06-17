@@ -41,16 +41,9 @@ export function useSwipeToDismissSheet(onClose: () => void) {
     resetDrag();
   }, [dragOffset, onClose, resetDrag]);
 
-  const sheetStyle =
-    dragOffset > 0
-      ? {
-          transform: `translateY(${dragOffset}px)`,
-          transition: isDragging ? "none" : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
-        }
-      : undefined;
-
   return {
-    sheetStyle,
+    dragOffset,
+    isDragging,
     swipeAreaProps: {
       onTouchStart: handleTouchStart,
       onTouchMove: handleTouchMove,

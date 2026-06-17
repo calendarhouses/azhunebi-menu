@@ -47,14 +47,12 @@ export default function DishCard({
         />
       </button>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <button type="button" onClick={handleOpen} className="text-left">
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="min-w-0 flex-1 font-semibold leading-snug text-stone-50">
-              {item.name}
-            </h3>
+      <div className="flex min-w-0 flex-1 flex-col items-end text-right">
+        <button type="button" onClick={handleOpen} className="w-full text-right">
+          <div className="flex flex-col items-end gap-1">
+            <h3 className="font-semibold leading-snug text-stone-50">{item.name}</h3>
             {weightLabel ? (
-              <span className="shrink-0 rounded-full border border-stone-600/30 bg-stone-900/50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-stone-400">
+              <span className="rounded-full border border-stone-600/30 bg-stone-900/50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-stone-400">
                 {weightLabel}
               </span>
             ) : null}
@@ -65,7 +63,7 @@ export default function DishCard({
           {formatPrice(item.price)}
         </p>
 
-        <div className="mt-3">
+        <div className="mt-3 self-end">
           <QuantityControl
             quantity={quantity}
             onAdd={onAdd}
