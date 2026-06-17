@@ -28,7 +28,7 @@ function Toggle({
       role="switch"
       aria-checked={checked}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-        checked ? "bg-amber-500" : "bg-zinc-700"
+        checked ? "bg-brand-accent" : "bg-white/15"
       }`}
     >
       <span
@@ -139,7 +139,7 @@ export default function AdminDishesTab({
       <button
         type="button"
         onClick={openAdd}
-        className="mb-4 w-full rounded-xl border border-zinc-700/50 bg-zinc-800 py-3 text-sm font-semibold text-amber-500 transition hover:bg-zinc-700/80 active:scale-[0.99]"
+        className="mb-4 w-full rounded-xl border border-white/10 bg-brand-surface-elevated py-3 text-sm font-semibold text-brand-accent transition hover:bg-white/10 active:scale-[0.99]"
       >
         + Додати нову страву
       </button>
@@ -152,8 +152,8 @@ export default function AdminDishesTab({
             onClick={() => setFilterCategory("all")}
             className={`shrink-0 rounded-xl border px-4 py-1.5 text-sm font-medium transition ${
               filterCategory === "all"
-                ? "border-amber-500/50 bg-amber-500/15 text-amber-400"
-                : "border-zinc-700 bg-zinc-900 text-zinc-400"
+                ? "border-brand-accent/50 bg-brand-accent/15 text-brand-accent"
+                : "border-white/10 bg-brand-surface text-white/50"
             }`}
           >
             Усі
@@ -165,8 +165,8 @@ export default function AdminDishesTab({
               onClick={() => setFilterCategory(cat)}
               className={`shrink-0 rounded-xl border px-4 py-1.5 text-sm font-medium transition ${
                 filterCategory === cat
-                  ? "border-amber-500/50 bg-amber-500/15 text-amber-400"
-                  : "border-zinc-700 bg-zinc-900 text-zinc-400"
+                  ? "border-brand-accent/50 bg-brand-accent/15 text-brand-accent"
+                  : "border-white/10 bg-brand-surface text-white/50"
               }`}
             >
               {cat}
@@ -177,7 +177,7 @@ export default function AdminDishesTab({
 
       {/* Dish list */}
       {filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-zinc-500">
+        <p className="py-8 text-center text-sm text-white/30">
           {filterCategory === "all"
             ? "Страв ще немає"
             : "У цій категорії немає страв"}
@@ -187,14 +187,14 @@ export default function AdminDishesTab({
           {filtered.map((dish) => (
             <div
               key={dish.id}
-              className="flex items-center gap-3 rounded-xl bg-zinc-900 p-3"
+              className="flex items-center gap-3 rounded-xl bg-brand-surface p-3"
             >
               <DishThumb src={dish.image_url} name={dish.name} />
 
               <div className="min-w-0 flex-1">
                 <p
                   className={`truncate text-sm font-semibold ${
-                    dish.is_available ? "text-white" : "text-zinc-500"
+                    dish.is_available ? "text-white" : "text-white/40"
                   }`}
                 >
                   {dish.name}
@@ -204,7 +204,7 @@ export default function AdminDishesTab({
                     </span>
                   )}
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-white/35">
                   {dish.price} ₴
                   {dish.weight_g ? ` • ${dish.weight_g} г` : ""}
                   {dish.category ? ` • ${dish.category}` : ""}
@@ -219,7 +219,7 @@ export default function AdminDishesTab({
                 <button
                   type="button"
                   onClick={() => openEdit(dish)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-400 transition hover:text-amber-400"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-brand-surface-elevated text-white/40 transition hover:text-brand-accent"
                   aria-label="Редагувати"
                 >
                   <svg
@@ -248,8 +248,8 @@ export default function AdminDishesTab({
             onClick={closeModal}
           />
 
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-zinc-900 px-5 pb-safe pt-5 shadow-2xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-zinc-700" />
+          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-brand-surface px-5 pb-safe pt-5 shadow-2xl">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/15" />
 
             <h2 className="mb-5 text-base font-semibold text-white">
               {editingDish ? "Редагувати страву" : "Нова страва"}

@@ -16,10 +16,10 @@ type Props = {
 };
 
 const inputCls =
-  "w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder:text-zinc-600";
+  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-sm text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
 
 const labelCls =
-  "mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-500";
+  "mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/35";
 
 export default function AdminDishForm({
   dish,
@@ -233,14 +233,14 @@ export default function AdminDishForm({
               disabled={converting}
               className={`flex h-32 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed transition ${
                 isDragging
-                  ? "border-amber-500 bg-amber-500/10"
-                  : "border-zinc-800 bg-zinc-950 hover:border-zinc-600"
+                  ? "border-brand-accent bg-brand-accent/10"
+                  : "border-white/10 bg-brand-input hover:border-white/20"
               } disabled:opacity-60`}
             >
               {converting ? (
                 <>
                   <svg
-                    className="mb-2 h-6 w-6 animate-spin text-amber-500"
+                    className="mb-2 h-6 w-6 animate-spin text-brand-accent"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
@@ -266,7 +266,7 @@ export default function AdminDishForm({
                 <>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="mb-2 h-7 w-7 text-zinc-500"
+                    className="mb-2 h-7 w-7 text-white/30"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -280,9 +280,9 @@ export default function AdminDishForm({
                   </svg>
                   <span className="text-sm font-medium text-zinc-400">
                     Перетягніть або{" "}
-                    <span className="text-amber-500">оберіть файл</span>
+                    <span className="text-brand-accent">оберіть файл</span>
                   </span>
-                  <span className="mt-1 text-xs text-zinc-600">
+                  <span className="mt-1 text-xs text-white/25">
                     JPG, PNG, HEIC → автоконвертація в WebP
                   </span>
                 </>
@@ -394,10 +394,10 @@ export default function AdminDishForm({
       </label>
 
       {/* Available toggle */}
-      <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3">
+      <div className="flex items-center justify-between rounded-lg border border-white/10 bg-brand-input px-4 py-3">
         <div>
           <p className="text-sm text-white">Показувати в меню</p>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-white/30">
             {isAvailable ? "Доступна для замовлення" : "Стоп-лист"}
           </p>
         </div>
@@ -407,7 +407,7 @@ export default function AdminDishForm({
           aria-checked={isAvailable}
           onClick={() => setIsAvailable((v) => !v)}
           className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-            isAvailable ? "bg-amber-500" : "bg-zinc-700"
+            isAvailable ? "bg-brand-accent" : "bg-white/15"
           }`}
         >
           <span
@@ -429,12 +429,12 @@ export default function AdminDishForm({
       <button
         type="submit"
         disabled={busy || converting}
-        className="w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-zinc-950 transition disabled:opacity-50 active:scale-[0.98]"
+        className="w-full rounded-xl bg-brand-accent py-3 text-sm font-semibold text-brand-accent-text transition disabled:opacity-50 active:scale-[0.98]"
       >
         {submitStage === "uploading" && (
           <span className="flex items-center justify-center gap-2">
             <svg
-              className="h-4 w-4 animate-spin"
+              className="h-4 w-4 animate-spin text-brand-accent-text"
               fill="none"
               viewBox="0 0 24 24"
             >

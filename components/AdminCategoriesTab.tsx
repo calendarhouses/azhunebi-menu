@@ -30,7 +30,7 @@ function Toggle({
       aria-checked={checked}
       role="switch"
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-        checked ? "bg-amber-500" : "bg-zinc-700"
+        checked ? "bg-brand-accent" : "bg-white/15"
       }`}
     >
       <span
@@ -43,7 +43,7 @@ function Toggle({
 }
 
 const inputCls =
-  "w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder:text-zinc-600";
+  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-sm text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
 
 export default function AdminCategoriesTab({
   categories,
@@ -140,14 +140,14 @@ export default function AdminCategoriesTab({
       <button
         type="button"
         onClick={openAdd}
-        className="mb-4 w-full rounded-xl border border-zinc-700/50 bg-zinc-800 py-3 text-sm font-semibold text-amber-500 transition hover:bg-zinc-700/80 active:scale-[0.99]"
+        className="mb-4 w-full rounded-xl border border-white/10 bg-brand-surface-elevated py-3 text-sm font-semibold text-brand-accent transition hover:bg-white/10 active:scale-[0.99]"
       >
         + Додати категорію
       </button>
 
       {/* List */}
       {categories.length === 0 ? (
-        <p className="py-8 text-center text-sm text-zinc-500">
+        <p className="py-8 text-center text-sm text-white/30">
           Категорій ще немає
         </p>
       ) : (
@@ -158,17 +158,17 @@ export default function AdminCategoriesTab({
             return (
               <div
                 key={cat.id}
-                className="flex items-center justify-between rounded-xl bg-zinc-900 p-4"
+                className="flex items-center justify-between rounded-xl bg-brand-surface p-4"
               >
                 <div className="min-w-0 flex-1">
                   <p
                     className={`truncate font-medium ${
-                      active ? "text-white" : "text-zinc-500"
+                      active ? "text-white" : "text-white/40"
                     }`}
                   >
                     {cat.name}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-white/30">
                     Порядок: {cat.sort_order}
                   </p>
                 </div>
@@ -182,7 +182,7 @@ export default function AdminCategoriesTab({
                   <button
                     type="button"
                     onClick={() => openEdit(cat)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-400 transition hover:text-amber-400"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-brand-surface-elevated text-white/40 transition hover:text-brand-accent"
                     aria-label="Редагувати"
                   >
                     <svg
@@ -212,8 +212,8 @@ export default function AdminCategoriesTab({
             onClick={closeModal}
           />
 
-          <div className="relative w-full max-w-lg rounded-t-2xl bg-zinc-900 px-5 pb-safe pt-5 shadow-2xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-zinc-700" />
+          <div className="relative w-full max-w-lg rounded-t-2xl bg-brand-surface px-5 pb-safe pt-5 shadow-2xl">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/15" />
 
             <h2 className="mb-5 text-base font-semibold text-white">
               {editing ? "Редагувати категорію" : "Нова категорія"}
@@ -246,7 +246,7 @@ export default function AdminCategoriesTab({
                 />
               </label>
 
-              <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3">
+              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-brand-input px-4 py-3">
                 <span className="text-sm text-white">Показувати в меню</span>
                 <Toggle
                   checked={formActive}
@@ -257,9 +257,9 @@ export default function AdminCategoriesTab({
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-zinc-950 transition disabled:opacity-50 active:scale-[0.98]"
+                className="w-full rounded-xl bg-brand-accent py-3 text-sm font-semibold text-brand-accent-text transition disabled:opacity-50 active:scale-[0.98]"
               >
-                {busy ? "Збереження..." : editing ? "Зберегти зміни" : "Додати категорію"}
+                {busy ? "Збереження…" : editing ? "Зберегти зміни" : "Додати категорію"}
               </button>
 
               {editing && (
@@ -267,7 +267,7 @@ export default function AdminCategoriesTab({
                   type="button"
                   disabled={busy}
                   onClick={handleDelete}
-                  className="w-full rounded-xl border border-red-500/20 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                  className="w-full rounded-xl border border-red-500/20 bg-red-500/10 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
                 >
                   Видалити категорію
                 </button>
