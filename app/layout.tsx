@@ -1,3 +1,4 @@
+import AppReadyProvider from "@/components/AppReadyProvider";
 import TelegramViewportInit from "@/components/TelegramViewportInit";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
@@ -43,7 +44,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         <TelegramViewportInit />
-        {children}
+        <AppReadyProvider>{children}</AppReadyProvider>
       </body>
     </html>
   );

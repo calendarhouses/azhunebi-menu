@@ -145,21 +145,24 @@ export default function MenuHeader({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(196,165,116,0.08),transparent_60%)]" />
 
       <div className="relative mx-auto max-w-3xl px-4 pb-4 pt-5">
-        <div className="flex items-center gap-4">
-          <BrandLogo
-            src={logoUrl}
-            className="h-[5.25rem] w-[5.25rem] shrink-0 object-contain drop-shadow-lg"
-          />
-          <p className="min-w-0 flex-1 text-[15px] leading-snug text-stone-300 sm:text-base sm:leading-relaxed">
-            Оберіть страви та оформіть замовлення за кілька кроків.
-          </p>
+        <div className="mb-6 flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-700 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+            <BrandLogo
+              src={logoUrl}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="flex min-w-0 flex-col">
+            <h1 className="text-xl font-bold tracking-wide text-zinc-100">АЖ У НЕБІ</h1>
+            <p className="text-sm text-zinc-400">Замовлення смачних страв</p>
+          </div>
         </div>
 
         <div
           className={
             compactActions
-              ? "mt-5 grid grid-cols-3 gap-2"
-              : "mt-5 flex gap-3"
+              ? "grid grid-cols-3 gap-2"
+              : "flex gap-3"
           }
         >
           {showOrdersLink ? (

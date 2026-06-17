@@ -8,9 +8,7 @@ import DishCard from "@/components/DishCard";
 import DishModal from "@/components/DishModal";
 import ErrorState from "@/components/ErrorState";
 import MenuHeader from "@/components/MenuHeader";
-import MenuSkeleton from "@/components/MenuSkeleton";
-import { resolveLogoUrl, type TenantSettings } from "@/lib/branding";
-import { checkAdminAccess } from "@/lib/adminApi";
+import { useAppReady } from "@/components/AppReadyProvider";
 import {
   createOrderRequest,
   fetchActiveOrders,
@@ -27,7 +25,7 @@ import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
 import { useTelegramApp } from "@/lib/useTelegramApp";
-import { supabase, TENANT_ID, type MenuItemRow } from "@/lib/supabase";
+import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const ORDER_POLL_MS = 5000;
@@ -35,16 +33,18 @@ const ORDER_POLL_MS = 5000;
 type CategoryFilter = string | "all";
 
 export default function Home() {
-  const [items, setItems] = useState<MenuItemRow[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [logoUrl, setLogoUrl] = useState(resolveLogoUrl());
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const {
+    items,
+    categories,
+    logoUrl,
+    showAdminLink,
+    menuLoadError: loadError,
+    refreshMenu,
+  } = useAppReady();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedDish, setSelectedDish] = useState<MenuItemRow | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
-  const [showAdminLink, setShowAdminLink] = useState(false);
   const [orders, setOrders] = useState<TrackedOrder[]>([]);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -208,66 +208,7 @@ export default function Home() {
     []
   );
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setLoadError(false);
-
-    const [menuResult, categoriesResult, settingsResult] = await Promise.all([
-      supabase
-        .from("menu_items")
-        .select("*")
-        .eq("tenant_id", TENANT_ID)
-        .eq("is_available", true)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("categories")
-        .select("name, sort_order")
-        .eq("tenant_id", TENANT_ID)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("tenant_settings")
-        .select("tenant_id, logo_url")
-        .eq("tenant_id", TENANT_ID)
-        .maybeSingle(),
-    ]);
-
-    if (menuResult.error) {
-      setLoadError(true);
-      setLoading(false);
-      return;
-    }
-
-    const menuItems = (menuResult.data || []) as MenuItemRow[];
-    setItems(menuItems);
-
-    if (!categoriesResult.error && categoriesResult.data?.length) {
-      setCategories(categoriesResult.data.map((row) => row.name));
-    } else {
-      setCategories([
-        ...new Set(
-          menuItems
-            .map((item) => item.category)
-            .filter((value): value is string => Boolean(value))
-        ),
-      ]);
-    }
-
-    if (!settingsResult.error && settingsResult.data) {
-      setLogoUrl(resolveLogoUrl(settingsResult.data as TenantSettings));
-    }
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    checkAdminAccess().then(({ isAdmin }) => {
-      setShowAdminLink(isAdmin);
-    });
-  }, []);
+  const fetchData = refreshMenu;
 
   useEffect(() => {
     let cancelled = false;
@@ -524,9 +465,7 @@ export default function Home() {
       <main
         className={`mx-auto max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-28" : "pb-12"}`}
       >
-        {loading ? (
-          <MenuSkeleton count={5} />
-        ) : loadError ? (
+        {loadError ? (
           <ErrorState onRetry={fetchData} />
         ) : filteredItems.length > 0 ? (
           <div className="flex flex-col gap-4">
