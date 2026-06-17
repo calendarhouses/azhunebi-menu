@@ -162,9 +162,9 @@ export default function OrderStepper({ order, onDismissCancelled }: OrderStepper
 
       {order.status === "ready" ? (
         <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition-all duration-300">
-          <DetailIconTile>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-400/20">
             <PickupIcon />
-          </DetailIconTile>
+          </span>
           <p>
             Можна забирати
             {order.readyAt ? ` · ${formatOrderDateTime(order.readyAt)}` : ""}

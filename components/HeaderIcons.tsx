@@ -127,10 +127,9 @@ export function PickupIcon({ className = "h-4 w-4" }: IconProps) {
       className={className}
       aria-hidden
     >
-      <path d="M4 11h16" />
-      <path d="M6 11V7a2 2 0 0 1 2-2h1" />
-      <path d="M18 11V7a2 2 0 0 0-2-2h-1" />
-      <path d="M8 11v6a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-6" />
+      <path d="M6 8h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8Z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+      <path d="M9.5 12h5" />
     </svg>
   );
 }

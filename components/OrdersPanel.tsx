@@ -48,7 +48,7 @@ function DetailRow({
   icon,
   children,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   children: ReactNode;
 }) {
   return (
