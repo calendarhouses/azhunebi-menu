@@ -100,9 +100,10 @@ export default function Home() {
     setCartOpen(false);
     if (orderJustSubmittedRef.current) {
       orderJustSubmittedRef.current = false;
+      clearStoredCart();
       setOrdersOpen(true);
     }
-  }, []);
+  }, [clearStoredCart]);
 
   const handleBack = useCallback(() => {
     if (ordersOpen) {
@@ -329,7 +330,6 @@ export default function Home() {
         });
       }
 
-      clearStoredCart();
       setSelectedDish(null);
       triggerSuccess();
       setOrderToast("Замовлення відправлено — очікуємо підтвердження");
@@ -350,7 +350,7 @@ export default function Home() {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
-  }, [clearStoredCart, syncOrders]);
+  }, [syncOrders]);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
