@@ -35,7 +35,12 @@ const C = {
 
 const GRID_ROW = "display:grid;grid-template-columns:1fr auto;align-items:center";
 const RIGHT = "font-weight:700;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums";
-const DIVIDER = "margin:20px 0;border-bottom:1px solid rgba(255,255,255,0.1)";
+const ICON_ROW = "display:flex;align-items:center;gap:8px";
+
+/** Explicit 1px rule — avoids zero-height border divs collapsing with the block below. */
+function sectionDivider(): string {
+  return `<div style="height:1px;background:rgba(255,255,255,0.1);margin:20px 0;flex-shrink:0"></div>`;
+}
 
 const ICON_PATHS = {
   order:
@@ -51,7 +56,7 @@ function iconBox(paths: string): string {
 }
 
 function leftCell(iconPaths: string, label: string, labelColor = C.muted): string {
-  return `<span style="display:flex;align-items:center;gap:8px;min-width:0">${iconBox(iconPaths)}<span style="font-size:${TEXT}px;font-weight:500;color:${labelColor};line-height:${LH}">${label}</span></span>`;
+  return `<span style="${ICON_ROW};min-width:0">${iconBox(iconPaths)}<span style="font-size:${TEXT}px;font-weight:500;color:${labelColor}">${label}</span></span>`;
 }
 
 function gridRow(
@@ -64,7 +69,7 @@ function gridRow(
 }
 
 function rightCell(value: string, color = C.white, size = TEXT): string {
-  return `<span style="font-size:${size}px;color:${color};${RIGHT};line-height:${LH}">${value}</span>`;
+  return `<span style="font-size:${size}px;color:${color};${RIGHT}">${value}</span>`;
 }
 
 function esc(value: string): string {
@@ -104,7 +109,7 @@ function metaRow(
     leftCell(ICON_PATHS[iconKey], label),
     rightCell(value),
     20,
-    "padding:8px 0"
+    "padding:10px 0;min-height:44px;box-sizing:border-box"
   );
 }
 
@@ -114,7 +119,7 @@ function itemRow(item: OrderCardItem, isLast: boolean): string {
     ? ""
     : "border-bottom:1px solid rgba(255,255,255,0.08);";
 
-  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.white};line-height:${LH};min-width:0">${esc(item.name)} <span style="opacity:0.5">×${item.quantity}</span></span>`;
+  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.white};min-width:0">${esc(item.name)} <span style="opacity:0.5">×${item.quantity}</span></span>`;
 
   return gridRow(left, rightCell(`${lineTotal} ₴`), 16, `padding:12px 0;${border}`);
 }
@@ -136,47 +141,49 @@ function buildCardHtml(data: OrderCardData): string {
 
   const commentBlock = data.comment
     ? `
-    <div style="${DIVIDER}"></div>
-    <div style="display:flex;align-items:center;gap:8px">
+    ${sectionDivider()}
+    <div style="${ICON_ROW}">
       ${iconBox(ICON_PATHS.chat)}
-      <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted};line-height:${LH};flex:1;min-width:0">${esc(data.comment)}</span>
+      <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted};flex:1;min-width:0">${esc(data.comment)}</span>
     </div>`
     : "";
 
   return `
   <div style="width:800px;padding:36px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
-    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:20px;overflow:hidden;box-sizing:border-box">
+    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:20px;box-sizing:border-box">
 
       <div style="height:3px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
 
-      <div style="padding:30px 32px 34px;font-family:${FONT};line-height:${LH};box-sizing:border-box">
+      <div style="padding:30px 32px 34px;font-family:${FONT};line-height:${LH};box-sizing:border-box;display:flex;flex-direction:column">
 
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="display:flex;align-items:center;gap:10px">
+          <div style="${ICON_ROW}">
             ${iconBox(ICON_PATHS.order)}
-            <span style="font-size:26px;font-weight:700;color:${C.white};line-height:${LH}">Нове замовлення</span>
-          </span>
-          <span style="padding:6px 14px;border-radius:20px;font-size:${TEXT}px;font-weight:600;color:${C.accent};background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap;line-height:${LH}">${badge}</span>
+            <span style="font-size:26px;font-weight:700;color:${C.white}">Нове замовлення</span>
+          </div>
+          <span style="padding:6px 14px;border-radius:20px;font-size:${TEXT}px;font-weight:600;color:${C.accent};background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap">${badge}</span>
         </div>
 
-        <div style="display:flex;align-items:center;gap:8px;margin-top:20px">
+        <div style="${ICON_ROW};margin-top:20px">
           ${iconBox(ICON_PATHS.user)}
-          <span style="font-size:${TEXT}px;font-weight:600;color:${C.white};line-height:${LH}">${esc(data.guestName || "Гість")}</span>
+          <span style="font-size:${TEXT}px;font-weight:600;color:${C.white}">${esc(data.guestName || "Гість")}</span>
         </div>
 
-        <div style="${DIVIDER}"></div>
+        ${sectionDivider()}
 
-        ${metaRows}
+        <div style="display:block;height:auto;overflow:visible;margin-bottom:4px">
+          ${metaRows}
+        </div>
 
-        <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:4px 16px;margin-bottom:24px;box-sizing:border-box">
+        <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:4px 16px;margin-top:16px;margin-bottom:24px;box-sizing:border-box;height:auto;clear:both">
           ${itemsHtml}
         </div>
 
-        <div style="${DIVIDER}"></div>
+        ${sectionDivider()}
 
-        <div style="${GRID_ROW};gap:16px;margin-top:16px">
-          <span style="font-size:24px;font-weight:800;color:${C.white};line-height:${LH}">Сума</span>
-          <span style="font-size:22px;font-weight:900;color:${C.accent};${RIGHT};line-height:${LH}">${data.total} ₴</span>
+        <div style="${GRID_ROW};gap:16px">
+          <span style="font-size:24px;font-weight:800;color:${C.white}">Сума</span>
+          <span style="font-size:22px;font-weight:900;color:${C.accent};${RIGHT}">${data.total} ₴</span>
         </div>
 
         ${commentBlock}
