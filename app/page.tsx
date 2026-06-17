@@ -13,10 +13,12 @@ import {
   attachOrderScreenshot,
   createOrderRequest,
   fetchActiveOrders,
+  fetchOrderById,
   isTelegramWebApp,
 } from "@/lib/ordersApi";
 import {
   readDismissedOrderIds,
+  readKnownOrderIds,
   rememberDismissedOrderId,
   rememberOrderId,
 } from "@/lib/orderStorage";
@@ -157,16 +159,29 @@ export default function Home() {
       try {
         const allFetchedOrders = await fetchActiveOrders();
         const dismissedIds = readDismissedOrderIds();
-        const activeOrders = allFetchedOrders.filter(
+        let activeOrders = allFetchedOrders.filter(
           (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
         );
         const activeById = new Map(activeOrders.map((o) => [o.id, o]));
 
-        // The backend removes cancelled orders from the "active" list immediately,
-        // so they never appear with status "cancelled" in fetchActiveOrders.
-        // If an order was in progress (pending/accepted/preparing) and suddenly
-        // vanishes from the list, the only explanation is cancellation.
-        // We synthesise a "cancelled" record locally so the sad-bear screen shows.
+        // Recover known orders missing from list (e.g. after reopening the app).
+        const knownIds = readKnownOrderIds();
+        const missingKnown = knownIds.filter(
+          (id) => !activeById.has(id) && !dismissedIds.has(id)
+        );
+        if (missingKnown.length > 0) {
+          const recovered = await Promise.all(
+            missingKnown.slice(0, 8).map((id) => fetchOrderById(id))
+          );
+          for (const order of recovered) {
+            if (order && !activeById.has(order.id)) {
+              activeById.set(order.id, order);
+            }
+          }
+          activeOrders = [...activeById.values()];
+        }
+
+        // If an in-progress order vanishes from the API, treat as cancelled locally.
         const IN_PROGRESS_STATUSES = new Set(["pending", "accepted", "preparing"]);
         const cancelledOrphans = ordersRef.current
           .filter(
