@@ -21,6 +21,10 @@ const FONT =
 
 const TEXT = 19;
 const ICON = 22;
+// Shared line box height. Icon container height == text line-height, so the two
+// always centre identically (html2canvas can't drift them apart).
+const ROW = 26;
+const TITLE_ROW = 32;
 
 // «Аж у небі» brand tokens
 const C = {
@@ -37,14 +41,16 @@ const C = {
   accentBorder: "rgba(196,165,116,0.28)",
 };
 
-/** Bare icon (no tile), centred inside a fixed box so every row aligns. */
-function icon(paths: string, color = C.accent): string {
-  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${ICON}px;height:${ICON}px;flex-shrink:0"><svg width="${ICON}" height="${ICON}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block">${paths}</svg></span>`;
+/** Bare icon (no tile). Container height == row line box so text+icon align. */
+function icon(paths: string, box: number = ROW, glyph: number = ICON): string {
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${box}px;height:${box}px;flex-shrink:0"><svg width="${glyph}" height="${glyph}" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block">${paths}</svg></span>`;
 }
 
 const ICONS = {
   order: icon(
-    '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>'
+    '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>',
+    TITLE_ROW,
+    24
   ),
   user: icon(
     '<circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/>'
@@ -88,8 +94,13 @@ function formatDateTime(iso?: string | null): string {
   });
 }
 
-function text(size = TEXT, weight = 500, color = C.white): string {
-  return `font-size:${size}px;font-weight:${weight};color:${color};line-height:1.3`;
+function text(
+  size = TEXT,
+  weight = 500,
+  color = C.white,
+  lh: number = ROW
+): string {
+  return `font-size:${size}px;font-weight:${weight};color:${color};line-height:${lh}px`;
 }
 
 function metaRow(iconHtml: string, label: string, value: string): string {
@@ -107,7 +118,7 @@ function itemRow(item: OrderCardItem, isLast: boolean): string {
   const lineTotal = item.price * item.quantity;
   const border = isLast ? "" : `border-bottom:1px solid ${C.border};`;
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 0;${border}">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;${border}">
       <span style="${text(TEXT, 500, C.white)};min-width:0;flex:1">${esc(item.name)}<span style="color:${C.muted}"> ×${item.quantity}</span></span>
       <span style="${text(TEXT, 600, C.white)};white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums">${lineTotal} ₴</span>
     </div>`;
@@ -145,14 +156,14 @@ function buildCardHtml(data: OrderCardData): string {
       <div style="padding:30px 32px 34px">
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <div style="display:flex;align-items:center;gap:13px;min-width:0;flex:1">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
             ${ICONS.order}
-            <span style="font-size:26px;font-weight:700;color:${C.white};line-height:1">Нове замовлення</span>
+            <span style="font-size:26px;font-weight:700;color:${C.white};line-height:${TITLE_ROW}px">Нове замовлення</span>
           </div>
-          <span style="display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:999px;font-size:${TEXT}px;font-weight:600;color:${C.accent};line-height:1;background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap;flex-shrink:0">${badge}</span>
+          <span style="display:inline-block;height:${TITLE_ROW}px;line-height:${TITLE_ROW}px;padding:0 18px;border-radius:999px;font-size:${TEXT}px;font-weight:600;color:${C.accent};text-align:center;background:${C.accentSoft};border:1px solid ${C.accentBorder};white-space:nowrap;flex-shrink:0">${badge}</span>
         </div>
 
-        <div style="display:flex;align-items:center;gap:13px;margin-top:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-top:20px">
           ${ICONS.user}
           <span style="${text(TEXT, 600, C.white)}">${esc(data.guestName || "Гість")}</span>
         </div>
@@ -166,8 +177,8 @@ function buildCardHtml(data: OrderCardData): string {
         </div>
 
         <div style="border-top:1px solid ${C.border};margin-top:22px;padding-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <span style="font-size:24px;font-weight:700;color:${C.white};line-height:1">Сума</span>
-          <span style="font-size:26px;font-weight:700;color:${C.accent};line-height:1;font-variant-numeric:tabular-nums">${data.total} ₴</span>
+          <span style="font-size:24px;font-weight:700;color:${C.white};line-height:${TITLE_ROW}px">Сума</span>
+          <span style="font-size:26px;font-weight:700;color:${C.accent};line-height:${TITLE_ROW}px;font-variant-numeric:tabular-nums">${data.total} ₴</span>
         </div>
 
         ${commentBlock}
