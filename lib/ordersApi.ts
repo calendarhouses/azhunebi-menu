@@ -129,6 +129,7 @@ export async function createOrderRequest(payload: {
   locationNote: string;
   paymentMethod: string;
   scheduledFor?: string;
+  screenshot?: string;
 }) {
   console.info("[order-api] create order request", {
     url: `${BOT_API_URL}?action=create`,

@@ -26,6 +26,7 @@ import {
   type TrackedOrder,
 } from "@/lib/orderStatus";
 import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
+import { captureOrderCard } from "@/lib/orderCardCapture";
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
 import { useTelegramApp } from "@/lib/useTelegramApp";
@@ -365,6 +366,27 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
+      const tgUser = webApp.initDataUnsafe?.user;
+      let screenshot: string | undefined;
+      try {
+        const card = await captureOrderCard({
+          guestName: tgUser?.first_name || "Гість",
+          guestUsername: tgUser?.username || null,
+          house: currentLocation,
+          items: currentCart.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          total: getCartTotal(currentCart),
+          scheduledFor: scheduledPayload || null,
+          comment: commentRef.current.trim() || null,
+        });
+        screenshot = card || undefined;
+      } catch (cardError) {
+        console.error("[submitOrder] card capture failed", cardError);
+      }
+
       const result = await createOrderRequest({
         initData: webApp.initData,
         cart: currentCart.map((item) => ({
@@ -375,6 +397,7 @@ export default function Home() {
         locationNote: currentLocation,
         paymentMethod: "cash",
         scheduledFor: scheduledPayload,
+        screenshot,
       });
 
       rememberOrderId(result.orderId);
