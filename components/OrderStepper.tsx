@@ -1,7 +1,8 @@
 "use client";
 
+import { ClockIcon, PickupIcon } from "@/components/HeaderIcons";
 import Lottie from "lottie-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ORDER_STEPS,
   formatOrderDateTime,
@@ -15,6 +16,14 @@ type OrderStepperProps = {
 };
 
 const LOTTIE_BASE_PATH = "/azhunebi-menu";
+
+function DetailIconTile({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
+      {children}
+    </span>
+  );
+}
 
 export default function OrderStepper({ order, onDismissCancelled }: OrderStepperProps) {
   const [badAnimation, setBadAnimation] = useState<object | null>(null);
@@ -54,7 +63,7 @@ export default function OrderStepper({ order, onDismissCancelled }: OrderStepper
           <button
             type="button"
             onClick={onDismissCancelled}
-            className="mt-6 w-full rounded-2xl bg-zinc-800 px-4 py-3.5 text-sm font-semibold text-zinc-100 transition active:scale-[0.98] hover:bg-zinc-700"
+            className="btn-accent mt-6 w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition active:scale-[0.98]"
           >
             Повернутися в меню
           </button>
@@ -93,38 +102,41 @@ export default function OrderStepper({ order, onDismissCancelled }: OrderStepper
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-4">
         {ORDER_STEPS.map((step, index) => {
           const isComplete = currentIndex > index;
           const isCurrent = currentIndex === index;
+          const isReadyCurrent = isCurrent && step.key === "ready";
+          const useGreen = isComplete || isReadyCurrent;
+          const useGoldCurrent = isCurrent && !isReadyCurrent;
 
           return (
             <div
               key={step.key}
-              className={`rounded-2xl border px-3 py-3 transition-all duration-300 ease-out ${
-                isCurrent
+              className={`flex h-full min-h-[5.75rem] flex-col rounded-2xl border px-3 py-3 transition-all duration-300 ease-out ${
+                useGoldCurrent
                   ? "border-brand-accent/40 bg-brand-accent/10 shadow-[0_0_24px_rgba(196,165,116,0.12)]"
-                  : isComplete
-                    ? "border-emerald-400/20 bg-emerald-400/5"
+                  : useGreen
+                    ? "border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_24px_rgba(52,211,153,0.14)]"
                     : "border-stone-600/20 bg-brand-surface/50"
               }`}
             >
               <div
-                className={`mb-2 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ease-out ${
-                  isCurrent
+                className={`mb-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ease-out ${
+                  useGoldCurrent
                     ? "bg-brand-accent text-brand-accent-text"
-                    : isComplete
-                      ? "bg-emerald-400/20 text-emerald-200"
+                    : useGreen
+                      ? "bg-emerald-400/25 text-emerald-100"
                       : "bg-brand-surface-elevated text-brand-muted"
                 }`}
               >
-                {isComplete ? "✓" : index + 1}
+                {useGreen && !useGoldCurrent ? "✓" : index + 1}
               </div>
               <p
-                className={`text-xs leading-snug transition-colors duration-300 ${
-                  isCurrent
+                className={`flex-1 text-xs leading-snug transition-colors duration-300 ${
+                  useGoldCurrent || isReadyCurrent
                     ? "font-medium text-stone-50"
-                    : isComplete
+                    : useGreen
                       ? "text-stone-300"
                       : "text-brand-muted"
                 }`}
@@ -137,17 +149,27 @@ export default function OrderStepper({ order, onDismissCancelled }: OrderStepper
       </div>
 
       {order.scheduledFor && order.status === "accepted" ? (
-        <p className="mt-4 rounded-2xl border border-sky-400/15 bg-sky-400/5 px-4 py-3 text-xs leading-relaxed text-sky-100/80 transition-all duration-300">
-          🕐 Подача о {formatOrderDateTime(order.scheduledFor)}. Статус «Готуємо»
-          увімкнеться автоматично за 1 годину до цього часу.
-        </p>
+        <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-brand-accent/15 bg-brand-accent/5 px-4 py-3 text-xs leading-relaxed text-stone-200/90 transition-all duration-300">
+          <DetailIconTile>
+            <ClockIcon />
+          </DetailIconTile>
+          <p>
+            Подача о {formatOrderDateTime(order.scheduledFor)}. Статус «Готуємо»
+            увімкнеться автоматично за 1 годину до цього часу.
+          </p>
+        </div>
       ) : null}
 
       {order.status === "ready" ? (
-        <p className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition-all duration-300">
-          🍽 Можна забирати
-          {order.readyAt ? ` · ${formatOrderDateTime(order.readyAt)}` : ""}
-        </p>
+        <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition-all duration-300">
+          <DetailIconTile>
+            <PickupIcon />
+          </DetailIconTile>
+          <p>
+            Можна забирати
+            {order.readyAt ? ` · ${formatOrderDateTime(order.readyAt)}` : ""}
+          </p>
+        </div>
       ) : null}
     </div>
   );

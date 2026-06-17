@@ -530,10 +530,7 @@ export default function Home() {
   }
 
   return (
-    <div
-      className="bg-brand-bg text-stone-100"
-      style={{ minHeight: "var(--tg-viewport-stable-height, 100vh)" }}
-    >
+    <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-stone-100">
       {orderToast ? (
         <div className="animate-toast-in fixed left-4 right-4 top-4 z-[100] flex items-start justify-between gap-3 rounded-2xl border border-brand-accent/25 bg-brand-surface/95 px-4 py-3 shadow-xl backdrop-blur-md">
           <p className="text-sm font-medium text-stone-100">{orderToast}</p>
@@ -547,27 +544,29 @@ export default function Home() {
         </div>
       ) : null}
 
-      <MenuHeader
-        logoUrl={logoUrl}
-        cartCount={cartCount}
-        ordersCount={orders.length}
-        showAdminLink={showAdminLink}
-        showOrdersLink={showOrdersLink}
-        onOpenOrders={() => {
-          setOrdersOpen(true);
-          syncOrders({ silent: ordersLoadedOnceRef.current });
-        }}
-        onOpenCart={() => setCartOpen(true)}
-      />
+      <div className="shrink-0">
+        <MenuHeader
+          logoUrl={logoUrl}
+          cartCount={cartCount}
+          ordersCount={orders.length}
+          showAdminLink={showAdminLink}
+          showOrdersLink={showOrdersLink}
+          onOpenOrders={() => {
+            setOrdersOpen(true);
+            syncOrders({ silent: ordersLoadedOnceRef.current });
+          }}
+          onOpenCart={() => setCartOpen(true)}
+        />
 
-      <CategoryBar
-        categories={categories}
-        activeCategory={activeCategory}
-        onChange={setActiveCategory}
-      />
+        <CategoryBar
+          categories={categories}
+          activeCategory={activeCategory}
+          onChange={setActiveCategory}
+        />
+      </div>
 
       <main
-        className={`mx-auto max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-28" : "pb-12"}`}
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-none touch-pan-y mx-auto w-full max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-28" : "pb-12"}`}
       >
         {loadError ? (
           <ErrorState onRetry={fetchData} />

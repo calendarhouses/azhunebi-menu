@@ -1,6 +1,11 @@
 "use client";
 
 import EmptyStateScreen from "@/components/EmptyStateScreen";
+import {
+  ChatIcon,
+  ClockIcon,
+  LocationIcon,
+} from "@/components/HeaderIcons";
 import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
 import { formatPrice } from "@/components/ImagePlaceholder";
@@ -11,7 +16,7 @@ import {
   useSheetPresence,
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 type OrdersPanelProps = {
   open: boolean;
@@ -30,6 +35,29 @@ const chipBase =
 const chipActive =
   "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]";
 const chipInactive = "border-stone-600/25 bg-brand-input text-brand-muted";
+
+function DetailIconTile({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
+      {children}
+    </span>
+  );
+}
+
+function DetailRow({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 text-sm text-stone-300">
+      <DetailIconTile>{icon}</DetailIconTile>
+      <span className="min-w-0">{children}</span>
+    </div>
+  );
+}
 
 export default function OrdersPanel({
   open,
@@ -158,25 +186,33 @@ export default function OrdersPanel({
                 <p className="text-xs uppercase tracking-[0.18em] text-brand-muted">
                   Деталі
                 </p>
-                <div className="mt-3 space-y-2 text-sm text-stone-300">
-                  <p>📍 {selectedOrder.locationNote || "—"}</p>
+                <div className="mt-3 space-y-2.5">
+                  <DetailRow icon={<LocationIcon />}>
+                    {selectedOrder.locationNote || "—"}
+                  </DetailRow>
                   {selectedOrder.scheduledFor ? (
-                    <p>🕐 Подача: {formatOrderDateTime(selectedOrder.scheduledFor)}</p>
+                    <DetailRow icon={<ClockIcon />}>
+                      Подача: {formatOrderDateTime(selectedOrder.scheduledFor)}
+                    </DetailRow>
                   ) : null}
                   {selectedOrder.comment ? (
-                    <p className="text-brand-muted">💬 {selectedOrder.comment}</p>
+                    <DetailRow icon={<ChatIcon />}>
+                      <span className="text-brand-muted">{selectedOrder.comment}</span>
+                    </DetailRow>
                   ) : null}
                 </div>
                 <ul className="mt-4 space-y-2 border-t border-stone-600/20 pt-4">
                   {selectedOrder.cart.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center justify-between text-sm text-stone-300"
+                      className="flex items-start justify-between gap-3 text-sm text-stone-300"
                     >
-                      <span>
+                      <span className="min-w-0 flex-1 leading-snug">
                         {item.name} × {item.quantity}
                       </span>
-                      <span>{formatPrice(item.price * item.quantity)}</span>
+                      <span className="shrink-0 whitespace-nowrap tabular-nums">
+                        {formatPrice(item.price * item.quantity)}
+                      </span>
                     </li>
                   ))}
                 </ul>
