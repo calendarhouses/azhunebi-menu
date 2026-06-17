@@ -1,6 +1,5 @@
-// Renders a premium receipt card to a JPEG (base64) using html2canvas.
-// The card is drawn in a hidden, fixed, off-screen node with fully inline
-// styles (hex/rgb only) so html2canvas never trips over Tailwind oklch vars.
+// Renders a premium dark receipt card to JPEG (base64) via html2canvas.
+// All styles are inline hex/rgb — html2canvas cannot parse Tailwind oklch vars.
 
 export type OrderCardItem = {
   name: string;
@@ -10,7 +9,6 @@ export type OrderCardItem = {
 
 export type OrderCardData = {
   guestName: string;
-  guestUsername?: string | null;
   house: string;
   items: OrderCardItem[];
   total: number;
@@ -18,23 +16,23 @@ export type OrderCardData = {
   comment?: string | null;
 };
 
-const FONT_STACK =
+const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
-const COLORS = {
-  gradientFrom: "#2b2620",
-  gradientTo: "#14110d",
-  card: "#faf6ef",
-  ink: "#2a2420",
-  muted: "#9a9087",
-  accent: "#b8965a",
-  accentSoft: "#f1e9da",
-  line: "#ece4d6",
-  panel: "#f6f0e6",
+const C = {
+  bg: "#09090b",
+  card: "#18181b",
+  panel: "#27272a",
+  border: "#3f3f46",
+  white: "#ffffff",
+  light: "#f4f4f5",
+  muted: "#a1a1aa",
+  accent: "#f59e0b",
+  accentSoft: "rgba(245,158,11,0.12)",
 };
 
-function svg(path: string): string {
-  return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${COLORS.accent}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;display:block">${path}</svg>`;
+function svg(path: string, size = 20): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${C.accent}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;display:block">${path}</svg>`;
 }
 
 const ICONS = {
@@ -48,16 +46,12 @@ const ICONS = {
     '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'
   ),
   clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
-  dot: svg('<circle cx="12" cy="12" r="4" fill="' + COLORS.accent + '"/>'),
-  card: svg(
-    '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'
-  ),
   chat: svg(
     '<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/>'
   ),
 };
 
-function escapeHtml(value: string): string {
+function esc(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -74,89 +68,82 @@ function formatDateTime(iso?: string | null): string {
   });
 }
 
-function row(icon: string, label: string, value: string): string {
+/** Icon + label on the left, value on the right — strict flex row. */
+function metaRow(icon: string, label: string, value: string): string {
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0">
-      <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0">
         ${icon}
-        <span style="font-size:22px;color:${COLORS.muted}">${label}</span>
+        <span style="font-size:18px;color:${C.muted};font-weight:500">${label}</span>
       </div>
-      <span style="font-size:23px;font-weight:700;color:${COLORS.ink};text-align:right">${value}</span>
+      <span style="font-size:18px;font-weight:700;color:${C.light};text-align:right;white-space:nowrap">${value}</span>
     </div>`;
 }
 
 function itemRow(item: OrderCardItem): string {
-  const lineTotal = item.price * item.quantity;
+  const total = item.price * item.quantity;
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px 0">
-      <div style="display:flex;align-items:center;gap:12px;min-width:0">
-        ${ICONS.dot}
-        <span style="font-size:22px;color:${COLORS.ink};font-weight:600">${escapeHtml(item.name)}<span style="color:${COLORS.muted};font-weight:500"> ×${item.quantity}</span></span>
-      </div>
-      <span style="font-size:22px;font-weight:700;color:${COLORS.ink};white-space:nowrap">${lineTotal} ₴</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0">
+      <span style="font-size:17px;font-weight:600;color:${C.white};min-width:0;flex:1">${esc(item.name)}<span style="color:${C.muted};font-weight:500"> ×${item.quantity}</span></span>
+      <span style="font-size:17px;font-weight:700;color:${C.light};white-space:nowrap;flex-shrink:0">${total} ₴</span>
     </div>`;
 }
 
 function buildCardHtml(data: OrderCardData): string {
-  const itemsCount = data.items.reduce((sum, item) => sum + item.quantity, 0);
+  const itemsCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const detailRows = [
-    row(ICONS.home, "Будинок:", escapeHtml(data.house || "—")),
+  const metaRows = [
+    metaRow(ICONS.home, "Будинок", esc(data.house || "—")),
     data.scheduledFor
-      ? row(ICONS.clock, "Подача:", formatDateTime(data.scheduledFor))
+      ? metaRow(ICONS.clock, "Подача", formatDateTime(data.scheduledFor))
       : "",
   ].join("");
 
   const itemsHtml = data.items.map(itemRow).join("");
 
-  const commentHtml = data.comment
-    ? `<div style="display:flex;align-items:flex-start;gap:12px;margin-top:18px">
-        ${ICONS.chat}
-        <span style="font-size:20px;color:${COLORS.muted};line-height:1.4">${escapeHtml(data.comment)}</span>
-      </div>`
+  const commentBlock = data.comment
+    ? `
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid ${C.border}">
+      ${ICONS.chat}
+      <span style="font-size:16px;color:${C.muted};line-height:1.5;flex:1">${esc(data.comment)}</span>
+    </div>`
     : "";
 
   return `
-  <div style="width:800px;padding:48px;background:linear-gradient(135deg, ${COLORS.gradientFrom}, ${COLORS.gradientTo});font-family:${FONT_STACK};box-sizing:border-box">
-    <div style="background:${COLORS.card};border-radius:32px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,0.35)">
-      <div style="height:8px;background:linear-gradient(90deg, ${COLORS.accent}, #e0c692)"></div>
-      <div style="padding:44px 48px 48px">
+  <div style="width:800px;padding:40px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
+    <div style="background:${C.card};border:1px solid ${C.border};border-radius:20px;overflow:hidden">
 
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-          <div style="display:flex;align-items:center;gap:14px">
-            ${ICONS.bell}
-            <span style="font-size:34px;font-weight:800;color:${COLORS.ink};letter-spacing:-0.5px">Нове замовлення</span>
-          </div>
-          <span style="font-size:20px;font-weight:700;color:${COLORS.accent};background:${COLORS.accentSoft};padding:10px 18px;border-radius:999px;white-space:nowrap">${itemsCount} страв</span>
-        </div>
+      <div style="height:4px;background:linear-gradient(90deg, ${C.accent}, #fbbf24)"></div>
 
-        <div style="margin-top:24px;display:flex;align-items:center;gap:14px">
-          ${ICONS.user}
-          <div style="display:flex;flex-direction:column">
-            <span style="font-size:30px;font-weight:800;color:${COLORS.ink};line-height:1.1">${escapeHtml(data.guestName || "Гість")}</span>
-            ${data.guestUsername ? `<span style="font-size:20px;color:${COLORS.muted};margin-top:2px">@${escapeHtml(data.guestUsername)}</span>` : ""}
-          </div>
-        </div>
-
-        <div style="height:1px;background:${COLORS.line};margin:26px 0"></div>
-
-        ${detailRows}
-
-        <div style="background:${COLORS.panel};border:1px solid ${COLORS.line};border-radius:22px;padding:20px 24px;margin-top:20px">
-          ${itemsHtml}
-        </div>
-
-        <div style="height:1px;background:${COLORS.line};margin:26px 0"></div>
+      <div style="padding:32px 36px 36px">
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
           <div style="display:flex;align-items:center;gap:12px">
-            ${ICONS.card}
-            <span style="font-size:26px;font-weight:700;color:${COLORS.ink}">Сума</span>
+            ${ICONS.bell}
+            <span style="font-size:28px;font-weight:800;color:${C.white};letter-spacing:-0.3px">Нове замовлення</span>
           </div>
-          <span style="font-size:36px;font-weight:900;color:${COLORS.accent};letter-spacing:-0.5px">${data.total} ₴</span>
+          <span style="font-size:14px;font-weight:700;color:${C.accent};background:${C.accentSoft};padding:8px 14px;border-radius:999px;white-space:nowrap;border:1px solid rgba(245,158,11,0.25)">${itemsCount} страв</span>
         </div>
 
-        ${commentHtml}
+        <div style="display:flex;align-items:center;gap:12px;margin-top:20px">
+          ${ICONS.user}
+          <span style="font-size:22px;font-weight:700;color:${C.white}">${esc(data.guestName || "Гість")}</span>
+        </div>
+
+        <div style="height:1px;background:${C.border};margin:20px 0"></div>
+
+        ${metaRows}
+
+        <div style="background:${C.panel};border-radius:12px;padding:16px 20px;margin-top:8px">
+          ${itemsHtml}
+        </div>
+
+        <div style="border-top:1px solid ${C.border};margin-top:24px;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <span style="font-size:20px;font-weight:700;color:${C.light}">Сума</span>
+          <span style="font-size:32px;font-weight:900;color:${C.accent};letter-spacing:-0.5px">${data.total} ₴</span>
+        </div>
+
+        ${commentBlock}
       </div>
     </div>
   </div>`;
@@ -185,7 +172,7 @@ export async function captureOrderCard(
     const canvas = await html2canvas(target, {
       width: 800,
       scale: 2,
-      backgroundColor: null,
+      backgroundColor: C.bg,
       logging: false,
       useCORS: true,
     });

@@ -371,7 +371,6 @@ export default function Home() {
       try {
         const card = await captureOrderCard({
           guestName: tgUser?.first_name || "Гість",
-          guestUsername: tgUser?.username || null,
           house: currentLocation,
           items: currentCart.map((item) => ({
             name: item.name,
