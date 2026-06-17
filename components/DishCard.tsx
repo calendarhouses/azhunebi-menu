@@ -44,6 +44,7 @@ function DishCard({
           src={item.image_url || ""}
           alt={item.name}
           compact
+          fit="cover"
           className="h-full w-full"
         />
       </button>
