@@ -74,7 +74,7 @@ export default function PremiumCheckout({
   const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
-  useBodyScrollLock(mounted);
+  useBodyScrollLock(open);
 
   useEffect(() => {
     fetch(`${LOTTIE_BASE_PATH}/yes.json`)

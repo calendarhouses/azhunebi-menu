@@ -19,6 +19,7 @@ type OrdersPanelProps = {
   orders: TrackedOrder[];
   selectedOrderId: string | null;
   onSelectOrder: (orderId: string) => void;
+  onDismissCancelledOrder?: (orderId: string) => void;
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
@@ -36,6 +37,7 @@ export default function OrdersPanel({
   orders,
   selectedOrderId,
   onSelectOrder,
+  onDismissCancelledOrder,
   loading = false,
   error = null,
   onRetry,
@@ -43,7 +45,7 @@ export default function OrdersPanel({
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
 
-  useBodyScrollLock(mounted);
+  useBodyScrollLock(open);
 
   if (!mounted) {
     return null;
@@ -143,7 +145,14 @@ export default function OrdersPanel({
             </div>
           ) : selectedOrder ? (
             <div className="space-y-5">
-              <OrderStepper order={selectedOrder} />
+              <OrderStepper
+                order={selectedOrder}
+                onDismissCancelled={
+                  onDismissCancelledOrder
+                    ? () => onDismissCancelledOrder(selectedOrder.id)
+                    : undefined
+                }
+              />
 
               <div className="rounded-[24px] border border-stone-600/20 bg-brand-input p-5">
                 <p className="text-xs uppercase tracking-[0.18em] text-brand-muted">

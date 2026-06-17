@@ -14,7 +14,11 @@ import {
   fetchActiveOrders,
   isTelegramWebApp,
 } from "@/lib/ordersApi";
-import { rememberOrderId } from "@/lib/orderStorage";
+import {
+  readDismissedOrderIds,
+  rememberDismissedOrderId,
+  rememberOrderId,
+} from "@/lib/orderStorage";
 import {
   getStatusChangeMessage,
   dateTimeLocalToIso,
@@ -96,6 +100,12 @@ export default function Home() {
     }, {});
   }, [cart]);
 
+  const handleDismissCancelledOrder = useCallback((orderId: string) => {
+    rememberDismissedOrderId(orderId);
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    setOrdersOpen(false);
+  }, []);
+
   const handleCheckoutClose = useCallback(() => {
     setCartOpen(false);
     if (orderJustSubmittedRef.current) {
@@ -143,7 +153,11 @@ export default function Home() {
       }
 
       try {
-        const nextOrders = await fetchActiveOrders();
+        const allFetchedOrders = await fetchActiveOrders();
+        const dismissedIds = readDismissedOrderIds();
+        const nextOrders = allFetchedOrders.filter(
+          (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
+        );
         const previousById = new Map(
           ordersRef.current.map((order) => [order.id, order.status])
         );
@@ -546,6 +560,7 @@ export default function Home() {
         orders={orders}
         selectedOrderId={selectedOrderId}
         onSelectOrder={setSelectedOrderId}
+        onDismissCancelledOrder={handleDismissCancelledOrder}
         loading={ordersLoading}
         error={ordersError}
         onRetry={() => syncOrders({ silent: false })}

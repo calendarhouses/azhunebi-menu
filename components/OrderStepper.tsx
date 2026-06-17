@@ -1,5 +1,7 @@
 "use client";
 
+import Lottie from "lottie-react";
+import { useEffect, useState } from "react";
 import {
   ORDER_STEPS,
   formatOrderDateTime,
@@ -9,21 +11,61 @@ import {
 
 type OrderStepperProps = {
   order: TrackedOrder;
+  onDismissCancelled?: () => void;
 };
 
-export default function OrderStepper({ order }: OrderStepperProps) {
-  const currentIndex = getStepIndex(order.status);
-  const progress =
-    currentIndex < 0 ? 0 : ((currentIndex + 1) / ORDER_STEPS.length) * 100;
+const LOTTIE_BASE_PATH = "/azhunebi-menu";
+
+export default function OrderStepper({ order, onDismissCancelled }: OrderStepperProps) {
+  const [badAnimation, setBadAnimation] = useState<object | null>(null);
+
+  useEffect(() => {
+    if (order.status !== "cancelled") return;
+
+    fetch(`${LOTTIE_BASE_PATH}/bad.json`)
+      .then((r) => r.json())
+      .then((data) => setBadAnimation(data))
+      .catch(() => setBadAnimation(null));
+  }, [order.status]);
 
   if (order.status === "cancelled") {
     return (
-      <div className="rounded-[24px] border border-red-400/20 bg-gradient-to-br from-red-500/10 to-transparent px-5 py-6 text-center">
-        <p className="text-base font-semibold text-red-100">Замовлення скасовано</p>
+      <div className="flex flex-col items-center rounded-[24px] border border-red-400/15 bg-gradient-to-br from-red-500/8 to-brand-input px-5 py-8 text-center">
+        {badAnimation ? (
+          <Lottie
+            animationData={badAnimation}
+            loop={false}
+            className="mx-auto h-[min(60vw,240px)] w-[min(60vw,240px)]"
+          />
+        ) : (
+          <div className="mx-auto h-40 w-40 rounded-full bg-red-400/10" />
+        )}
+
+        <p className="mt-4 text-xl font-bold text-stone-50">
+          На жаль, замовлення скасовано 💔
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-stone-400">
+          Кухар вже плаче, але зараз ми не маємо змоги його виконати.
+          <br />
+          Спробуйте зробити нове замовлення трохи пізніше!
+        </p>
+
+        {onDismissCancelled ? (
+          <button
+            type="button"
+            onClick={onDismissCancelled}
+            className="mt-6 w-full rounded-2xl bg-zinc-800 px-4 py-3.5 text-sm font-semibold text-zinc-100 transition active:scale-[0.98] hover:bg-zinc-700"
+          >
+            Повернутися в меню
+          </button>
+        ) : null}
       </div>
     );
   }
 
+  const currentIndex = getStepIndex(order.status);
+  const progress =
+    currentIndex < 0 ? 0 : ((currentIndex + 1) / ORDER_STEPS.length) * 100;
   const currentStep = ORDER_STEPS[currentIndex] || ORDER_STEPS[0];
 
   return (
@@ -44,9 +86,11 @@ export default function OrderStepper({ order }: OrderStepperProps) {
 
       <div className="mb-5 h-2 overflow-hidden rounded-full bg-brand-surface-elevated">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-brand-accent via-brand-accent-hover to-emerald-300 transition-[width] duration-300 ease-out"
+          className="relative h-full overflow-hidden rounded-full bg-gradient-to-r from-brand-accent via-brand-accent-hover to-emerald-300 transition-[width] duration-300 ease-out"
           style={{ width: `${progress}%` }}
-        />
+        >
+          <div className="animate-progress-shimmer absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -102,9 +146,7 @@ export default function OrderStepper({ order }: OrderStepperProps) {
       {order.status === "ready" ? (
         <p className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition-all duration-300">
           🍽 Можна забирати
-          {order.readyAt
-            ? ` · ${formatOrderDateTime(order.readyAt)}`
-            : ""}
+          {order.readyAt ? ` · ${formatOrderDateTime(order.readyAt)}` : ""}
         </p>
       ) : null}
     </div>

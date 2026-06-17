@@ -153,6 +153,15 @@ body {
   animation: logo-ring-pulse 2.8s ease-in-out infinite;
 }
 
+@keyframes progress-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-progress-shimmer {
+  animation: progress-shimmer 2s linear infinite;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
