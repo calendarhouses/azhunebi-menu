@@ -51,7 +51,7 @@ export default function CategorySelect({
   }, [open]);
 
   const triggerCls = [
-    "w-full rounded-lg border px-4 py-3 text-sm text-left",
+    "w-full rounded-lg border px-4 py-3 text-base text-left",
     "flex items-center justify-between gap-2",
     "bg-brand-input outline-none transition",
     error
@@ -99,7 +99,7 @@ export default function CategorySelect({
                   onChange(option.value);
                   setOpen(false);
                 }}
-                className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                className={`w-full px-4 py-3 text-left text-base transition-colors ${
                   isSelected
                     ? "bg-brand-accent/10 font-medium text-brand-accent"
                     : "text-white/80 hover:bg-brand-surface-elevated"

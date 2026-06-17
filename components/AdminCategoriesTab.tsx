@@ -2,7 +2,6 @@
 
 import AdminBottomSheet from "@/components/AdminBottomSheet";
 import { adminRequest } from "@/lib/adminApi";
-import { useFlipList } from "@/lib/useFlipList";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type CategoryRow = {
@@ -48,15 +47,10 @@ function Toggle({
 }
 
 const inputCls =
-  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-sm text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
+  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-base text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
 
 function sortCategories(list: CategoryRow[]) {
-  return [...list].sort((a, b) => {
-    const aActive = a.is_active !== false;
-    const bActive = b.is_active !== false;
-    if (aActive !== bActive) return aActive ? -1 : 1;
-    return a.sort_order - b.sort_order;
-  });
+  return [...list].sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export default function AdminCategoriesTab({
@@ -81,7 +75,6 @@ export default function AdminCategoriesTab({
     () => sortCategories(localCategories),
     [localCategories]
   );
-  const { setItemRef } = useFlipList(sorted);
 
   function openAdd() {
     setEditing(null);
@@ -198,7 +191,6 @@ export default function AdminCategoriesTab({
             return (
               <div
                 key={cat.id}
-                ref={setItemRef(cat.id)}
                 className={`admin-list-card flex items-center justify-between rounded-xl bg-brand-surface p-4 ${
                   active ? "" : "admin-list-card--inactive"
                 }`}

@@ -142,7 +142,7 @@ export default function DishModal({
                 src={item.image_url}
                 alt={item.name}
                 large
-                className="h-full w-full object-cover"
+                className="h-full w-full"
               />
             ) : (
               <DishImage src="" alt={item.name} large className="h-full w-full" />

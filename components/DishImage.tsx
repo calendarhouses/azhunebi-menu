@@ -15,6 +15,7 @@ type DishImageProps = {
   className?: string;
   large?: boolean;
   compact?: boolean;
+  fit?: "contain" | "cover";
 };
 
 function probeBrowserCache(src: string): boolean {
@@ -29,6 +30,7 @@ function DishImage({
   className = "",
   large = false,
   compact = false,
+  fit = "contain",
 }: DishImageProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(() => {
@@ -83,6 +85,8 @@ function DishImage({
     );
   }
 
+  const objectFitClass = fit === "cover" ? "object-cover" : "object-contain";
+
   return (
     <div
       className={`relative h-full w-full overflow-hidden bg-brand-surface-elevated ${className}`}
@@ -91,6 +95,17 @@ function DishImage({
         <div className="absolute inset-0" aria-hidden>
           <ImagePlaceholder large={large} compact={compact} />
         </div>
+      ) : null}
+
+      {fit === "contain" && loaded ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt=""
+          aria-hidden
+          decoding="async"
+          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-md saturate-125"
+        />
       ) : null}
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -108,7 +123,7 @@ function DishImage({
           setHasError(true);
           setLoaded(false);
         }}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ${
+        className={`relative z-10 h-full w-full ${objectFitClass} transition-opacity duration-200 ${
           loaded ? "opacity-100" : "opacity-0"
         }`}
       />

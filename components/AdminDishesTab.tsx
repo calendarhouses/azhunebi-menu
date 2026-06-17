@@ -5,7 +5,6 @@ import AdminDishForm from "@/components/AdminDishForm";
 import DishImage from "@/components/DishImage";
 import { adminRequest } from "@/lib/adminApi";
 import { prefetchMenuImages } from "@/lib/prefetchMenuImages";
-import { useFlipList } from "@/lib/useFlipList";
 import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -48,12 +47,7 @@ function Toggle({
 }
 
 function sortDishes(list: MenuItemRow[]) {
-  return [...list].sort((a, b) => {
-    if (a.is_available !== b.is_available) {
-      return a.is_available ? -1 : 1;
-    }
-    return a.name.localeCompare(b.name, "uk");
-  });
+  return [...list].sort((a, b) => a.name.localeCompare(b.name, "uk"));
 }
 
 export default function AdminDishesTab({
@@ -89,8 +83,6 @@ export default function AdminDishesTab({
       filterCategory === "all" || dish.category === filterCategory,
     [filterCategory]
   );
-
-  const { setItemRef } = useFlipList(sorted);
 
   function openAdd() {
     setEditingDish(null);
@@ -209,7 +201,6 @@ export default function AdminDishesTab({
             {sorted.map((dish) => (
               <div
                 key={dish.id}
-                ref={setItemRef(dish.id)}
                 className={`admin-list-card flex items-center gap-3 rounded-xl bg-brand-surface p-3 ${
                   dish.is_available ? "" : "admin-list-card--inactive"
                 } ${isDishVisible(dish) ? "" : "hidden"}`}
@@ -220,7 +211,7 @@ export default function AdminDishesTab({
                     src={dish.image_url || ""}
                     alt={dish.name}
                     compact
-                    className="h-full w-full object-cover"
+                    className="h-full w-full"
                   />
                 </div>
 

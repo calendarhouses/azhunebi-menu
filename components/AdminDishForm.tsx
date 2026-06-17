@@ -39,17 +39,30 @@ function PhotoPreview({ src }: { src: string }) {
   const [broken, setBroken] = useState(false);
 
   if (broken) {
-    return <div className="h-40 w-full overflow-hidden rounded-xl"><PhotoPlaceholder /></div>;
+    return (
+      <div className="h-44 w-full overflow-hidden rounded-xl">
+        <PhotoPlaceholder />
+      </div>
+    );
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt="Превью"
-      className="h-40 w-full object-cover"
-      onError={() => setBroken(true)}
-    />
+    <div className="relative h-44 w-full overflow-hidden rounded-xl bg-brand-surface-elevated">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-md saturate-125"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt="Превью"
+        className="relative z-10 h-full w-full object-contain"
+        onError={() => setBroken(true)}
+      />
+    </div>
   );
 }
 
@@ -62,7 +75,7 @@ type Props = {
 };
 
 const inputCls =
-  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-sm text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
+  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-base text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
 
 const labelCls =
   "mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/35";
@@ -332,7 +345,7 @@ export default function AdminDishForm({
                     <span className="text-brand-accent">оберіть файл</span>
                   </span>
                   <span className="mt-1 text-xs text-white/25">
-                    JPG, PNG, HEIC → автоконвертація в WebP
+                    JPG, PNG, HEIC → WebP до ~140 KB без втрати якості
                   </span>
                 </>
               )}

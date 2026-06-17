@@ -30,7 +30,7 @@ type AdminRow = {
 };
 
 const inputCls =
-  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-sm text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
+  "w-full rounded-lg border border-white/10 bg-brand-input px-4 py-3 text-base text-white outline-none transition focus:border-brand-accent focus:ring-1 focus:ring-brand-accent placeholder:text-white/25";
 
 export default function AdminPage() {
   const [sessionReady, setSessionReady] = useState(false);

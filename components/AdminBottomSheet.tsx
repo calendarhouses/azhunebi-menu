@@ -1,8 +1,11 @@
 "use client";
 
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
   buildSheetPanelTransform,
+  useKeyboardLayoutOffset,
   useSheetPresence,
+  useStableSheetHeight,
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
 import type { CSSProperties, ReactNode } from "react";
@@ -29,13 +32,18 @@ export default function AdminBottomSheet({
   children,
 }: Props) {
   const { mounted, visible } = useSheetPresence(open);
+  const maxHeight = useStableSheetHeight(mounted);
+  const keyboardOffset = useKeyboardLayoutOffset(mounted);
   const { dragOffset, isDragging, swipeAreaProps } =
     useSwipeToDismissSheet(onClose);
+
+  useBodyScrollLock(mounted);
 
   if (!mounted) return null;
 
   const panelStyle: CSSProperties = {
-    ...buildSheetPanelTransform(0, dragOffset, isDragging),
+    maxHeight: maxHeight ? `${maxHeight}px` : "92vh",
+    ...buildSheetPanelTransform(keyboardOffset, dragOffset, isDragging),
   };
 
   return (
@@ -55,7 +63,7 @@ export default function AdminBottomSheet({
       {/* Sheet panel */}
       <div
         style={panelStyle}
-        className={`sheet-panel sheet-panel-motion relative flex w-full max-h-[92vh] max-w-lg flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
+        className={`sheet-panel sheet-panel-motion relative flex w-full max-w-lg min-h-0 flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
           visible ? "is-visible" : ""
         }`}
       >
@@ -68,7 +76,7 @@ export default function AdminBottomSheet({
         </div>
 
         {/* Scrollable form content */}
-        <div className="flex-1 overflow-y-auto overscroll-none px-5 pb-safe">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-none touch-pan-y px-5 pb-safe">
           {children}
           <div className="h-4" />
         </div>
