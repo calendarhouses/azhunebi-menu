@@ -1,6 +1,7 @@
 "use client";
 
 import CategorySelect from "@/components/CategorySelect";
+import ImagePlaceholder from "@/components/ImagePlaceholder";
 import { adminRequest, uploadDishImage } from "@/lib/adminApi";
 import { compressImage, formatFileSize, type CompressedImage } from "@/lib/imageUtils";
 import type { MenuItemRow } from "@/lib/supabase";
@@ -11,6 +12,17 @@ type CategoryRow = { id: string; name: string; sort_order: number };
 // Pure sanity guard — real photos never hit this after compression.
 const MAX_COMPRESSED_BYTES = 1.5 * 1024 * 1024;
 const COMPRESS_FAIL_MESSAGE = "Не вдалося стиснути фото. Спробуйте інше.";
+
+function isValidImageUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  try {
+    const { protocol } = new URL(trimmed);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 type Props = {
   dish: MenuItemRow | null;
@@ -60,6 +72,7 @@ export default function AdminDishForm({
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
   // isDragging: drag-over visual state
   const [isDragging, setIsDragging] = useState(false);
+  const [serverImageFailed, setServerImageFailed] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,6 +91,10 @@ export default function AdminDishForm({
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    setServerImageFailed(false);
+  }, [dish?.id, serverUrl, previewUrl]);
 
   // ----- image handling -----
   async function handleFile(file: File) {
@@ -150,6 +167,7 @@ export default function AdminDishForm({
     setPreviewUrl(null);
     setPendingImage(null);
     setServerUrl("");
+    setServerImageFailed(false);
     setCompressedSize(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -223,7 +241,9 @@ export default function AdminDishForm({
     }
   }
 
-  const displayUrl = previewUrl ?? (serverUrl || null);
+  const remoteUrl =
+    isValidImageUrl(serverUrl) && !serverImageFailed ? serverUrl : null;
+  const displayUrl = previewUrl ?? remoteUrl;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -238,6 +258,11 @@ export default function AdminDishForm({
               src={displayUrl}
               alt="Превью"
               className="h-full w-full object-cover"
+              onError={() => {
+                if (!previewUrl) {
+                  setServerImageFailed(true);
+                }
+              }}
             />
             {compressedSize !== null && (
               <span className="absolute bottom-3 left-3 z-10 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white/80">
@@ -262,60 +287,49 @@ export default function AdminDishForm({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               disabled={converting}
-              className={`flex h-32 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed transition ${
+              className={`relative h-48 w-full overflow-hidden rounded-xl border-2 border-dashed transition ${
                 isDragging
                   ? "border-brand-accent bg-brand-accent/10"
-                  : "border-white/10 bg-brand-input hover:border-white/20"
+                  : "border-white/10 hover:border-white/20"
               } disabled:opacity-60`}
             >
-              {converting ? (
-                <>
-                  <svg
-                    className="mb-2 h-6 w-6 animate-spin text-brand-accent"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
-                    />
-                  </svg>
-                  <span className="text-xs text-white/50">Стиснення фото…</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mb-2 h-7 w-7 text-white/30"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium text-white/50">
-                    Перетягніть або{" "}
-                    <span className="text-brand-accent">оберіть файл</span>
-                  </span>
-                  <span className="mt-1 text-xs text-white/25">
-                    JPG, PNG, HEIC → стиснення до ~250 KB
-                  </span>
-                </>
-              )}
+              {!converting ? <ImagePlaceholder large /> : null}
+              <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/55 via-transparent to-transparent pb-4">
+                {converting ? (
+                  <>
+                    <svg
+                      className="mb-2 h-6 w-6 animate-spin text-brand-accent"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+                      />
+                    </svg>
+                    <span className="text-xs text-white/80">Стиснення фото…</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-medium text-white/80">
+                      Перетягніть або{" "}
+                      <span className="text-brand-accent">оберіть файл</span>
+                    </span>
+                    <span className="mt-1 text-xs text-white/45">
+                      JPG, PNG, HEIC → стиснення до ~250 KB
+                    </span>
+                  </>
+                )}
+              </div>
             </button>
 
             <input
