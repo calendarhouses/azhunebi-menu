@@ -9,6 +9,7 @@ import {
   minScheduledDateTimeLocal,
   validateScheduledDateTimeLocal,
 } from "@/lib/orderStatus";
+import { MODAL_FORM_SCROLL_CLASS, MODAL_OVERLAY_STYLE } from "@/lib/modalLayout";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
   buildSheetPanelTransform,
@@ -145,7 +146,8 @@ export default function PremiumCheckout({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+      style={MODAL_OVERLAY_STYLE}
+      className={`z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
@@ -181,7 +183,7 @@ export default function PremiumCheckout({
           ) : null}
         </div>
 
-        <div className="checkout-form-scroll min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-none px-4 py-4">
+        <div className={`${MODAL_FORM_SCROLL_CLASS} px-4 py-4`}>
           {cart.length === 0 ? (
             <EmptyStateScreen
               title="Ваш кошик сумує"
