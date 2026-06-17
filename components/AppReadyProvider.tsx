@@ -51,6 +51,7 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
     setCategories(menuData.categories);
     setLogoUrl(menuData.logoUrl);
     setMenuLoadError(menuData.error);
+    void prefetchMenuImages(menuData.items);
   }, []);
 
   useEffect(() => {
@@ -73,11 +74,10 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
       setLogoUrl(menuData.logoUrl);
       setMenuLoadError(menuData.error);
       setShowAdminLink(adminResult.isAdmin);
-
-      // Warm image cache while preloader is still visible (cap wait at 2.5s)
-      await prefetchMenuImages(menuData.items, { timeoutMs: 2500 });
-
       setIsAppReady(true);
+
+      // Prefetch photos in the background — never blocks the preloader for guests
+      void prefetchMenuImages(menuData.items);
     };
 
     bootstrap();
