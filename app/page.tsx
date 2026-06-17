@@ -30,8 +30,10 @@ import {
 } from "@/lib/orderStatus";
 import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
 import { captureOrderCard } from "@/lib/orderCardCapture";
+import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
+import { useStartParamLocation } from "@/lib/useStartParamLocation";
 import { useTelegramApp } from "@/lib/useTelegramApp";
 import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -74,7 +76,10 @@ export default function Home() {
     scheduledFor,
     setScheduledFor,
     clearStoredCart,
+    hydrated: cartHydrated,
   } = useCartStorage();
+
+  const { startParamLocation, startParamReady } = useStartParamLocation();
 
   const isSubmittingRef = useRef(false);
   const orderJustSubmittedRef = useRef(false);
@@ -83,6 +88,7 @@ export default function Home() {
   const locationNoteRef = useRef(locationNote);
   const isScheduledOrderRef = useRef(isScheduledOrder);
   const scheduledForRef = useRef(scheduledFor);
+  const startParamLocationRef = useRef(startParamLocation);
   const ordersRef = useRef<TrackedOrder[]>([]);
   const ordersLoadedOnceRef = useRef(false);
   const orphanMissCountsRef = useRef<Map<string, number>>(new Map());
@@ -92,6 +98,7 @@ export default function Home() {
   locationNoteRef.current = locationNote;
   isScheduledOrderRef.current = isScheduledOrder;
   scheduledForRef.current = scheduledFor;
+  startParamLocationRef.current = startParamLocation;
   ordersRef.current = orders;
 
   const showOrdersLink = inTelegram || orders.length > 0;
@@ -311,6 +318,16 @@ export default function Home() {
   }, [refreshMenu]);
 
   useEffect(() => {
+    if (!cartHydrated || !startParamReady) {
+      return;
+    }
+
+    if (startParamLocation?.type === "cabin") {
+      setLocationNote(startParamLocation.label);
+    }
+  }, [cartHydrated, startParamReady, startParamLocation, setLocationNote]);
+
+  useEffect(() => {
     if (activeCategory !== "all" && !categories.includes(activeCategory)) {
       setActiveCategory("all");
     }
@@ -416,6 +433,10 @@ export default function Home() {
         })),
         comment: commentRef.current.trim() || undefined,
         locationNote: currentLocation,
+        tableNumber:
+          startParamLocationRef.current?.type === "table"
+            ? startParamLocationRef.current.label
+            : undefined,
         paymentMethod: "cash",
         scheduledFor: scheduledPayload,
       });
@@ -435,7 +456,12 @@ export default function Home() {
       // Card capture + admin notify run in background — user sees success immediately.
       const cardPayload = {
         guestName: tgUser?.first_name || "Гість",
-        house: currentLocation,
+        house: formatOrderLocationDisplay(
+          currentLocation,
+          startParamLocationRef.current?.type === "table"
+            ? startParamLocationRef.current.label
+            : null
+        ),
         items: currentCart.map((item) => ({
           name: item.name,
           quantity: item.quantity,
@@ -679,6 +705,7 @@ export default function Home() {
         onSubmit={submitOrder}
         isSubmitting={isSubmitting}
         total={cartTotal}
+        startParamLocation={startParamLocation}
       />
 
       <FloatingCartBar

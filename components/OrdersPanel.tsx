@@ -10,6 +10,7 @@ import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
+import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
   buildSheetPanelTransform,
@@ -188,7 +189,10 @@ export default function OrdersPanel({
                 </p>
                 <div className="mt-3 space-y-2.5">
                   <DetailRow icon={<LocationIcon />}>
-                    {selectedOrder.locationNote || "—"}
+                    {formatOrderLocationDisplay(
+                      selectedOrder.locationNote,
+                      selectedOrder.tableNumber
+                    )}
                   </DetailRow>
                   {selectedOrder.scheduledFor ? (
                     <DetailRow icon={<ClockIcon />}>

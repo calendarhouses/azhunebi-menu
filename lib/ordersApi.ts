@@ -136,6 +136,7 @@ export async function createOrderRequest(payload: {
   cart: { id: string; quantity: number }[];
   comment?: string;
   locationNote: string;
+  tableNumber?: string;
   paymentMethod: string;
   scheduledFor?: string;
 }) {

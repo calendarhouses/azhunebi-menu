@@ -19,6 +19,7 @@ export type TrackedOrder = {
   cart: OrderCartLine[];
   comment: string | null;
   locationNote: string | null;
+  tableNumber: string | null;
   paymentMethod: string | null;
   scheduledFor: string | null;
   readyAt: string | null;

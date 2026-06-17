@@ -4,6 +4,7 @@ import EmptyStateScreen from "@/components/EmptyStateScreen";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
 import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
+import type { StartParamLocation } from "@/lib/startParamLocation";
 import type { CartItem } from "@/lib/cart";
 import {
   minScheduledDateTimeLocal,
@@ -38,6 +39,7 @@ type PremiumCheckoutProps = {
   onSubmit: () => Promise<void>;
   isSubmitting: boolean;
   total: number;
+  startParamLocation: StartParamLocation | null;
 };
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -67,6 +69,7 @@ export default function PremiumCheckout({
   onSubmit,
   isSubmitting,
   total,
+  startParamLocation,
 }: PremiumCheckoutProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
@@ -96,6 +99,9 @@ export default function PremiumCheckout({
   if (!mounted) {
     return null;
   }
+
+  const isCabinLocked = startParamLocation?.type === "cabin";
+  const isTableOrder = startParamLocation?.type === "table";
 
   async function handleSubmit() {
     if (!locationNote.trim()) {
@@ -220,28 +226,54 @@ export default function PremiumCheckout({
               </section>
 
               <section className="mb-5">
-                <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
-                <div className="grid grid-cols-4 gap-2">
-                  {HOUSES.map((house) => (
-                    <button
-                      key={house}
-                      type="button"
-                      onClick={() => onLocationNoteChange(house)}
-                      className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] ${
-                        locationNote === house
-                          ? "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]"
-                          : "border-stone-600/25 bg-brand-input text-brand-muted"
-                      }`}
-                    >
-                      {house.replace("Будинок ", "")}
-                    </button>
-                  ))}
-                </div>
-                {locationNote ? (
-                  <p className="mt-2 text-xs text-brand-muted">
-                    Обрано: <span className="text-stone-200">{locationNote}</span>
-                  </p>
+                {isTableOrder ? (
+                  <div className="mb-2 rounded-lg bg-zinc-800 p-2 text-sm text-amber-500">
+                    📍 Ви замовляєте за {startParamLocation.label}
+                  </div>
                 ) : null}
+
+                <div className="mb-2 flex items-center gap-2">
+                  <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
+                  {isCabinLocked ? (
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-sm font-bold text-emerald-400 ring-1 ring-emerald-400/30"
+                      aria-hidden
+                    >
+                      ✓
+                    </span>
+                  ) : null}
+                </div>
+
+                {isCabinLocked ? (
+                  <div className="rounded-2xl border border-brand-accent/30 bg-brand-accent/10 px-4 py-3.5 text-sm font-semibold text-stone-50">
+                    {locationNote}
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-4 gap-2">
+                      {HOUSES.map((house) => (
+                        <button
+                          key={house}
+                          type="button"
+                          onClick={() => onLocationNoteChange(house)}
+                          className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] ${
+                            locationNote === house
+                              ? "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]"
+                              : "border-stone-600/25 bg-brand-input text-brand-muted"
+                          }`}
+                        >
+                          {house.replace("Будинок ", "")}
+                        </button>
+                      ))}
+                    </div>
+                    {locationNote ? (
+                      <p className="mt-2 text-xs text-brand-muted">
+                        Обрано:{" "}
+                        <span className="text-stone-200">{locationNote}</span>
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </section>
 
               <section>
