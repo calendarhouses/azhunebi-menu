@@ -48,8 +48,6 @@ function SectionTitle({ children }: { children: ReactNode }) {
 const inputClassName =
   "w-full rounded-xl border border-stone-600/25 bg-brand-input px-4 py-3 text-sm text-stone-100 placeholder:text-stone-500 outline-none focus:border-brand-accent/40 focus:ring-1 focus:ring-brand-accent/20";
 
-const STABLE_VIEWPORT_HEIGHT = "var(--tg-viewport-stable-height, 100vh)";
-
 export default function PremiumCheckout({
   open,
   onClose,
@@ -77,10 +75,14 @@ export default function PremiumCheckout({
     return null;
   }
 
-  function scrollFieldIntoView(element: HTMLElement) {
-    window.requestAnimationFrame(() => {
-      element.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
+  // iOS Telegram WebView violently scrolls the layout when an input is focused.
+  // Deferring our own centered scroll until the keyboard has settled (~300ms)
+  // keeps the focused field in view without the system "jump".
+  function handleFieldFocus(event: { target: Element }) {
+    const target = event.target;
+    window.setTimeout(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
   }
 
   function handleSubmit() {
@@ -118,32 +120,29 @@ export default function PremiumCheckout({
   }
 
   const panelStyle: CSSProperties = {
-    maxHeight: `calc(${STABLE_VIEWPORT_HEIGHT} * 0.92)`,
     ...buildSheetPanelTransform(0, dragOffset, isDragging),
   };
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-[60]"
-      style={{ minHeight: STABLE_VIEWPORT_HEIGHT, height: STABLE_VIEWPORT_HEIGHT }}
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
     >
       <button
         type="button"
         aria-label="Закрити"
-        className={`sheet-overlay absolute inset-0 bg-brand-overlay backdrop-blur-sm ${
-          visible ? "is-visible" : ""
-        }`}
+        className="absolute inset-0"
         onClick={onClose}
       />
 
       <div
         style={panelStyle}
-        className={`sheet-panel sheet-panel-motion fixed inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
+        className={`sheet-panel-motion relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-zinc-900 shadow-2xl sm:max-w-md ${
           visible ? "is-visible" : ""
         }`}
       >
         <div className="shrink-0 touch-pan-y" {...swipeAreaProps}>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(196,165,116,0.1),transparent_70%)]" />
           <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 shrink-0 rounded-full" />
 
           {cart.length > 0 ? (
@@ -167,11 +166,7 @@ export default function PremiumCheckout({
           ) : null}
         </div>
 
-        <div
-          className={`checkout-form-scroll relative min-h-0 flex-1 touch-pan-y ${
-            cart.length === 0 ? "overflow-hidden" : "overflow-y-auto px-5 pb-4"
-          }`}
-        >
+        <div className="checkout-form-scroll min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-none px-4 py-4">
           {cart.length === 0 ? (
             <EmptyStateScreen
               title="Ваш кошик сумує"
@@ -218,7 +213,7 @@ export default function PremiumCheckout({
                     type="text"
                     value={locationNote}
                     onChange={(event) => onLocationNoteChange(event.target.value)}
-                    onFocus={(event) => scrollFieldIntoView(event.currentTarget)}
+                    onFocus={handleFieldFocus}
                     placeholder="Будиночок 7"
                     className={inputClassName}
                   />
@@ -229,7 +224,7 @@ export default function PremiumCheckout({
                   <textarea
                     value={comment}
                     onChange={(event) => onCommentChange(event.target.value)}
-                    onFocus={(event) => scrollFieldIntoView(event.currentTarget)}
+                    onFocus={handleFieldFocus}
                     placeholder="Побажання, алергії..."
                     rows={2}
                     className={`${inputClassName} resize-none`}
@@ -237,7 +232,7 @@ export default function PremiumCheckout({
                 </label>
               </section>
 
-              <section className="mb-5">
+              <section>
                 <SectionTitle>Час подачі</SectionTitle>
                 <div className="grid grid-cols-2 gap-2 rounded-2xl border border-stone-600/20 bg-brand-input p-1">
                   <button
@@ -279,22 +274,24 @@ export default function PremiumCheckout({
                   </div>
                 </div>
               </section>
-
-              <div className="pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={handleSubmit}
-                  className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition disabled:opacity-50"
-                >
-                  {isSubmitting
-                    ? "Відправка..."
-                    : `Оформити замовлення на ${formatPrice(total)}`}
-                </button>
-              </div>
             </>
           )}
         </div>
+
+        {cart.length > 0 ? (
+          <div className="shrink-0 border-t border-zinc-800 bg-zinc-900 p-4 pb-safe">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+              className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition disabled:opacity-50"
+            >
+              {isSubmitting
+                ? "Відправка..."
+                : `Оформити замовлення на ${formatPrice(total)}`}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

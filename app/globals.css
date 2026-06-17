@@ -47,6 +47,10 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+@utility pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
 .sheet-panel {
   background: var(--brand-surface);
   border-color: var(--brand-border);
