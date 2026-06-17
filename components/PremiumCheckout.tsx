@@ -11,13 +11,13 @@ import {
   validateScheduledDateTimeLocal,
 } from "@/lib/orderStatus";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
-import { useKeyboardFieldScroll } from "@/lib/useKeyboardFieldScroll";
 import {
   useSheetPresence,
   useStableSheetHeight,
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 type PremiumCheckoutProps = {
   open: boolean;
@@ -70,11 +70,36 @@ export default function PremiumCheckout({
   const { mounted, visible } = useSheetPresence(open);
   const maxHeight = useStableSheetHeight(mounted);
   const { sheetStyle, swipeAreaProps } = useSwipeToDismissSheet(onClose);
-  const { keyboardInset, visibleHeight } = useKeyboardFieldScroll(
-    mounted && cart.length > 0
-  );
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useBodyScrollLock(mounted);
+
+  useEffect(() => {
+    if (!mounted || cart.length === 0) {
+      setKeyboardOpen(false);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+
+    const updateKeyboard = () => {
+      const inset = Math.max(
+        0,
+        window.innerHeight - viewport.height - viewport.offsetTop
+      );
+      setKeyboardOpen(inset > 48);
+    };
+
+    updateKeyboard();
+    viewport.addEventListener("resize", updateKeyboard);
+
+    return () => {
+      viewport.removeEventListener("resize", updateKeyboard);
+    };
+  }, [mounted, cart.length]);
 
   if (!mounted) {
     return null;
@@ -114,11 +139,9 @@ export default function PremiumCheckout({
     }
   }
 
-  const keyboardVisible = keyboardInset > 48;
   const panelStyle: CSSProperties = {
     ...sheetStyle,
-    maxHeight: keyboardVisible && visibleHeight ? visibleHeight : maxHeight,
-    ...(keyboardVisible && visibleHeight ? { height: visibleHeight } : {}),
+    maxHeight,
   };
 
   return (
@@ -274,7 +297,11 @@ export default function PremiumCheckout({
                 </div>
               </section>
 
-              <div className="pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
+              <div
+                className={`pb-[max(1rem,env(safe-area-inset-bottom))] pt-1 ${
+                  keyboardOpen ? "hidden" : ""
+                }`}
+              >
                 <button
                   type="button"
                   disabled={isSubmitting}

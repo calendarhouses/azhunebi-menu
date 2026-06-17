@@ -123,7 +123,7 @@ export default function DishModal({
 
       <div
         style={panelStyle}
-        className={`sheet-panel sheet-panel-motion relative fixed inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
+        className={`sheet-panel sheet-panel-motion fixed inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border shadow-2xl ${
           visible ? "is-visible" : ""
         }`}
       >
