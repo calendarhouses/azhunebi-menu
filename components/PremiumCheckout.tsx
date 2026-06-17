@@ -16,7 +16,11 @@ import {
   useSheetPresence,
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
-import type { CSSProperties, ReactNode } from "react";
+import Lottie from "lottie-react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+
+const LOTTIE_BASE_PATH = "/azhunebi-menu";
+const SUCCESS_CLOSE_MS = 2500;
 
 type PremiumCheckoutProps = {
   open: boolean;
@@ -32,7 +36,7 @@ type PremiumCheckoutProps = {
   onScheduledForChange: (value: string) => void;
   onIncrement: (itemId: string) => void;
   onDecrement: (itemId: string) => void;
-  onSubmit: () => void;
+  onSubmit: () => Promise<void>;
   isSubmitting: boolean;
   total: number;
 };
@@ -67,14 +71,34 @@ export default function PremiumCheckout({
 }: PremiumCheckoutProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
 
   useBodyScrollLock(mounted);
+
+  useEffect(() => {
+    fetch(`${LOTTIE_BASE_PATH}/yes.json`)
+      .then((r) => r.json())
+      .then((data) => setSuccessAnimation(data))
+      .catch(() => setSuccessAnimation(null));
+  }, []);
+
+  useEffect(() => {
+    if (!open) setShowSuccess(false);
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   if (!mounted) {
     return null;
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!locationNote.trim()) {
       window.Telegram?.WebApp.showAlert("Вкажіть, в якому будинку ви проживаєте.");
       return;
@@ -98,7 +122,15 @@ export default function PremiumCheckout({
       }
     }
 
-    onSubmit();
+    try {
+      await onSubmit();
+      setShowSuccess(true);
+      closeTimerRef.current = window.setTimeout(() => {
+        onClose();
+      }, SUCCESS_CLOSE_MS);
+    } catch {
+      // errors are surfaced by submitOrder via Telegram alert
+    }
   }
 
   function setOrderTiming(scheduled: boolean) {
@@ -201,10 +233,10 @@ export default function PremiumCheckout({
                       key={house}
                       type="button"
                       onClick={() => onLocationNoteChange(house)}
-                      className={`rounded-xl border py-2.5 text-sm font-medium transition-colors duration-200 ${
+                      className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] ${
                         locationNote === house
-                          ? "border-brand-accent bg-brand-accent text-brand-accent-text"
-                          : "border-stone-600/25 bg-brand-input text-stone-300 active:bg-brand-surface-elevated"
+                          ? "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]"
+                          : "border-stone-600/25 bg-brand-input text-brand-muted"
                       }`}
                     >
                       {house.replace("Будинок ", "")}
@@ -276,6 +308,23 @@ export default function PremiumCheckout({
                 ? "Відправка..."
                 : `Оформити замовлення на ${formatPrice(total)}`}
             </button>
+          </div>
+        ) : null}
+
+        {showSuccess ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-brand-surface px-6 text-center">
+            {successAnimation ? (
+              <Lottie
+                animationData={successAnimation}
+                loop={false}
+                className="mx-auto h-[min(68vw,280px)] w-[min(68vw,280px)] animate-sheet-up drop-shadow-2xl"
+              />
+            ) : (
+              <div className="mx-auto h-[min(68vw,280px)] w-[min(68vw,280px)] animate-sheet-up rounded-full bg-brand-accent/15" />
+            )}
+            <p className="mt-3 animate-sheet-up text-2xl font-bold tracking-tight text-stone-50">
+              Є! Чекайте на підтвердження!
+            </p>
           </div>
         ) : null}
       </div>

@@ -68,6 +68,7 @@ export default function Home() {
   } = useCartStorage();
 
   const isSubmittingRef = useRef(false);
+  const orderJustSubmittedRef = useRef(false);
   const cartRef = useRef(cart);
   const commentRef = useRef(comment);
   const locationNoteRef = useRef(locationNote);
@@ -94,6 +95,14 @@ export default function Home() {
       return acc;
     }, {});
   }, [cart]);
+
+  const handleCheckoutClose = useCallback(() => {
+    setCartOpen(false);
+    if (orderJustSubmittedRef.current) {
+      orderJustSubmittedRef.current = false;
+      setOrdersOpen(true);
+    }
+  }, []);
 
   const handleBack = useCallback(() => {
     if (ordersOpen) {
@@ -321,12 +330,11 @@ export default function Home() {
       }
 
       clearStoredCart();
-      setCartOpen(false);
       setSelectedDish(null);
       triggerSuccess();
       setOrderToast("Замовлення відправлено — очікуємо підтвердження");
+      orderJustSubmittedRef.current = true;
       await syncOrders({
-        openPanel: true,
         focusOrderId: result.orderId as string,
         silent: true,
       });
@@ -504,7 +512,7 @@ export default function Home() {
 
       <PremiumCheckout
         open={cartOpen}
-        onClose={() => setCartOpen(false)}
+        onClose={handleCheckoutClose}
         cart={cart}
         comment={comment}
         locationNote={locationNote}
