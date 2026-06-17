@@ -45,8 +45,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
-const inputClassName =
-  "w-full rounded-xl border border-stone-600/25 bg-brand-input px-4 py-3 text-sm text-stone-100 placeholder:text-stone-500 outline-none focus:border-brand-accent/40 focus:ring-1 focus:ring-brand-accent/20";
+const HOUSES = Array.from({ length: 12 }, (_, i) => `Будинок ${i + 1}`);
 
 export default function PremiumCheckout({
   open,
@@ -73,16 +72,6 @@ export default function PremiumCheckout({
 
   if (!mounted) {
     return null;
-  }
-
-  // iOS Telegram WebView violently scrolls the layout when an input is focused.
-  // Deferring our own centered scroll until the keyboard has settled (~300ms)
-  // keeps the focused field in view without the system "jump".
-  function handleFieldFocus(event: { target: Element }) {
-    const target = event.target;
-    window.setTimeout(() => {
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 300);
   }
 
   function handleSubmit() {
@@ -138,7 +127,7 @@ export default function PremiumCheckout({
 
       <div
         style={panelStyle}
-        className={`sheet-panel-motion relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-zinc-900 shadow-2xl sm:max-w-md ${
+        className={`sheet-panel sheet-panel-motion relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-[28px] border shadow-2xl sm:max-w-md ${
           visible ? "is-visible" : ""
         }`}
       >
@@ -204,32 +193,29 @@ export default function PremiumCheckout({
                 </ul>
               </section>
 
-              <section className="mb-5 space-y-3">
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-brand-muted">
-                    В якому будинку ви проживаєте?
-                  </span>
-                  <input
-                    type="text"
-                    value={locationNote}
-                    onChange={(event) => onLocationNoteChange(event.target.value)}
-                    onFocus={handleFieldFocus}
-                    placeholder="Будиночок 7"
-                    className={inputClassName}
-                  />
-                </label>
-
-                <label className="block">
-                  <SectionTitle>Коментар</SectionTitle>
-                  <textarea
-                    value={comment}
-                    onChange={(event) => onCommentChange(event.target.value)}
-                    onFocus={handleFieldFocus}
-                    placeholder="Побажання, алергії..."
-                    rows={2}
-                    className={`${inputClassName} resize-none`}
-                  />
-                </label>
+              <section className="mb-5">
+                <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
+                <div className="grid grid-cols-4 gap-2">
+                  {HOUSES.map((house) => (
+                    <button
+                      key={house}
+                      type="button"
+                      onClick={() => onLocationNoteChange(house)}
+                      className={`rounded-xl border py-2.5 text-sm font-medium transition-colors duration-200 ${
+                        locationNote === house
+                          ? "border-brand-accent bg-brand-accent text-brand-accent-text"
+                          : "border-stone-600/25 bg-brand-input text-stone-300 active:bg-brand-surface-elevated"
+                      }`}
+                    >
+                      {house.replace("Будинок ", "")}
+                    </button>
+                  ))}
+                </div>
+                {locationNote ? (
+                  <p className="mt-2 text-xs text-brand-muted">
+                    Обрано: <span className="text-stone-200">{locationNote}</span>
+                  </p>
+                ) : null}
               </section>
 
               <section>
@@ -279,7 +265,7 @@ export default function PremiumCheckout({
         </div>
 
         {cart.length > 0 ? (
-          <div className="shrink-0 border-t border-zinc-800 bg-zinc-900 p-4 pb-safe">
+          <div className="shrink-0 border-t border-stone-600/20 bg-brand-surface p-4 pb-safe">
             <button
               type="button"
               disabled={isSubmitting}

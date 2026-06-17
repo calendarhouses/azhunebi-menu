@@ -146,7 +146,7 @@ export default function MenuHeader({
 
       <div className="relative mx-auto max-w-3xl px-4 pb-4 pt-5">
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-700 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+          <div className="animate-logo-ring-pulse flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand-accent/40">
             <BrandLogo
               src={logoUrl}
               className="h-full w-full object-cover"

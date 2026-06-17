@@ -28,7 +28,7 @@ export default function Preloader({ logoUrl, isAppReady }: PreloaderProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-950 transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-brand-bg transition-opacity duration-500 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     >

@@ -140,6 +140,19 @@ body {
   animation: badge-pop 0.25s ease-out;
 }
 
+@keyframes logo-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(196, 165, 116, 0), 0 0 14px rgba(196, 165, 116, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(196, 165, 116, 0.2), 0 0 22px rgba(196, 165, 116, 0.25);
+  }
+}
+
+.animate-logo-ring-pulse {
+  animation: logo-ring-pulse 2.8s ease-in-out infinite;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
