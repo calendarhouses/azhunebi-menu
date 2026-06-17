@@ -1,4 +1,8 @@
+import { supabase } from "@/lib/supabase";
+
 const ADMIN_API_URL = "https://azhunebi-bot.vercel.app/api/admin";
+const STORAGE_BUCKET = "xata-public";
+const STORAGE_FOLDER = "menu";
 
 type AdminCheckResult = {
   isAdmin: boolean;
@@ -76,6 +80,33 @@ export async function adminRequest<T = Record<string, unknown>>(
 
 export async function loadAdminPanelData() {
   return adminRequest<AdminLoadResult>("load");
+}
+
+/**
+ * Uploads a pre-converted WebP Blob directly to Supabase Storage.
+ * Generates a unique path: menu/dish_<timestamp>.webp
+ * Returns the public URL of the uploaded file.
+ */
+export async function uploadDishImage(webpBlob: Blob): Promise<string> {
+  const fileName = `${STORAGE_FOLDER}/dish_${Date.now()}.webp`;
+
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(fileName, webpBlob, {
+      contentType: "image/webp",
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(`Помилка завантаження фото: ${error.message}`);
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fileName);
+
+  return publicUrl;
 }
 
 export async function uploadAdminLogo(file: File) {
