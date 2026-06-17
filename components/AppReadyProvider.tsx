@@ -3,6 +3,7 @@
 import Preloader from "@/components/Preloader";
 import { checkAdminAccess } from "@/lib/adminApi";
 import { resolveLogoUrl } from "@/lib/branding";
+import { prefetchMenuImages } from "@/lib/prefetchMenuImages";
 import { fetchMenuData } from "@/lib/menuData";
 import { waitForTelegramWebApp } from "@/lib/waitForTelegramWebApp";
 import type { MenuItemRow } from "@/lib/supabase";
@@ -72,6 +73,10 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
       setLogoUrl(menuData.logoUrl);
       setMenuLoadError(menuData.error);
       setShowAdminLink(adminResult.isAdmin);
+
+      // Warm image cache while preloader is still visible (cap wait at 2.5s)
+      await prefetchMenuImages(menuData.items, { timeoutMs: 2500 });
+
       setIsAppReady(true);
     };
 

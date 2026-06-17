@@ -7,7 +7,7 @@ import {
   markImageCached,
   markImageFailed,
 } from "@/lib/imageLoadCache";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useLayoutEffect, useRef, useState } from "react";
 
 type DishImageProps = {
   src: string;
@@ -17,6 +17,12 @@ type DishImageProps = {
   compact?: boolean;
 };
 
+function probeBrowserCache(src: string): boolean {
+  const probe = new Image();
+  probe.src = src;
+  return probe.complete && probe.naturalWidth > 0;
+}
+
 function DishImage({
   src,
   alt,
@@ -25,31 +31,49 @@ function DishImage({
   compact = false,
 }: DishImageProps) {
   const imgRef = useRef<HTMLImageElement>(null);
-  const [loaded, setLoaded] = useState(() => Boolean(src && isImageCached(src)));
-  const [hasError, setHasError] = useState(() => Boolean(src && isImageFailed(src)));
+  const [loaded, setLoaded] = useState(() => {
+    if (!src) return false;
+    if (isImageFailed(src)) return false;
+    if (isImageCached(src)) return true;
+    return probeBrowserCache(src);
+  });
+  const [hasError, setHasError] = useState(() =>
+    Boolean(src && isImageFailed(src))
+  );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!src) {
       setLoaded(false);
       setHasError(false);
       return;
     }
 
-    setLoaded(isImageCached(src));
-    setHasError(isImageFailed(src));
-  }, [src]);
-
-  useEffect(() => {
-    const img = imgRef.current;
-    if (!img || !src || hasError) {
+    if (isImageFailed(src)) {
+      setHasError(true);
+      setLoaded(false);
       return;
     }
+
+    if (isImageCached(src) || probeBrowserCache(src)) {
+      markImageCached(src);
+      setHasError(false);
+      setLoaded(true);
+      return;
+    }
+
+    setHasError(false);
+    setLoaded(false);
+  }, [src]);
+
+  useLayoutEffect(() => {
+    const img = imgRef.current;
+    if (!img || !src || hasError || loaded) return;
 
     if (img.complete && img.naturalWidth > 0) {
       markImageCached(src);
       setLoaded(true);
     }
-  }, [hasError, src]);
+  }, [hasError, loaded, src]);
 
   if (!src || hasError) {
     return (
@@ -59,13 +83,11 @@ function DishImage({
     );
   }
 
-  const showImage = loaded;
-
   return (
     <div
       className={`relative h-full w-full overflow-hidden bg-brand-surface-elevated ${className}`}
     >
-      {!showImage ? (
+      {!loaded ? (
         <div className="absolute inset-0" aria-hidden>
           <ImagePlaceholder large={large} compact={compact} />
         </div>
@@ -86,8 +108,8 @@ function DishImage({
           setHasError(true);
           setLoaded(false);
         }}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-          showImage ? "opacity-100" : "opacity-0"
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ${
+          loaded ? "opacity-100" : "opacity-0"
         }`}
       />
     </div>

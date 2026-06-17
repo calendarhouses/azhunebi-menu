@@ -6,6 +6,7 @@ import QuantityControl from "@/components/QuantityControl";
 import { formatWeight } from "@/lib/branding";
 import type { MenuItemRow } from "@/lib/supabase";
 import { triggerImpact } from "@/lib/haptic";
+import { memo } from "react";
 
 type DishCardProps = {
   item: MenuItemRow;
@@ -16,7 +17,7 @@ type DishCardProps = {
   onDecrement: () => void;
 };
 
-export default function DishCard({
+function DishCard({
   item,
   quantity,
   onOpen,
@@ -78,3 +79,5 @@ export default function DishCard({
     </article>
   );
 }
+
+export default memo(DishCard);

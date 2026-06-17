@@ -420,6 +420,12 @@ export default function Home() {
     });
   }, [items, activeCategory]);
 
+  const isItemVisible = useCallback(
+    (item: MenuItemRow) =>
+      activeCategory === "all" || item.category === activeCategory,
+    [activeCategory]
+  );
+
   function updateCart(updater: (prev: CartItem[]) => CartItem[]) {
     setCart(updater);
   }
@@ -525,28 +531,45 @@ export default function Home() {
       >
         {loadError ? (
           <ErrorState onRetry={fetchData} />
-        ) : filteredItems.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {filteredItems.map((item) => (
-              <DishCard
-                key={item.id}
-                item={item}
-                quantity={cartQuantities[item.id] ?? 0}
-                onOpen={() => setSelectedDish(item)}
-                onAdd={() => addToCart(item)}
-                onIncrement={() => incrementItem(item.id)}
-                onDecrement={() => decrementItem(item.id)}
-              />
-            ))}
-          </div>
+        ) : items.length > 0 ? (
+          <>
+            {filteredItems.length === 0 ? (
+              <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
+                <p className="text-base text-stone-300">
+                  У цій категорії поки немає страв
+                </p>
+                <p className="mt-2 text-sm text-brand-muted">
+                  Спробуйте обрати іншу категорію
+                </p>
+              </div>
+            ) : null}
+
+            <div
+              className={`flex flex-col gap-4 ${
+                filteredItems.length === 0 ? "hidden" : ""
+              }`}
+            >
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className={isItemVisible(item) ? undefined : "hidden"}
+                  aria-hidden={!isItemVisible(item)}
+                >
+                  <DishCard
+                    item={item}
+                    quantity={cartQuantities[item.id] ?? 0}
+                    onOpen={() => setSelectedDish(item)}
+                    onAdd={() => addToCart(item)}
+                    onIncrement={() => incrementItem(item.id)}
+                    onDecrement={() => decrementItem(item.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
-            <p className="text-base text-stone-300">
-              У цій категорії поки немає страв
-            </p>
-            <p className="mt-2 text-sm text-brand-muted">
-              Спробуйте обрати іншу категорію
-            </p>
+            <p className="text-base text-stone-300">Меню поки порожнє</p>
           </div>
         )}
       </main>
