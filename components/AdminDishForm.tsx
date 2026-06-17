@@ -2,24 +2,13 @@
 
 import CategorySelect from "@/components/CategorySelect";
 import { adminRequest, uploadDishImage } from "@/lib/adminApi";
-import { formatFileSize } from "@/lib/imageUtils";
+import { compressImage, formatFileSize, type CompressedImage } from "@/lib/imageUtils";
 import type { MenuItemRow } from "@/lib/supabase";
-import imageCompression from "browser-image-compression";
 import { DragEvent, FormEvent, useEffect, useRef, useState } from "react";
 
 type CategoryRow = { id: string; name: string; sort_order: number };
 
-// Quality-first: 1280px is razor-sharp on retina phones, WebP @0.82 keeps
-// files tiny (~80–250 KB) while staying visually identical to the original.
-const COMPRESS_OPTIONS = {
-  maxSizeMB: 0.3,
-  maxWidthOrHeight: 1280,
-  useWebWorker: false,
-  fileType: "image/webp" as const,
-  initialQuality: 0.82,
-};
-
-// Pure sanity guard — real photos never hit this with the options above.
+// Pure sanity guard — real photos never hit this after compression.
 const MAX_COMPRESSED_BYTES = 1.5 * 1024 * 1024;
 const COMPRESS_FAIL_MESSAGE = "Не вдалося стиснути фото. Спробуйте інше.";
 
@@ -60,8 +49,8 @@ export default function AdminDishForm({
   // ----- image state -----
   // serverUrl: what's stored in the DB (or will be after upload)
   const [serverUrl, setServerUrl] = useState(dish?.image_url ?? "");
-  // pendingFile: compressed WebP ready to upload on submit
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  // pendingImage: compressed image ready to upload on submit
+  const [pendingImage, setPendingImage] = useState<CompressedImage | null>(null);
   // previewUrl: local object URL shown while pendingFile exists
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // converting: while compression is running
@@ -99,32 +88,32 @@ export default function AdminDishForm({
 
     setConvertError("");
     setConverting(true);
-    setPendingFile(null);
+    setPendingImage(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setCompressedSize(null);
 
     try {
-      const sizeBeforeKb = Math.round(file.size / 1024);
-      console.log(`[dish-photo] before compression: ${sizeBeforeKb} KB`);
+      console.log(`[dish-photo] before: ${Math.round(file.size / 1024)} KB`);
 
-      const compressedFile = await imageCompression(file, COMPRESS_OPTIONS);
+      const compressed = await compressImage(file);
 
-      const sizeAfterKb = Math.round(compressedFile.size / 1024);
-      console.log(`[dish-photo] after compression: ${sizeAfterKb} KB`);
+      console.log(
+        `[dish-photo] after: ${Math.round(compressed.blob.size / 1024)} KB (${compressed.type})`
+      );
 
-      if (compressedFile.size > MAX_COMPRESSED_BYTES) {
+      if (compressed.blob.size > MAX_COMPRESSED_BYTES) {
         console.error(
-          `[dish-photo] compression failed — ${sizeAfterKb} KB exceeds ${MAX_COMPRESSED_BYTES / 1024} KB limit`
+          `[dish-photo] still too big — ${Math.round(compressed.blob.size / 1024)} KB`
         );
         setConvertError(COMPRESS_FAIL_MESSAGE);
         return;
       }
 
-      const url = URL.createObjectURL(compressedFile);
-      setPendingFile(compressedFile);
+      const url = URL.createObjectURL(compressed.blob);
+      setPendingImage(compressed);
       setPreviewUrl(url);
-      setCompressedSize(compressedFile.size);
+      setCompressedSize(compressed.blob.size);
     } catch (err) {
       setConvertError(
         err instanceof Error ? err.message : "Помилка конвертації"
@@ -159,7 +148,7 @@ export default function AdminDishForm({
   function clearImage() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    setPendingFile(null);
+    setPendingImage(null);
     setServerUrl("");
     setCompressedSize(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -180,15 +169,18 @@ export default function AdminDishForm({
     try {
       let finalImageUrl = serverUrl;
 
-      // Step 1: upload compressed WebP to Supabase Storage (never the raw input file)
-      if (pendingFile) {
-        if (pendingFile.size > MAX_COMPRESSED_BYTES) {
+      // Step 1: upload the compressed image to Supabase Storage (never the raw input file)
+      if (pendingImage) {
+        if (pendingImage.blob.size > MAX_COMPRESSED_BYTES) {
           setError(COMPRESS_FAIL_MESSAGE);
           return;
         }
 
         setSubmitStage("uploading");
-        finalImageUrl = await uploadDishImage(pendingFile);
+        finalImageUrl = await uploadDishImage(pendingImage.blob, {
+          ext: pendingImage.ext,
+          contentType: pendingImage.type,
+        });
       }
 
       // Step 2: save dish record to the database
@@ -249,7 +241,8 @@ export default function AdminDishForm({
             />
             {compressedSize !== null && (
               <span className="absolute bottom-3 left-3 z-10 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white/80">
-                WebP · {formatFileSize(compressedSize)}
+                {(pendingImage?.ext || "webp").toUpperCase()} ·{" "}
+                {formatFileSize(compressedSize)}
               </span>
             )}
             <button
@@ -319,7 +312,7 @@ export default function AdminDishForm({
                     <span className="text-brand-accent">оберіть файл</span>
                   </span>
                   <span className="mt-1 text-xs text-white/25">
-                    JPG, PNG, HEIC → WebP до 150 KB
+                    JPG, PNG, HEIC → стиснення до ~250 KB
                   </span>
                 </>
               )}

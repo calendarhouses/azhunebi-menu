@@ -83,17 +83,22 @@ export async function loadAdminPanelData() {
 }
 
 /**
- * Uploads a pre-converted WebP Blob directly to Supabase Storage.
- * Generates a unique path: menu/dish_<timestamp>.webp
+ * Uploads a compressed image Blob directly to Supabase Storage.
+ * Generates a unique path: menu/dish_<timestamp>.<ext>
  * Returns the public URL of the uploaded file.
  */
-export async function uploadDishImage(webpBlob: Blob): Promise<string> {
-  const fileName = `${STORAGE_FOLDER}/dish_${Date.now()}.webp`;
+export async function uploadDishImage(
+  blob: Blob,
+  options: { ext?: string; contentType?: string } = {}
+): Promise<string> {
+  const ext = options.ext || "webp";
+  const contentType = options.contentType || blob.type || "image/webp";
+  const fileName = `${STORAGE_FOLDER}/dish_${Date.now()}.${ext}`;
 
   const { error } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .upload(fileName, webpBlob, {
-      contentType: "image/webp",
+    .upload(fileName, blob, {
+      contentType,
       cacheControl: "3600",
       upsert: false,
     });
