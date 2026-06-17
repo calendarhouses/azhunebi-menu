@@ -9,15 +9,18 @@ import { DragEvent, FormEvent, useEffect, useRef, useState } from "react";
 
 type CategoryRow = { id: string; name: string; sort_order: number };
 
+// Quality-first: 1280px is razor-sharp on retina phones, WebP @0.82 keeps
+// files tiny (~80–250 KB) while staying visually identical to the original.
 const COMPRESS_OPTIONS = {
-  maxSizeMB: 0.15,
-  maxWidthOrHeight: 800,
+  maxSizeMB: 0.3,
+  maxWidthOrHeight: 1280,
   useWebWorker: false,
   fileType: "image/webp" as const,
-  initialQuality: 0.7,
+  initialQuality: 0.82,
 };
 
-const MAX_COMPRESSED_BYTES = 300 * 1024;
+// Pure sanity guard — real photos never hit this with the options above.
+const MAX_COMPRESSED_BYTES = 1.5 * 1024 * 1024;
 const COMPRESS_FAIL_MESSAGE = "Не вдалося стиснути фото. Спробуйте інше.";
 
 type Props = {

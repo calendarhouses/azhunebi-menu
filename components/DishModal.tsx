@@ -41,9 +41,31 @@ export default function DishModal({
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
+  const [imageAspect, setImageAspect] = useState<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
   useBodyScrollLock(mounted);
+
+  // Match the photo block to the real photo proportions (square stays square),
+  // clamped so very tall/wide photos never break the layout.
+  useEffect(() => {
+    setImageAspect(null);
+    const src = item?.image_url;
+    if (!src) return;
+
+    let cancelled = false;
+    const probe = new Image();
+    probe.onload = () => {
+      if (cancelled || !probe.naturalWidth || !probe.naturalHeight) return;
+      const ratio = probe.naturalWidth / probe.naturalHeight;
+      setImageAspect(Math.min(1.6, Math.max(1, ratio)));
+    };
+    probe.src = src;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [item?.image_url]);
 
   useEffect(() => {
     if (!open) {
@@ -134,7 +156,8 @@ export default function DishModal({
           }`}
         >
           <div
-            className="relative aspect-[16/10] shrink-0 touch-pan-y overflow-hidden rounded-t-[28px]"
+            className="relative shrink-0 touch-pan-y overflow-hidden rounded-t-[28px]"
+            style={{ aspectRatio: String(imageAspect ?? 16 / 10) }}
             {...swipeAreaProps}
           >
             {item.image_url ? (
@@ -142,6 +165,7 @@ export default function DishModal({
                 src={item.image_url}
                 alt={item.name}
                 large
+                fit="cover"
                 className="h-full w-full"
               />
             ) : (

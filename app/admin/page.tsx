@@ -44,6 +44,7 @@ export default function AdminPage() {
   const [newAdminUsername, setNewAdminUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [dataReady, setDataReady] = useState(false);
 
   // ----- toast -----
   const [toast, setToast] = useState<string | null>(null);
@@ -75,6 +76,8 @@ export default function AdminPage() {
       setLoadError(
         err instanceof Error ? err.message : "Не вдалося завантажити дані"
       );
+    } finally {
+      setDataReady(true);
     }
   }, []);
 
@@ -142,7 +145,7 @@ export default function AdminPage() {
     }
   }
 
-  if (!sessionReady) return <AdminPageSkeleton />;
+  if (!sessionReady || (isAdmin && !dataReady)) return <AdminPageSkeleton />;
 
   if (!isAdmin) {
     return (
