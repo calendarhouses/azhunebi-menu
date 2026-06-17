@@ -57,32 +57,40 @@ export function useKeyboardLayoutOffset(active: boolean) {
     }
 
     const viewport = window.visualViewport;
-    if (!viewport) {
-      return;
-    }
+
+    // Snapshot the viewport height while the keyboard is still closed.
+    // On iOS/Telegram (WKWebView) opening the keyboard shrinks BOTH
+    // window.innerHeight and visualViewport.height, so comparing them to each
+    // other yields ~0 and no compensation happens. Comparing the current
+    // height against this baseline gives the real keyboard height instead.
+    const baseline = Math.max(
+      window.innerHeight,
+      viewport?.height ?? 0
+    );
 
     const update = () => {
-      const inset = Math.max(
-        0,
-        window.innerHeight - viewport.height - viewport.offsetTop
+      const current = Math.min(
+        window.innerHeight,
+        viewport?.height ?? window.innerHeight
       );
-      setOffset(inset);
-    };
+      const next = Math.max(0, Math.round(baseline - current));
+      setOffset(next);
 
-    const onViewportScroll = () => {
-      update();
-      if (viewport.offsetTop !== 0) {
+      // Undo any document scroll iOS performs to reveal a focused field.
+      if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
       }
     };
 
     update();
-    viewport.addEventListener("resize", update);
-    viewport.addEventListener("scroll", onViewportScroll);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
 
     return () => {
-      viewport.removeEventListener("resize", update);
-      viewport.removeEventListener("scroll", onViewportScroll);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
     };
   }, [active]);
 
