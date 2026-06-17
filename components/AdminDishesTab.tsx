@@ -1,5 +1,6 @@
 "use client";
 
+import AdminBottomSheet from "@/components/AdminBottomSheet";
 import AdminDishForm from "@/components/AdminDishForm";
 import { adminRequest } from "@/lib/adminApi";
 import type { MenuItemRow } from "@/lib/supabase";
@@ -40,16 +41,31 @@ function Toggle({
   );
 }
 
+function DishThumbPlaceholder() {
+  return (
+    <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-brand-surface-elevated text-white/20">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+      >
+        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />
+        <path d="M7 2v20" />
+        <path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
+      </svg>
+    </div>
+  );
+}
+
 function DishThumb({ src, name }: { src: string | null; name: string }) {
   const [err, setErr] = useState(false);
 
-  if (!src || err) {
-    return (
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-lg">
-        🍽
-      </div>
-    );
-  }
+  if (!src || err) return <DishThumbPlaceholder />;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -238,35 +254,20 @@ export default function AdminDishesTab({
         </div>
       )}
 
-      {/* Bottom sheet modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-          <button
-            type="button"
-            aria-label="Закрити"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-brand-surface px-5 pb-safe pt-5 shadow-2xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/15" />
-
-            <h2 className="mb-5 text-base font-semibold text-white">
-              {editingDish ? "Редагувати страву" : "Нова страва"}
-            </h2>
-
-            <AdminDishForm
-              dish={editingDish}
-              categories={categories}
-              onSaved={handleSaved}
-              onDeleted={handleDeleted}
-              onClose={closeModal}
-            />
-
-            <div className="h-4" />
-          </div>
-        </div>
-      )}
+      {/* Animated bottom sheet */}
+      <AdminBottomSheet
+        open={modalOpen}
+        onClose={closeModal}
+        title={editingDish ? "Редагувати страву" : "Нова страва"}
+      >
+        <AdminDishForm
+          dish={editingDish}
+          categories={categories}
+          onSaved={handleSaved}
+          onDeleted={handleDeleted}
+          onClose={closeModal}
+        />
+      </AdminBottomSheet>
     </>
   );
 }

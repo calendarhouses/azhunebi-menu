@@ -1,13 +1,13 @@
-const MAX_DIMENSION = 1200;
+const MAX_DIMENSION = 800;
 
 /**
  * Converts any browser-readable image file (JPG, PNG, HEIC on iOS, etc.)
- * to a WebP Blob using an off-screen Canvas at ≤1200px and quality 0.8.
- * Throws if the browser can't load the image or doesn't support WebP encoding.
+ * to a WebP Blob using an off-screen Canvas at ≤800px and quality 0.7.
+ * Target size: 50–100 KB. Throws if the browser can't encode WebP.
  */
 export async function convertToWebP(
   file: File,
-  quality = 0.8
+  quality = 0.7
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);

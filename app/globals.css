@@ -177,6 +177,22 @@ body {
   animation: toast-in 0.24s ease-out;
 }
 
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.94) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+.animate-dropdown-in {
+  animation: dropdown-in 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top center;
+}
+
 @keyframes cart-bar-up {
   from {
     opacity: 0;

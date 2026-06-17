@@ -1,11 +1,57 @@
 "use client";
 
+import CategorySelect from "@/components/CategorySelect";
 import { adminRequest, uploadDishImage } from "@/lib/adminApi";
 import { convertToWebP, formatFileSize } from "@/lib/imageUtils";
 import type { MenuItemRow } from "@/lib/supabase";
 import { DragEvent, FormEvent, useEffect, useRef, useState } from "react";
 
 type CategoryRow = { id: string; name: string; sort_order: number };
+
+/** Premium photo placeholder — shown when src is missing or broken */
+function PhotoPlaceholder() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center bg-brand-surface-elevated text-white/20">
+      {/* Utensils icon */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="mb-1.5 h-7 w-7"
+      >
+        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />
+        <path d="M7 2v20" />
+        <path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
+      </svg>
+      <span className="text-[10px] font-bold uppercase tracking-wider">
+        Фото скоро
+      </span>
+    </div>
+  );
+}
+
+/** Renders the image with graceful fallback to PhotoPlaceholder */
+function PhotoPreview({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false);
+
+  if (broken) {
+    return <div className="h-40 w-full overflow-hidden rounded-xl"><PhotoPlaceholder /></div>;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt="Превью"
+      className="h-40 w-full object-cover"
+      onError={() => setBroken(true)}
+    />
+  );
+}
 
 type Props = {
   dish: MenuItemRow | null;
@@ -67,6 +113,7 @@ export default function AdminDishForm({
   >("idle");
   const busy = submitStage !== "idle";
   const [error, setError] = useState("");
+  const [categoryError, setCategoryError] = useState(false);
 
   // cleanup object URL on unmount
   useEffect(() => {
@@ -142,6 +189,13 @@ export default function AdminDishForm({
     e.preventDefault();
     setError("");
 
+    // Frontend validation — category is required
+    if (!category.trim()) {
+      setCategoryError(true);
+      return;
+    }
+    setCategoryError(false);
+
     try {
       let finalImageUrl = serverUrl;
 
@@ -201,12 +255,7 @@ export default function AdminDishForm({
 
         {displayUrl ? (
           <div className="relative overflow-hidden rounded-xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={displayUrl}
-              alt="Превью"
-              className="h-40 w-full object-cover"
-            />
+            <PhotoPreview src={displayUrl} />
             <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-3">
               {webpSize && (
                 <span className="rounded-full bg-black/50 px-2 py-0.5 text-xs text-white/80">
@@ -258,7 +307,7 @@ export default function AdminDishForm({
                       d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
                     />
                   </svg>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-white/50">
                     Конвертація в WebP…
                   </span>
                 </>
@@ -278,7 +327,7 @@ export default function AdminDishForm({
                       d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
                     />
                   </svg>
-                  <span className="text-sm font-medium text-zinc-400">
+                  <span className="text-sm font-medium text-white/50">
                     Перетягніть або{" "}
                     <span className="text-brand-accent">оберіть файл</span>
                   </span>
@@ -345,30 +394,34 @@ export default function AdminDishForm({
       </div>
 
       {/* Category */}
-      <label className="block">
-        <span className={labelCls}>Категорія</span>
+      <div>
+        <span className={labelCls}>
+          Категорія <span className="text-red-400">*</span>
+        </span>
         {categories.length > 0 ? (
-          <select
+          <CategorySelect
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className={inputCls}
-          >
-            <option value="">Без категорії</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => { setCategory(v); setCategoryError(false); }}
+            options={[
+              { value: "", label: "Оберіть категорію…" },
+              ...categories.map((c) => ({ value: c.name, label: c.name })),
+            ]}
+            error={categoryError}
+          />
         ) : (
           <input
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className={inputCls}
+            onChange={(e) => { setCategory(e.target.value); setCategoryError(false); }}
+            className={`${inputCls} ${categoryError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
             placeholder="Наприклад: Сніданки"
           />
         )}
-      </label>
+        {categoryError && (
+          <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">
+            <span>⚠️</span> Будь ласка, оберіть категорію для страви
+          </p>
+        )}
+      </div>
 
       {/* Description */}
       <label className="block">

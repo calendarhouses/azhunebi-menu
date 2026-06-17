@@ -1,5 +1,6 @@
 "use client";
 
+import AdminBottomSheet from "@/components/AdminBottomSheet";
 import { adminRequest } from "@/lib/adminApi";
 import { FormEvent, useState } from "react";
 
@@ -202,82 +203,66 @@ export default function AdminCategoriesTab({
         </div>
       )}
 
-      {/* Modal bottom sheet */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-          <button
-            type="button"
-            aria-label="Закрити"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={closeModal}
-          />
+      {/* Animated bottom sheet */}
+      <AdminBottomSheet
+        open={modalOpen}
+        onClose={closeModal}
+        title={editing ? "Редагувати категорію" : "Нова категорія"}
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/35">
+              Назва
+            </span>
+            <input
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="Наприклад: Сніданки"
+              className={inputCls}
+              required
+            />
+          </label>
 
-          <div className="relative w-full max-w-lg rounded-t-2xl bg-brand-surface px-5 pb-safe pt-5 shadow-2xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/15" />
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/35">
+              Порядок сортування
+            </span>
+            <input
+              type="number"
+              value={formSort}
+              onChange={(e) => setFormSort(e.target.value)}
+              className={inputCls}
+            />
+          </label>
 
-            <h2 className="mb-5 text-base font-semibold text-white">
-              {editing ? "Редагувати категорію" : "Нова категорія"}
-            </h2>
-
-            <form onSubmit={handleSave} className="space-y-4">
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Назва
-                </span>
-                <input
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Наприклад: Сніданки"
-                  className={inputCls}
-                  required
-                  autoFocus
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Порядок сортування
-                </span>
-                <input
-                  type="number"
-                  value={formSort}
-                  onChange={(e) => setFormSort(e.target.value)}
-                  className={inputCls}
-                />
-              </label>
-
-              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-brand-input px-4 py-3">
-                <span className="text-sm text-white">Показувати в меню</span>
-                <Toggle
-                  checked={formActive}
-                  onChange={() => setFormActive((v) => !v)}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full rounded-xl bg-brand-accent py-3 text-sm font-semibold text-brand-accent-text transition disabled:opacity-50 active:scale-[0.98]"
-              >
-                {busy ? "Збереження…" : editing ? "Зберегти зміни" : "Додати категорію"}
-              </button>
-
-              {editing && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={handleDelete}
-                  className="w-full rounded-xl border border-red-500/20 bg-red-500/10 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
-                >
-                  Видалити категорію
-                </button>
-              )}
-            </form>
-
-            <div className="h-4" />
+          <div className="flex items-center justify-between rounded-lg border border-white/10 bg-brand-input px-4 py-3">
+            <span className="text-sm text-white">Показувати в меню</span>
+            <Toggle
+              checked={formActive}
+              onChange={() => setFormActive((v) => !v)}
+            />
           </div>
-        </div>
-      )}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-xl bg-brand-accent py-3 text-sm font-semibold text-brand-accent-text transition disabled:opacity-50 active:scale-[0.98]"
+          >
+            {busy ? "Збереження…" : editing ? "Зберегти зміни" : "Додати категорію"}
+          </button>
+
+          {editing && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={handleDelete}
+              className="w-full rounded-xl border border-red-500/20 bg-red-500/10 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              Видалити категорію
+            </button>
+          )}
+        </form>
+      </AdminBottomSheet>
     </>
   );
 }
