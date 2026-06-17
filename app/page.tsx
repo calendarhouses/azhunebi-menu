@@ -12,6 +12,7 @@ import { useAppReady } from "@/components/AppReadyProvider";
 import {
   createOrderRequest,
   fetchActiveOrders,
+  fetchOrderById,
   isTelegramWebApp,
 } from "@/lib/ordersApi";
 import {
@@ -155,9 +156,29 @@ export default function Home() {
       try {
         const allFetchedOrders = await fetchActiveOrders();
         const dismissedIds = readDismissedOrderIds();
-        const nextOrders = allFetchedOrders.filter(
+        const activeOrders = allFetchedOrders.filter(
           (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
         );
+        const activeById = new Map(activeOrders.map((o) => [o.id, o]));
+
+        // Detect orders that vanished from the active list — the backend drops
+        // cancelled orders from the "list" endpoint immediately. Fetch each one
+        // individually to get its real final status.
+        const disappearedIds = ordersRef.current
+          .filter((o) => !activeById.has(o.id) && o.status !== "cancelled")
+          .map((o) => o.id);
+
+        const fetchedOrphans = await Promise.all(
+          disappearedIds.map((id) => fetchOrderById(id))
+        );
+
+        const cancelledOrphans = fetchedOrphans.filter(
+          (o): o is NonNullable<typeof o> =>
+            o !== null && o.status === "cancelled" && !dismissedIds.has(o.id)
+        );
+
+        const nextOrders = [...activeOrders, ...cancelledOrphans];
+
         const previousById = new Map(
           ordersRef.current.map((order) => [order.id, order.status])
         );
@@ -181,8 +202,9 @@ export default function Home() {
 
         setOrders((prev) => {
           const prevById = new Map(prev.map((order) => [order.id, order]));
+          const nextById = new Map(nextOrders.map((order) => [order.id, order]));
 
-          return nextOrders.map((next) => {
+          const updatedNext = nextOrders.map((next) => {
             const existing = prevById.get(next.id);
 
             if (
@@ -196,6 +218,17 @@ export default function Home() {
 
             return next;
           });
+
+          // Also keep already-known cancelled orders that didn't come back from
+          // either the active list or the individual fetch (e.g. race condition).
+          const survivingCancelled = prev.filter(
+            (order) =>
+              order.status === "cancelled" &&
+              !nextById.has(order.id) &&
+              !dismissedIds.has(order.id)
+          );
+
+          return [...updatedNext, ...survivingCancelled];
         });
 
         ordersLoadedOnceRef.current = true;
