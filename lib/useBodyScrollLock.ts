@@ -8,26 +8,13 @@ export function useBodyScrollLock(locked: boolean) {
       return;
     }
 
-    const { body, documentElement } = document;
+    const { body } = document;
     const previousOverflow = body.style.overflow;
-    const previousPosition = body.style.position;
-    const previousTop = body.style.top;
-    const previousWidth = body.style.width;
-    const scrollY = window.scrollY;
 
     body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.width = "100%";
-    documentElement.style.overscrollBehavior = "none";
 
     return () => {
       body.style.overflow = previousOverflow;
-      body.style.position = previousPosition;
-      body.style.top = previousTop;
-      body.style.width = previousWidth;
-      documentElement.style.overscrollBehavior = "";
-      window.scrollTo(0, scrollY);
     };
   }, [locked]);
 }

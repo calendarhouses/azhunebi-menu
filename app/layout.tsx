@@ -26,6 +26,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#221f1c",
+  interactiveWidget: "overlays-content",
 };
 
 export default function RootLayout({

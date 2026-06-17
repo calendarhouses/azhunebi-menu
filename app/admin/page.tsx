@@ -10,7 +10,6 @@ import {
 } from "@/lib/adminApi";
 import { prefetchMenuImages } from "@/lib/prefetchMenuImages";
 import { useTelegramApp } from "@/lib/useTelegramApp";
-import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import type { MenuItemRow } from "@/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -59,7 +58,6 @@ export default function AdminPage() {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   useTelegramApp({ backVisible: true, onBack: () => window.history.back() });
-  useBodyScrollLock(true);
 
   const loadAdminData = useCallback(async () => {
     setLoadError(null);

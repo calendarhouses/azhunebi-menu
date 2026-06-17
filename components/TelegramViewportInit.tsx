@@ -2,6 +2,18 @@
 
 import { useEffect } from "react";
 
+let frozenStableHeight: number | null = null;
+
+export function getFrozenStableViewportHeight(): number {
+  if (frozenStableHeight !== null) {
+    return frozenStableHeight;
+  }
+
+  const webApp = window.Telegram?.WebApp;
+  frozenStableHeight = webApp?.viewportStableHeight || window.innerHeight;
+  return frozenStableHeight;
+}
+
 export default function TelegramViewportInit() {
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -9,28 +21,15 @@ export default function TelegramViewportInit() {
       return;
     }
 
-    const syncStableViewport = () => {
-      const stableHeight = webApp.viewportStableHeight || window.innerHeight;
-      document.documentElement.style.setProperty(
-        "--tg-viewport-stable-height",
-        `${stableHeight}px`
-      );
-    };
-
     webApp.ready();
     webApp.expand();
     webApp.disableVerticalSwipes?.();
-    syncStableViewport();
 
-    const onViewportChanged = () => {
-      syncStableViewport();
-    };
-
-    webApp.onEvent("viewportChanged", onViewportChanged);
-
-    return () => {
-      webApp.offEvent("viewportChanged", onViewportChanged);
-    };
+    const stableHeight = getFrozenStableViewportHeight();
+    document.documentElement.style.setProperty(
+      "--tg-viewport-stable-height",
+      `${stableHeight}px`
+    );
   }, []);
 
   return null;

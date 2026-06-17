@@ -1,5 +1,6 @@
 "use client";
 
+import { getFrozenStableViewportHeight } from "@/components/TelegramViewportInit";
 import { useEffect } from "react";
 
 const BRAND_BG = "#221f1c";
@@ -29,7 +30,7 @@ export function useTelegramApp(options?: {
     root.style.setProperty("--brand-accent", BRAND_ACCENT);
     root.style.setProperty(
       "--tg-viewport-stable-height",
-      `${webApp.viewportStableHeight || window.innerHeight}px`
+      `${getFrozenStableViewportHeight()}px`
     );
 
     const theme = webApp.themeParams;
