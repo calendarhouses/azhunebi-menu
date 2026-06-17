@@ -332,7 +332,7 @@ export default function Home() {
 
       setSelectedDish(null);
       triggerSuccess();
-      setOrderToast("Замовлення відправлено — очікуємо підтвердження");
+      setOrderToast("Замовлення відправлено — очікуйте на підтвердження");
       orderJustSubmittedRef.current = true;
       await syncOrders({
         focusOrderId: result.orderId as string,
@@ -351,6 +351,12 @@ export default function Home() {
       setIsSubmitting(false);
     }
   }, [syncOrders]);
+
+  useEffect(() => {
+    if (!orderToast) return;
+    const id = window.setTimeout(() => setOrderToast(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [orderToast]);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -438,13 +444,13 @@ export default function Home() {
       className="bg-brand-bg text-stone-100"
       style={{ minHeight: "var(--tg-viewport-stable-height, 100vh)" }}
     >
-      {orderToast && !ordersOpen ? (
-        <div className="animate-toast-in fixed left-4 right-4 top-4 z-40 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/20 bg-brand-surface/95 px-4 py-3 shadow-xl backdrop-blur-md">
-          <p className="text-sm font-medium text-amber-200">{orderToast}</p>
+      {orderToast ? (
+        <div className="animate-toast-in fixed left-4 right-4 top-4 z-[100] flex items-start justify-between gap-3 rounded-2xl border border-brand-accent/25 bg-brand-surface/95 px-4 py-3 shadow-xl backdrop-blur-md">
+          <p className="text-sm font-medium text-stone-100">{orderToast}</p>
           <button
             type="button"
             onClick={() => setOrderToast(null)}
-            className="text-sm text-amber-100/70"
+            className="shrink-0 text-sm text-brand-muted"
           >
             ✕
           </button>
@@ -541,8 +547,6 @@ export default function Home() {
         orders={orders}
         selectedOrderId={selectedOrderId}
         onSelectOrder={setSelectedOrderId}
-        toastMessage={orderToast}
-        onDismissToast={() => setOrderToast(null)}
         loading={ordersLoading}
         error={ordersError}
         onRetry={() => syncOrders({ silent: false })}

@@ -12,12 +12,17 @@ type OrdersPanelProps = {
   orders: TrackedOrder[];
   selectedOrderId: string | null;
   onSelectOrder: (orderId: string) => void;
-  toastMessage: string | null;
-  onDismissToast: () => void;
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
 };
+
+const chipBase =
+  "shrink-0 rounded-2xl border px-4 py-2 text-sm font-medium transition active:scale-[0.98]";
+const chipActive =
+  "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]";
+const chipInactive =
+  "border-stone-600/25 bg-brand-input text-brand-muted";
 
 export default function OrdersPanel({
   open,
@@ -25,8 +30,6 @@ export default function OrdersPanel({
   orders,
   selectedOrderId,
   onSelectOrder,
-  toastMessage,
-  onDismissToast,
   loading = false,
   error = null,
   onRetry,
@@ -48,29 +51,16 @@ export default function OrdersPanel({
         onClick={onClose}
       />
 
-      <div className="sheet-panel animate-sheet-up relative max-h-[92vh] overflow-hidden rounded-t-[32px] border shadow-2xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.12),transparent_65%)]" />
+      <div className="sheet-panel animate-sheet-up relative flex max-h-[92vh] flex-col overflow-hidden rounded-t-[32px] border shadow-2xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(196,165,116,0.1),transparent_65%)]" />
 
-        {toastMessage ? (
-          <div className="animate-toast-in relative mx-4 mt-4 flex items-start justify-between gap-3 rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3">
-            <p className="text-sm font-medium text-amber-100">{toastMessage}</p>
-            <button
-              type="button"
-              onClick={onDismissToast}
-              className="text-sm text-amber-100/70"
-            >
-              ✕
-            </button>
-          </div>
-        ) : null}
+        <div className="shrink-0">
+          <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 rounded-full" />
 
-        <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 rounded-full" />
-
-        {!isEmptyState ? (
-          <>
+          {!isEmptyState ? (
             <div className="relative flex items-start justify-between px-5 pb-3 pt-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-amber-500/75">
+                <p className="text-xs uppercase tracking-[0.2em] text-brand-accent/75">
                   Мої замовлення
                 </p>
                 <h2 className="mt-1 text-xl font-semibold text-stone-50">
@@ -78,9 +68,6 @@ export default function OrdersPanel({
                     ? `Замовлення ${selectedOrder.id.slice(0, 8)}`
                     : "Статус замовлення"}
                 </h2>
-                <p className="mt-1 text-sm text-brand-muted">
-                  Оновлення кожні кілька секунд, поки апп відкритий
-                </p>
               </div>
               <button
                 type="button"
@@ -90,31 +77,29 @@ export default function OrdersPanel({
                 Закрити
               </button>
             </div>
+          ) : null}
 
-            {orders.length > 1 ? (
-              <div className="relative flex gap-2 overflow-x-auto px-5 pb-4">
-                {orders.map((order) => (
-                  <button
-                    key={order.id}
-                    type="button"
-                    onClick={() => onSelectOrder(order.id)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-sm transition ${
-                      selectedOrder?.id === order.id
-                        ? "bg-brand-accent text-brand-accent-text"
-                        : "border border-stone-600/25 bg-brand-input text-brand-muted"
-                    }`}
-                  >
-                    {formatOrderDateTime(order.createdAt)} · {formatPrice(order.total)}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </>
-        ) : null}
+          {orders.length > 1 ? (
+            <div className="scrollbar-hide flex gap-2 overflow-x-auto px-5 pb-4">
+              {orders.map((order) => (
+                <button
+                  key={order.id}
+                  type="button"
+                  onClick={() => onSelectOrder(order.id)}
+                  className={`${chipBase} ${
+                    selectedOrder?.id === order.id ? chipActive : chipInactive
+                  }`}
+                >
+                  {formatOrderDateTime(order.createdAt)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div
-          className={`relative overflow-y-auto px-5 ${
-            isEmptyState ? "pb-8 pt-2" : "max-h-[58vh] pb-8"
+          className={`min-h-0 flex-1 overflow-y-auto px-5 ${
+            isEmptyState ? "pb-8 pt-2" : "pb-8 pt-1"
           }`}
         >
           {loading && orders.length === 0 ? (
@@ -126,7 +111,7 @@ export default function OrdersPanel({
                 <button
                   type="button"
                   onClick={onRetry}
-                  className="mt-4 rounded-xl border border-stone-600/25 bg-brand-surface-elevated px-4 py-2 text-sm"
+                  className="mt-4 rounded-xl border border-stone-600/25 bg-brand-surface-elevated px-4 py-2 text-sm text-brand-muted"
                 >
                   Спробувати знову
                 </button>
