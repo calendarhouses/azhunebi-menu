@@ -1,6 +1,5 @@
 "use client";
 
-import { MODAL_FORM_SCROLL_CLASS, MODAL_OVERLAY_STYLE } from "@/lib/modalLayout";
 import type { CartItem } from "@/lib/cart";
 
 type CartDrawerProps = {
@@ -41,10 +40,7 @@ export default function CartDrawer({
   }
 
   return (
-    <div
-      style={MODAL_OVERLAY_STYLE}
-      className="z-50 flex flex-col justify-end"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <button
         type="button"
         aria-label="Закрити кошик"
@@ -52,8 +48,8 @@ export default function CartDrawer({
         onClick={onClose}
       />
 
-      <div className="animate-sheet-up relative flex max-h-[85vh] min-h-0 flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#101812] shadow-2xl">
-        <div className="mx-auto mt-3 h-1 w-12 shrink-0 rounded-full bg-white/20" />
+      <div className="animate-sheet-up relative max-h-[85vh] overflow-hidden rounded-t-3xl border border-white/10 bg-[#101812] shadow-2xl">
+        <div className="mx-auto mt-3 h-1 w-12 rounded-full bg-white/20" />
 
         <div className="flex items-center justify-between px-5 pb-3 pt-4">
           <h2 className="text-lg font-semibold text-white">Ваше замовлення</h2>
@@ -66,7 +62,7 @@ export default function CartDrawer({
           </button>
         </div>
 
-        <div className={`${MODAL_FORM_SCROLL_CLASS} px-5`}>
+        <div className="max-h-[45vh] overflow-y-auto px-5">
           {cart.length === 0 ? (
             <p className="py-8 text-center text-sm text-white/50">
               Кошик порожній
@@ -110,50 +106,50 @@ export default function CartDrawer({
               ))}
             </ul>
           )}
+        </div>
 
-          <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/45">
-                Номер столика / будиночка
-              </span>
-              <input
-                type="text"
-                value={locationNote}
-                onChange={(event) => onLocationNoteChange(event.target.value)}
-                placeholder="Наприклад: Столик 5"
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder:text-white/30 outline-none focus:border-amber-400/40"
-              />
-            </label>
+        <div className="space-y-3 border-t border-white/10 px-5 py-4">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/45">
+              Номер столика / будиночка
+            </span>
+            <input
+              type="text"
+              value={locationNote}
+              onChange={(event) => onLocationNoteChange(event.target.value)}
+              placeholder="Наприклад: Столик 5"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-amber-400/40"
+            />
+          </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/45">
-                Коментар до замовлення
-              </span>
-              <textarea
-                value={comment}
-                onChange={(event) => onCommentChange(event.target.value)}
-                placeholder="Поб побажання, алергії..."
-                rows={3}
-                className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-white placeholder:text-white/30 outline-none focus:border-amber-400/40"
-              />
-            </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/45">
+              Коментар до замовлення
+            </span>
+            <textarea
+              value={comment}
+              onChange={(event) => onCommentChange(event.target.value)}
+              placeholder="Поб побажання, алергії..."
+              rows={3}
+              className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-amber-400/40"
+            />
+          </label>
 
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-sm text-white/55">Разом</span>
-              <span className="text-lg font-semibold text-amber-300">
-                {formatPrice(total)}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              disabled={cart.length === 0 || isSubmitting}
-              onClick={onSubmit}
-              className="w-full rounded-xl bg-amber-400 px-4 py-3 text-sm font-semibold text-[#0a120e] transition enabled:hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSubmitting ? "Відправка..." : "Оформити замовлення"}
-            </button>
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-sm text-white/55">Разом</span>
+            <span className="text-lg font-semibold text-amber-300">
+              {formatPrice(total)}
+            </span>
           </div>
+
+          <button
+            type="button"
+            disabled={cart.length === 0 || isSubmitting}
+            onClick={onSubmit}
+            className="w-full rounded-xl bg-amber-400 px-4 py-3 text-sm font-semibold text-[#0a120e] transition enabled:hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSubmitting ? "Відправка..." : "Оформити замовлення"}
+          </button>
         </div>
       </div>
     </div>

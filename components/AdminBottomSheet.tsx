@@ -1,6 +1,5 @@
 "use client";
 
-import { MODAL_FORM_SCROLL_CLASS, MODAL_OVERLAY_STYLE } from "@/lib/modalLayout";
 import {
   buildSheetPanelTransform,
   useSheetPresence,
@@ -33,8 +32,7 @@ export default function AdminBottomSheet({
 
   return (
     <div
-      style={MODAL_OVERLAY_STYLE}
-      className={`z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
@@ -58,7 +56,10 @@ export default function AdminBottomSheet({
           </div>
         </div>
 
-        <div className={`${MODAL_FORM_SCROLL_CLASS} px-5`}>{children}</div>
+        <div className="checkout-form-scroll min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 pb-safe">
+          {children}
+          <div className="h-8" />
+        </div>
       </div>
     </div>
   );

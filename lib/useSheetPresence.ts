@@ -75,6 +75,11 @@ export function useKeyboardLayoutOffset(active: boolean) {
       );
       const next = Math.max(0, Math.round(baseline - current));
       setOffset(next);
+
+      // Undo any document scroll iOS performs to reveal a focused field.
+      if (window.scrollY !== 0 && document.body.style.position !== "fixed") {
+        window.scrollTo(0, 0);
+      }
     };
 
     update();

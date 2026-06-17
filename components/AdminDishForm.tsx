@@ -10,12 +10,15 @@ import { DragEvent, FormEvent, useEffect, useRef, useState } from "react";
 type CategoryRow = { id: string; name: string; sort_order: number };
 
 const COMPRESS_OPTIONS = {
-  maxSizeMB: 0.1,
+  maxSizeMB: 0.15,
   maxWidthOrHeight: 800,
-  useWebWorker: true,
+  useWebWorker: false,
   fileType: "image/webp" as const,
-  initialQuality: 0.8,
+  initialQuality: 0.7,
 };
+
+const MAX_COMPRESSED_BYTES = 300 * 1024;
+const COMPRESS_FAIL_MESSAGE = "Не вдалося стиснути фото. Спробуйте інше.";
 
 type Props = {
   dish: MenuItemRow | null;
@@ -99,7 +102,22 @@ export default function AdminDishForm({
     setCompressedSize(null);
 
     try {
+      const sizeBeforeKb = Math.round(file.size / 1024);
+      console.log(`[dish-photo] before compression: ${sizeBeforeKb} KB`);
+
       const compressedFile = await imageCompression(file, COMPRESS_OPTIONS);
+
+      const sizeAfterKb = Math.round(compressedFile.size / 1024);
+      console.log(`[dish-photo] after compression: ${sizeAfterKb} KB`);
+
+      if (compressedFile.size > MAX_COMPRESSED_BYTES) {
+        console.error(
+          `[dish-photo] compression failed — ${sizeAfterKb} KB exceeds ${MAX_COMPRESSED_BYTES / 1024} KB limit`
+        );
+        setConvertError(COMPRESS_FAIL_MESSAGE);
+        return;
+      }
+
       const url = URL.createObjectURL(compressedFile);
       setPendingFile(compressedFile);
       setPreviewUrl(url);
@@ -159,8 +177,13 @@ export default function AdminDishForm({
     try {
       let finalImageUrl = serverUrl;
 
-      // Step 1: upload WebP to Supabase Storage if user picked a new image
+      // Step 1: upload compressed WebP to Supabase Storage (never the raw input file)
       if (pendingFile) {
+        if (pendingFile.size > MAX_COMPRESSED_BYTES) {
+          setError(COMPRESS_FAIL_MESSAGE);
+          return;
+        }
+
         setSubmitStage("uploading");
         finalImageUrl = await uploadDishImage(pendingFile);
       }
@@ -293,7 +316,7 @@ export default function AdminDishForm({
                     <span className="text-brand-accent">оберіть файл</span>
                   </span>
                   <span className="mt-1 text-xs text-white/25">
-                    JPG, PNG, HEIC → WebP до 100 KB
+                    JPG, PNG, HEIC → WebP до 150 KB
                   </span>
                 </>
               )}
