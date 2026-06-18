@@ -65,7 +65,7 @@ function houseButtonClass(
   const isLockedSelection = lockedCabin !== null && house === lockedCabin;
 
   if (isLockedSelection) {
-    return "border-emerald-400/55 bg-emerald-400/10 text-stone-50 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.3)] ring-1 ring-emerald-400/35";
+    return "border-brand-accent/55 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.35)] ring-1 ring-brand-accent/40";
   }
 
   if (lockedCabin !== null) {
