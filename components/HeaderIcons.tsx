@@ -2,27 +2,6 @@ type IconProps = {
   className?: string;
 };
 
-export function OrdersIcon({ className = "h-5 w-5" }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9" />
-      <path d="M9 5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a1 1 0 0 0 1 1h2" />
-      <path d="M7 9h6" />
-      <path d="M7 13h8" />
-      <path d="M7 17h5" />
-    </svg>
-  );
-}
-
 export function SettingsIcon({ className = "h-5 w-5" }: IconProps) {
   return (
     <svg

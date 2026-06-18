@@ -1,5 +1,6 @@
 "use client";
 
+import AdminArchiveSwipeRow from "@/components/AdminArchiveSwipeRow";
 import AdminBottomSheet from "@/components/AdminBottomSheet";
 import AdminConfirmDialog from "@/components/AdminConfirmDialog";
 import AdminSessionsSkeleton from "@/components/AdminSessionsSkeleton";
@@ -7,6 +8,7 @@ import { formatPrice } from "@/components/ImagePlaceholder";
 import {
   adminCancelOrder,
   adminCheckOutSession,
+  adminDeleteClosedSession,
   adminLoadClosedSessionsArchive,
   adminLoadSessionDetail,
   adminLoadSessionsDashboard,
@@ -32,7 +34,8 @@ type ViewMode = "active" | "archive";
 
 type ConfirmAction =
   | { type: "checkout" }
-  | { type: "cancel"; orderId: string };
+  | { type: "cancel"; orderId: string }
+  | { type: "deleteArchive"; sessionId: string };
 
 type Props = {
   onStatus: (message: string) => void;
@@ -69,6 +72,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
   const [busy, setBusy] = useState(false);
   const [moveOrderId, setMoveOrderId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
   const loadedOnceRef = useRef(false);
 
   const isReadOnly =
@@ -300,6 +304,30 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     }
   }
 
+  async function executeDeleteArchive(sessionId: string) {
+    setBusy(true);
+
+    try {
+      await adminDeleteClosedSession(sessionId);
+
+      if (selectedArchiveId === sessionId) {
+        closeSheet();
+      }
+
+      setConfirmAction(null);
+      setOpenSwipeId(null);
+      triggerSuccess();
+      onStatus("Архівний рахунок видалено");
+      await loadArchive(true);
+    } catch (err) {
+      onStatus(
+        err instanceof Error ? err.message : "Не вдалося видалити рахунок"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function handleConfirmDialog() {
     if (!confirmAction) {
       return;
@@ -310,6 +338,11 @@ export default function AdminSessionsTab({ onStatus }: Props) {
       return;
     }
 
+    if (confirmAction.type === "deleteArchive") {
+      void executeDeleteArchive(confirmAction.sessionId);
+      return;
+    }
+
     void executeCancelOrder(confirmAction.orderId);
   }
 
@@ -317,6 +350,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     setSelectedCabin(null);
     setSelectedArchiveId(null);
     setMoveOrderId(null);
+    setOpenSwipeId(null);
     setDetail(null);
   }
 
@@ -425,26 +459,33 @@ export default function AdminSessionsTab({ onStatus }: Props) {
             </p>
           ) : (
             archive.map((item) => (
-              <button
+              <AdminArchiveSwipeRow
                 key={item.id}
-                type="button"
-                onClick={() => setSelectedArchiveId(item.id)}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-brand-surface px-4 py-3 text-left transition hover:border-brand-accent/25"
+                open={openSwipeId === item.id}
+                onOpenChange={(open) => {
+                  setOpenSwipeId(open ? item.id : null);
+                }}
+                onPress={() => setSelectedArchiveId(item.id)}
+                onDelete={() => {
+                  setConfirmAction({ type: "deleteArchive", sessionId: item.id });
+                }}
               >
-                <div>
-                  <p className="font-medium text-stone-100">
-                    {formatCabinDisplay(item.cabinLabel, item.cabinNumber)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-brand-muted">
-                    Розраховано: {formatArchiveDate(item.closedAt)}
+                <div className="flex w-full items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-stone-100">
+                      {formatCabinDisplay(item.cabinLabel, item.cabinNumber)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-brand-muted">
+                      Розраховано: {formatArchiveDate(item.closedAt)}
+                    </p>
+                  </div>
+                  <p className="text-lg font-bold text-brand-accent">
+                    {item.finalTotal != null
+                      ? `${item.finalTotal.toLocaleString("uk-UA")} ₴`
+                      : "—"}
                   </p>
                 </div>
-                <p className="text-lg font-bold text-brand-accent">
-                  {item.finalTotal != null
-                    ? `${item.finalTotal.toLocaleString("uk-UA")} ₴`
-                    : "—"}
-                </p>
-              </button>
+              </AdminArchiveSwipeRow>
             ))
           )}
         </div>
@@ -607,7 +648,9 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         title={
           confirmAction?.type === "checkout"
             ? "Розрахувати гостей?"
-            : "Скасувати замовлення?"
+            : confirmAction?.type === "deleteArchive"
+              ? "Видалити архівний рахунок?"
+              : "Скасувати замовлення?"
         }
         description={
           confirmAction?.type === "checkout" ? (
@@ -623,14 +666,36 @@ export default function AdminSessionsTab({ onStatus }: Props) {
               </span>
               ? Рахунок буде закрито, гостям надійде повідомлення.
             </>
+          ) : confirmAction?.type === "deleteArchive" ? (
+            <>
+              Видалити архівний рахунок{" "}
+              <span className="font-medium text-stone-200">
+                {(() => {
+                  const item = archive.find(
+                    (entry) => entry.id === confirmAction.sessionId
+                  );
+                  return item
+                    ? formatCabinDisplay(item.cabinLabel, item.cabinNumber)
+                    : "";
+                })()}
+              </span>
+              ? Цю дію не можна скасувати.
+            </>
           ) : (
             "Сума автоматично зникне з рахунку будинку. Гість отримає сповіщення про скасування."
           )
         }
         confirmLabel={
-          confirmAction?.type === "checkout" ? "Розрахувати" : "Скасувати"
+          confirmAction?.type === "checkout"
+            ? "Розрахувати"
+            : confirmAction?.type === "deleteArchive"
+              ? "Видалити"
+              : "Скасувати"
         }
-        destructive={confirmAction?.type === "cancel"}
+        destructive={
+          confirmAction?.type === "cancel" ||
+          confirmAction?.type === "deleteArchive"
+        }
         confirmBusy={busy}
         onClose={() => {
           if (!busy) {

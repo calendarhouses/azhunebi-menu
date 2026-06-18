@@ -1,5 +1,6 @@
 "use client";
 
+import AdminConfirmDialog from "@/components/AdminConfirmDialog";
 import EmptyStateScreen from "@/components/EmptyStateScreen";
 import CheckoutLocationCard from "@/components/CheckoutLocationCard";
 import CheckoutLocationSkeleton from "@/components/CheckoutLocationSkeleton";
@@ -13,6 +14,7 @@ import {
   type StartParamLocation,
 } from "@/lib/startParamLocation";
 import type { CartItem } from "@/lib/cart";
+import { triggerImpact } from "@/lib/haptic";
 import { MapPin, Receipt, UtensilsCrossed } from "lucide-react";
 import {
   minScheduledDateTimeLocal,
@@ -65,16 +67,16 @@ const HOUSES = Array.from({ length: 12 }, (_, i) => `Будиночок ${i + 1}
 function houseButtonClass(
   house: string,
   locationNote: string,
-  lockedCabin: string | null
+  selectionLocked: boolean
 ): string {
   const isSelected = locationNote === house;
-  const isLockedSelection = lockedCabin !== null && house === lockedCabin;
+  const isLockedSelection = selectionLocked && isSelected;
 
   if (isLockedSelection) {
     return "border-brand-accent/55 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.35)] ring-1 ring-brand-accent/40";
   }
 
-  if (lockedCabin !== null) {
+  if (selectionLocked) {
     return "cursor-not-allowed border-stone-600/15 bg-brand-input/40 text-stone-500/35 opacity-45";
   }
 
@@ -110,6 +112,7 @@ export default function PremiumCheckout({
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
+  const [confirmHouse, setConfirmHouse] = useState<string | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
   useBodyScrollLock(open);
@@ -126,6 +129,25 @@ export default function PremiumCheckout({
   }, [open]);
 
   useEffect(() => {
+    if (
+      !open ||
+      boundHouseLabel ||
+      startParamLocation?.type !== "cabin" ||
+      locationNote.trim()
+    ) {
+      return;
+    }
+
+    onLocationNoteChange(startParamLocation.label);
+  }, [
+    open,
+    boundHouseLabel,
+    startParamLocation,
+    locationNote,
+    onLocationNoteChange,
+  ]);
+
+  useEffect(() => {
     return () => {
       if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
     };
@@ -135,16 +157,41 @@ export default function PremiumCheckout({
     return null;
   }
 
-  const isCabinLocked = startParamLocation?.type === "cabin" && !boundHouseLabel;
+  const isCabinQrAuto =
+    startParamLocation?.type === "cabin" && !boundHouseLabel;
   const isTableOrder = startParamLocation?.type === "table";
-  const lockedCabinLabel = isCabinLocked ? startParamLocation.label : null;
   const hasBoundHouse = Boolean(boundHouseLabel);
-  const effectiveLocation = boundHouseLabel || locationNote;
+  const houseSelectionLocked =
+    !hasBoundHouse && !isCabinQrAuto && Boolean(locationNote.trim());
+  const effectiveLocation =
+    boundHouseLabel ||
+    locationNote ||
+    (isCabinQrAuto && startParamLocation?.type === "cabin"
+      ? startParamLocation.label
+      : "");
   const showLocationSkeleton = houseBindingLoading;
   const deliverySummary =
     isTableOrder && hasBoundHouse && startParamLocation?.type === "table"
       ? formatOrderLocationDisplay(boundHouseLabel, startParamLocation.label)
       : null;
+
+  function handleHousePress(house: string) {
+    if (hasBoundHouse || houseSelectionLocked || isCabinQrAuto) {
+      return;
+    }
+
+    setConfirmHouse(house);
+  }
+
+  function confirmHouseSelection() {
+    if (!confirmHouse) {
+      return;
+    }
+
+    triggerImpact("medium");
+    onLocationNoteChange(confirmHouse);
+    setConfirmHouse(null);
+  }
 
   async function handleSubmit() {
     if (!effectiveLocation.trim()) {
@@ -275,7 +322,7 @@ export default function PremiumCheckout({
                   <div className="space-y-2.5">
                     {isTableOrder && startParamLocation?.type === "table" ? (
                       <CheckoutLocationCard
-                        label="Доставка"
+                        label="Локація"
                         value={formatTableOrderBadge(startParamLocation.number)}
                         icon={
                           <UtensilsCrossed
@@ -308,28 +355,36 @@ export default function PremiumCheckout({
                           )
                         }
                       />
+                    ) : isCabinQrAuto && startParamLocation?.type === "cabin" ? (
+                      <CheckoutLocationCard
+                        label="Локація"
+                        value={formatCabinDisplay(startParamLocation.label)}
+                        icon={
+                          <MapPin
+                            className="h-5 w-5"
+                            strokeWidth={1.75}
+                            aria-hidden
+                          />
+                        }
+                      />
                     ) : (
                       <>
                         <SectionTitle>Де ви проживаєте?</SectionTitle>
 
                         <div className="grid grid-cols-4 gap-2">
                           {HOUSES.map((house) => {
-                            const isLocked = lockedCabinLabel !== null;
-                            const isThisLocked = house === lockedCabinLabel;
+                            const isDisabled = houseSelectionLocked;
 
                             return (
                               <button
                                 key={house}
                                 type="button"
-                                disabled={isLocked && !isThisLocked}
-                                onClick={() => {
-                                  if (isLocked) return;
-                                  onLocationNoteChange(house);
-                                }}
+                                disabled={isDisabled}
+                                onClick={() => handleHousePress(house)}
                                 className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:active:scale-100 ${houseButtonClass(
                                   house,
                                   locationNote,
-                                  lockedCabinLabel
+                                  houseSelectionLocked
                                 )}`}
                               >
                                 {house.replace("Будиночок ", "")}
@@ -338,10 +393,13 @@ export default function PremiumCheckout({
                           })}
                         </div>
 
-                        {locationNote && !isCabinLocked ? (
+                        {houseSelectionLocked && locationNote ? (
                           <p className="mt-2 text-xs text-brand-muted">
-                            Обрано:{" "}
-                            <span className="text-stone-200">{locationNote}</span>
+                            {formatCabinDisplay(locationNote)}
+                            <span className="text-stone-500">
+                              {" "}
+                              — змінити номер будинку неможливо
+                            </span>
                           </p>
                         ) : null}
                       </>
@@ -435,6 +493,28 @@ export default function PremiumCheckout({
           </div>
         ) : null}
       </div>
+
+      <AdminConfirmDialog
+        open={confirmHouse !== null}
+        title="Підтвердити будинок?"
+        description={
+          confirmHouse ? (
+            <>
+              Ви проживаєте в{" "}
+              <span className="font-medium text-stone-200">
+                {formatCabinDisplay(confirmHouse)}
+              </span>
+              ? Після підтвердження змінити номер будинку буде неможливо.
+            </>
+          ) : (
+            ""
+          )
+        }
+        confirmLabel="Так, підтверджую"
+        cancelLabel="Скасувати"
+        onClose={() => setConfirmHouse(null)}
+        onConfirm={confirmHouseSelection}
+      />
     </div>
   );
 }

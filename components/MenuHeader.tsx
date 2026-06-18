@@ -1,8 +1,8 @@
 "use client";
 
 import BrandLogo from "@/components/BrandLogo";
-import { OrdersIcon, SettingsIcon } from "@/components/HeaderIcons";
-import { Receipt } from "lucide-react";
+import { SettingsIcon } from "@/components/HeaderIcons";
+import { ClipboardList, Receipt } from "lucide-react";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -177,7 +177,11 @@ export default function MenuHeader({
                 compact={compactActions}
                 aria-label="Мої замовлення"
               >
-                <OrdersIcon className={compactActions ? "h-5 w-5" : "h-6 w-6"} />
+                <ClipboardList
+                  className={compactActions ? "h-5 w-5" : "h-6 w-6"}
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
               </PremiumActionCard>
             ) : null}
 

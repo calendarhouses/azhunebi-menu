@@ -130,6 +130,10 @@ export async function adminCancelOrder(payload: {
   );
 }
 
+export async function adminDeleteClosedSession(sessionId: string) {
+  return adminRequest<{ sessionId: string }>("deleteClosedSession", { sessionId });
+}
+
 /**
  * Uploads a compressed image Blob directly to Supabase Storage.
  * Generates a unique path: menu/dish_<timestamp>.<ext>

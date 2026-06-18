@@ -29,7 +29,7 @@ export function parseStartParamLocation(
   }
 
   if (kind === "t") {
-    return { type: "table", number: num, label: `Столик №${num}` };
+    return { type: "table", number: num, label: `За столиком №${num}` };
   }
 
   return null;
@@ -77,12 +77,17 @@ function extractTableNumber(tableLabel: string): string | null {
   return match ? match[1] : null;
 }
 
-/** Guest copy: table delivery order line. */
-export function formatTableOrderBadge(number: string): string {
-  return `Замовлення: За столиком №${number}`;
+/** Guest/kitchen copy: table delivery line. */
+export function formatTableDeliveryLabel(number: string | number): string {
+  return `За столиком №${number}`;
 }
 
-/** Kitchen/admin copy: table delivery with house bill, or single location. */
+/** @deprecated Use formatTableDeliveryLabel */
+export function formatTableOrderBadge(number: string): string {
+  return formatTableDeliveryLabel(number);
+}
+
+/** Table + cabin, table-only, or cabin-only location for UI and notifications. */
 export function formatOrderLocationDisplay(
   cabin: string | null | undefined,
   tableNumber: string | null | undefined
@@ -92,17 +97,15 @@ export function formatOrderLocationDisplay(
 
   if (tableLabel && cabinLabel) {
     const tableNum = extractTableNumber(tableLabel);
-    const deliveryLine = tableNum
-      ? `Доставка — ${formatTableOrderBadge(tableNum)}`
-      : `Доставка — ${tableLabel}`;
-    return `${deliveryLine} (${formatCabinDisplay(cabinLabel)})`;
+    const tableLine = tableNum
+      ? formatTableDeliveryLabel(tableNum)
+      : tableLabel;
+    return `${tableLine} (${formatCabinDisplay(cabinLabel)})`;
   }
 
   if (tableLabel) {
     const tableNum = extractTableNumber(tableLabel);
-    return tableNum
-      ? `Доставка — ${formatTableOrderBadge(tableNum)}`
-      : tableLabel;
+    return tableNum ? formatTableDeliveryLabel(tableNum) : tableLabel;
   }
 
   return formatCabinDisplay(cabinLabel) || "—";

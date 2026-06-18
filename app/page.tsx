@@ -12,7 +12,6 @@ import MenuHeader from "@/components/MenuHeader";
 import { useAppReady } from "@/components/AppReadyProvider";
 import {
   attachOrderScreenshot,
-  changeGuestHouseRequest,
   createOrderRequest,
   fetchActiveOrders,
   fetchHouseBinding,
@@ -74,7 +73,6 @@ export default function Home() {
   const [inTelegram, setInTelegram] = useState(false);
   const [runningTab, setRunningTab] = useState<RunningTabData | null>(null);
   const [runningTabLoading, setRunningTabLoading] = useState(false);
-  const [changeHouseBusy, setChangeHouseBusy] = useState(false);
   const [houseBinding, setHouseBinding] = useState<HouseBinding | null>(null);
   const [houseBindingLoading, setHouseBindingLoading] = useState(false);
 
@@ -408,42 +406,6 @@ export default function Home() {
       }
     },
     []
-  );
-
-  const handleChangeHouse = useCallback(
-    async (cabinNumber: number) => {
-      setChangeHouseBusy(true);
-
-      try {
-        const nextTab = await changeGuestHouseRequest(cabinNumber);
-        setRunningTab(nextTab);
-        if (nextTab) {
-          setHouseBinding({
-            sessionId: nextTab.sessionId,
-            cabinNumber: nextTab.cabinNumber,
-            cabinLabel: nextTab.cabinLabel,
-          });
-          setLocationNote(
-            formatCabinDisplay(nextTab.cabinLabel, nextTab.cabinNumber)
-          );
-        }
-        prevRunningConfirmedRef.current = nextTab?.confirmedTotal ?? 0;
-        triggerSuccess();
-        await syncOrders({ silent: true });
-      } catch (error) {
-        triggerError();
-        const webApp = window.Telegram?.WebApp;
-        webApp?.showAlert?.(
-          error instanceof Error
-            ? error.message
-            : "Не вдалося змінити номер будинку"
-        );
-        throw error;
-      } finally {
-        setChangeHouseBusy(false);
-      }
-    },
-    [setLocationNote, syncOrders]
   );
 
   const fetchData = refreshMenu;
@@ -910,8 +872,6 @@ export default function Home() {
         onClose={() => setBillOpen(false)}
         runningTab={runningTab}
         loading={runningTabLoading}
-        onChangeHouse={handleChangeHouse}
-        changeHouseBusy={changeHouseBusy}
       />
 
       <OrdersPanel

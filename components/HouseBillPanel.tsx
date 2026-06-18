@@ -17,8 +17,6 @@ type HouseBillPanelProps = {
   onClose: () => void;
   runningTab: RunningTabData | null;
   loading?: boolean;
-  onChangeHouse: (cabinNumber: number) => Promise<void>;
-  changeHouseBusy?: boolean;
 };
 
 export default function HouseBillPanel({
@@ -26,8 +24,6 @@ export default function HouseBillPanel({
   onClose,
   runningTab,
   loading = false,
-  onChangeHouse,
-  changeHouseBusy = false,
 }: HouseBillPanelProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
@@ -90,11 +86,7 @@ export default function HouseBillPanel({
             <HouseBillSkeleton />
           ) : runningTab ? (
             <div className="space-y-5">
-              <HouseBillCard
-                data={runningTab}
-                onChangeHouse={onChangeHouse}
-                busy={changeHouseBusy}
-              />
+              <HouseBillCard data={runningTab} />
 
               <section>
                 <p className="mb-3 text-xs uppercase tracking-[0.18em] text-brand-muted">
