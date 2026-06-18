@@ -1,8 +1,8 @@
 "use client";
 
 import AdminBottomSheet from "@/components/AdminBottomSheet";
+import AdminConfirmDialog from "@/components/AdminConfirmDialog";
 import AdminSessionsSkeleton from "@/components/AdminSessionsSkeleton";
-import { SwapIcon } from "@/components/HeaderIcons";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import {
   adminCancelOrder,
@@ -20,11 +20,16 @@ import type {
 } from "@/lib/runningTab";
 import { formatOrderDateTime } from "@/lib/orderStatus";
 import { triggerImpact, triggerSuccess } from "@/lib/haptic";
+import { ArrowRightLeft, Home } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const POLL_MS = 5000;
 
 type ViewMode = "active" | "archive";
+
+type ConfirmAction =
+  | { type: "checkout" }
+  | { type: "cancel"; orderId: string };
 
 type Props = {
   onStatus: (message: string) => void;
@@ -60,6 +65,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [moveOrderId, setMoveOrderId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const loadedOnceRef = useRef(false);
 
   const isReadOnly =
@@ -124,6 +130,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         pendingTotal: data.pendingTotal,
         orders: data.orders,
         guestCount: data.guestCount,
+        checkoutBlocked: data.checkoutBlocked,
       });
     } catch (err) {
       onStatus(
@@ -173,16 +180,23 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     return () => window.clearInterval(timer);
   }, [selectedCabin, selectedArchiveId, viewMode, loadDetail]);
 
-  async function handleCheckOut() {
+  function openCheckOutConfirm() {
     if (!detail?.session?.id || isReadOnly) {
       return;
     }
 
-    if (
-      !window.confirm(
-        `Розрахувати гостей у ${detail.session.cabinLabel}? Рахунок буде закрито.`
-      )
-    ) {
+    if (detail.checkoutBlocked) {
+      onStatus(
+        "Неможливо розрахувати: є замовлення, які ще очікують або готуються."
+      );
+      return;
+    }
+
+    setConfirmAction({ type: "checkout" });
+  }
+
+  async function executeCheckOut() {
+    if (!detail?.session?.id) {
       return;
     }
 
@@ -193,6 +207,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
       await adminCheckOutSession(detail.session.id);
       triggerSuccess();
       onStatus("Рахунок закрито, гостям надіслано повідомлення");
+      setConfirmAction(null);
       setSelectedCabin(null);
       setDetail(null);
       await loadDashboard();
@@ -225,6 +240,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         pendingTotal: data.pendingTotal,
         orders: data.orders,
         guestCount: data.guestCount,
+        checkoutBlocked: data.checkoutBlocked,
       });
       setMoveOrderId(null);
       onStatus(`Замовлення перенесено до Будинку ${cabinNumber}`);
@@ -238,16 +254,16 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     }
   }
 
-  async function handleCancelOrder(orderId: string) {
+  function openCancelConfirm(orderId: string) {
     if (!detail?.session?.id || isReadOnly) {
       return;
     }
 
-    if (
-      !window.confirm(
-        "Скасувати це замовлення? Сума автоматично зникне з рахунку будинку."
-      )
-    ) {
+    setConfirmAction({ type: "cancel", orderId });
+  }
+
+  async function executeCancelOrder(orderId: string) {
+    if (!detail?.session?.id) {
       return;
     }
 
@@ -267,7 +283,9 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         pendingTotal: data.pendingTotal,
         orders: data.orders,
         guestCount: data.guestCount,
+        checkoutBlocked: data.checkoutBlocked,
       });
+      setConfirmAction(null);
       onStatus("Замовлення скасовано");
       await loadDashboard(true);
     } catch (err) {
@@ -277,6 +295,19 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleConfirmDialog() {
+    if (!confirmAction) {
+      return;
+    }
+
+    if (confirmAction.type === "checkout") {
+      void executeCheckOut();
+      return;
+    }
+
+    void executeCancelOrder(confirmAction.orderId);
   }
 
   function closeSheet() {
@@ -336,8 +367,9 @@ export default function AdminSessionsTab({ onStatus }: Props) {
       {viewMode === "active" ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {cabins.map((cabin) => {
-            const active = Boolean(cabin.session);
             const total = cabin.confirmedTotal + cabin.pendingTotal;
+            const active =
+              Boolean(cabin.session) && (cabin.orderCount > 0 || total > 0);
 
             return (
               <button
@@ -497,14 +529,20 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                             }
                             className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-brand-input px-3 py-2 text-xs font-semibold text-stone-200 transition hover:border-brand-accent/30 disabled:opacity-50"
                           >
-                            <SwapIcon className="h-3.5 w-3.5 text-brand-accent" />
+                            <span
+                              className="inline-flex items-center gap-0.5 text-brand-accent"
+                              aria-hidden
+                            >
+                              <Home className="h-3.5 w-3.5" strokeWidth={1.75} />
+                              <ArrowRightLeft className="h-3 w-3" strokeWidth={2} />
+                            </span>
                             Перенести
                           </button>
 
                           <button
                             type="button"
                             disabled={busy}
-                            onClick={() => handleCancelOrder(order.id)}
+                            onClick={() => openCancelConfirm(order.id)}
                             className="inline-flex items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/15 disabled:opacity-50"
                           >
                             Скасувати
@@ -540,8 +578,8 @@ export default function AdminSessionsTab({ onStatus }: Props) {
             {!isReadOnly ? (
               <button
                 type="button"
-                disabled={busy}
-                onClick={handleCheckOut}
+                disabled={busy || Boolean(detail.checkoutBlocked)}
+                onClick={openCheckOutConfirm}
                 className="btn-accent w-full rounded-2xl py-4 text-base font-bold shadow-[0_12px_32px_rgba(196,165,116,0.22)] disabled:opacity-50"
               >
                 {busy ? "Обробка…" : "Розрахувати / Виселити"}
@@ -550,6 +588,39 @@ export default function AdminSessionsTab({ onStatus }: Props) {
           </div>
         ) : null}
       </AdminBottomSheet>
+
+      <AdminConfirmDialog
+        open={confirmAction !== null}
+        title={
+          confirmAction?.type === "checkout"
+            ? "Розрахувати гостей?"
+            : "Скасувати замовлення?"
+        }
+        description={
+          confirmAction?.type === "checkout" ? (
+            <>
+              Розрахувати гостей у{" "}
+              <span className="font-medium text-stone-200">
+                {detail?.session.cabinLabel}
+              </span>
+              ? Рахунок буде закрито, гостям надійде повідомлення.
+            </>
+          ) : (
+            "Сума автоматично зникне з рахунку будинку. Гість отримає сповіщення про скасування."
+          )
+        }
+        confirmLabel={
+          confirmAction?.type === "checkout" ? "Розрахувати" : "Скасувати"
+        }
+        destructive={confirmAction?.type === "cancel"}
+        confirmBusy={busy}
+        onClose={() => {
+          if (!busy) {
+            setConfirmAction(null);
+          }
+        }}
+        onConfirm={handleConfirmDialog}
+      />
     </div>
   );
 }

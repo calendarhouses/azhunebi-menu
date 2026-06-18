@@ -1,19 +1,16 @@
 "use client";
 
 import BrandLogo from "@/components/BrandLogo";
-import { CartIcon, OrdersIcon, SettingsIcon } from "@/components/HeaderIcons";
-import { formatPositionLabel } from "@/lib/plural";
+import { OrdersIcon, SettingsIcon } from "@/components/HeaderIcons";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
 type MenuHeaderProps = {
   logoUrl: string;
-  cartCount: number;
   ordersCount?: number;
   showAdminLink?: boolean;
   showOrdersLink?: boolean;
   onOpenOrders?: () => void;
-  onOpenCart: () => void;
 };
 
 function ActionBadge({ count, label }: { count: number; label: string }) {
@@ -129,16 +126,13 @@ function AdminActionCard({ compact = false }: { compact?: boolean }) {
 
 export default function MenuHeader({
   logoUrl,
-  cartCount,
   ordersCount = 0,
   showAdminLink = false,
   showOrdersLink = false,
   onOpenOrders,
-  onOpenCart,
 }: MenuHeaderProps) {
-  const actionCount =
-    (showOrdersLink ? 1 : 0) + (showAdminLink ? 1 : 0) + 1;
-  const compactActions = actionCount >= 3;
+  const actionCount = (showOrdersLink ? 1 : 0) + (showAdminLink ? 1 : 0);
+  const compactActions = actionCount >= 2;
 
   return (
     <header className="relative border-b border-stone-600/20 bg-brand-bg">
@@ -158,41 +152,29 @@ export default function MenuHeader({
           </div>
         </div>
 
-        <div
-          className={
-            compactActions
-              ? "grid grid-cols-3 gap-2"
-              : "flex gap-3"
-          }
-        >
-          {showOrdersLink ? (
-            <PremiumActionCard
-              onClick={onOpenOrders}
-              title="Замовлення"
-              hint={compactActions ? undefined : "Статус подачі"}
-              badge={ordersCount}
-              badgeLabel={`Активних замовлень: ${ordersCount}`}
-              compact={compactActions}
-              aria-label="Мої замовлення"
-            >
-              <OrdersIcon className={compactActions ? "h-5 w-5" : "h-6 w-6"} />
-            </PremiumActionCard>
-          ) : null}
-
-          {showAdminLink ? <AdminActionCard compact={compactActions} /> : null}
-
-          <PremiumActionCard
-            onClick={onOpenCart}
-            title="Кошик"
-            hint={compactActions ? undefined : formatPositionLabel(cartCount)}
-            badge={cartCount}
-            badgeLabel={`Позицій у кошику: ${cartCount}`}
-            compact={compactActions}
-            aria-label="Відкрити кошик"
+        {actionCount > 0 ? (
+          <div
+            className={
+              compactActions ? "grid grid-cols-2 gap-2" : "flex gap-3"
+            }
           >
-            <CartIcon className={compactActions ? "h-5 w-5" : "h-6 w-6"} />
-          </PremiumActionCard>
-        </div>
+            {showOrdersLink ? (
+              <PremiumActionCard
+                onClick={onOpenOrders}
+                title="Замовлення"
+                hint={compactActions ? undefined : "Статус подачі"}
+                badge={ordersCount}
+                badgeLabel={`Активних замовлень: ${ordersCount}`}
+                compact={compactActions}
+                aria-label="Мої замовлення"
+              >
+                <OrdersIcon className={compactActions ? "h-5 w-5" : "h-6 w-6"} />
+              </PremiumActionCard>
+            ) : null}
+
+            {showAdminLink ? <AdminActionCard compact={compactActions} /> : null}
+          </div>
+        ) : null}
       </div>
     </header>
   );

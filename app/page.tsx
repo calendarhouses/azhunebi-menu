@@ -2,6 +2,8 @@
 
 import OrdersPanel from "@/components/OrdersPanel";
 import FloatingCartBar from "@/components/FloatingCartBar";
+import HouseBillCard from "@/components/HouseBillCard";
+import HouseBillSkeleton from "@/components/HouseBillSkeleton";
 import PremiumCheckout from "@/components/PremiumCheckout";
 import CategoryBar from "@/components/CategoryBar";
 import DishCard from "@/components/DishCard";
@@ -102,6 +104,7 @@ export default function Home() {
   const ordersLoadedOnceRef = useRef(false);
   const orphanMissCountsRef = useRef<Map<string, number>>(new Map());
   const prevRunningConfirmedRef = useRef(0);
+  const prevRunningTabSessionRef = useRef<string | null>(null);
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -204,10 +207,19 @@ export default function Home() {
       }
 
       try {
+        const IN_PROGRESS_STATUSES = new Set([
+          "pending",
+          "accepted",
+          "preparing",
+        ]);
+
         const [allFetchedOrders, runningTabData] = await Promise.all([
           fetchActiveOrders(),
           fetchRunningTab(),
         ]);
+
+        const sessionEnded =
+          prevRunningTabSessionRef.current !== null && !runningTabData;
 
         if (
           runningTabData &&
@@ -218,6 +230,7 @@ export default function Home() {
         }
 
         prevRunningConfirmedRef.current = runningTabData?.confirmedTotal ?? 0;
+        prevRunningTabSessionRef.current = runningTabData?.sessionId ?? null;
         setRunningTab(runningTabData);
 
         if (runningTabData) {
@@ -230,10 +243,19 @@ export default function Home() {
         } else {
           setHouseBinding(null);
         }
+
         const dismissedIds = readDismissedOrderIds();
         let activeOrders = allFetchedOrders.filter(
           (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
         );
+
+        if (sessionEnded) {
+          activeOrders = activeOrders.filter(
+            (order) => !IN_PROGRESS_STATUSES.has(order.status)
+          );
+          prevRunningConfirmedRef.current = 0;
+        }
+
         const activeById = new Map(activeOrders.map((o) => [o.id, o]));
 
         // Recover known orders missing from list (e.g. after reopening the app).
@@ -254,7 +276,6 @@ export default function Home() {
         }
 
         // If an in-progress order vanishes from the API repeatedly, treat as cancelled.
-        const IN_PROGRESS_STATUSES = new Set(["pending", "accepted", "preparing"]);
         const trackedIds = new Set(ordersRef.current.map((o) => o.id));
 
         for (const id of trackedIds) {
@@ -752,7 +773,6 @@ export default function Home() {
       <div className="shrink-0">
         <MenuHeader
           logoUrl={logoUrl}
-          cartCount={cartCount}
           ordersCount={orders.length}
           showAdminLink={showAdminLink}
           showOrdersLink={showOrdersLink}
@@ -760,8 +780,21 @@ export default function Home() {
             setOrdersOpen(true);
             syncOrders({ silent: ordersLoadedOnceRef.current });
           }}
-          onOpenCart={() => setCartOpen(true)}
         />
+
+        {inTelegram && (runningTabLoading || runningTab) ? (
+          <div className="mx-auto w-full max-w-3xl px-4 pb-3">
+            {runningTabLoading && !runningTab ? (
+              <HouseBillSkeleton />
+            ) : runningTab ? (
+              <HouseBillCard
+                data={runningTab}
+                onChangeHouse={handleChangeHouse}
+                busy={changeHouseBusy}
+              />
+            ) : null}
+          </div>
+        ) : null}
 
         <CategoryBar
           categories={categories}
@@ -851,6 +884,7 @@ export default function Home() {
 
       <FloatingCartBar
         total={cartTotal}
+        itemCount={cartCount}
         visible={showFloatingCart}
         onOpenCheckout={() => setCartOpen(true)}
       />

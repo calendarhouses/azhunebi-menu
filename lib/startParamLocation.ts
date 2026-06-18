@@ -45,6 +45,22 @@ export function readStartParamLocation(): StartParamLocation | null {
   );
 }
 
+/** Guest copy: house residence line. */
+export function formatResidenceLabel(cabin: string | null | undefined): string {
+  const cabinLabel = cabin?.trim() || "";
+  return cabinLabel ? `Проживання: ${cabinLabel}` : "";
+}
+
+function extractTableNumber(tableLabel: string): string | null {
+  const match = /№\s*(\d{1,2})/.exec(tableLabel.trim());
+  return match ? match[1] : null;
+}
+
+/** Guest copy: table delivery order line. */
+export function formatTableOrderBadge(number: string): string {
+  return `Замовлення: За столиком №${number}`;
+}
+
 /** Kitchen/admin copy: table delivery with house bill, or single location. */
 export function formatOrderLocationDisplay(
   cabin: string | null | undefined,
@@ -54,13 +70,19 @@ export function formatOrderLocationDisplay(
   const tableLabel = tableNumber?.trim() || "";
 
   if (tableLabel && cabinLabel) {
-    return `Доставка: ${tableLabel} (Рахунок: ${cabinLabel})`;
+    const tableNum = extractTableNumber(tableLabel);
+    const deliveryLine = tableNum
+      ? `Доставка — ${formatTableOrderBadge(tableNum)}`
+      : `Доставка — ${tableLabel}`;
+    return `${deliveryLine} (${formatResidenceLabel(cabinLabel)})`;
   }
 
-  return cabinLabel || tableLabel || "—";
-}
+  if (tableLabel) {
+    const tableNum = extractTableNumber(tableLabel);
+    return tableNum
+      ? `Доставка — ${formatTableOrderBadge(tableNum)}`
+      : tableLabel;
+  }
 
-/** Checkout badge copy for table QR links. */
-export function formatTableOrderBadge(number: string): string {
-  return `Замовлення за столиком №${number}`;
+  return formatResidenceLabel(cabinLabel) || cabinLabel || "—";
 }

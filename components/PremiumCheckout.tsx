@@ -1,7 +1,8 @@
 "use client";
 
 import EmptyStateScreen from "@/components/EmptyStateScreen";
-import { CheckIcon } from "@/components/HeaderIcons";
+import CheckoutLocationCard from "@/components/CheckoutLocationCard";
+import CheckoutLocationSkeleton from "@/components/CheckoutLocationSkeleton";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
 import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
@@ -10,8 +11,8 @@ import {
   formatTableOrderBadge,
   type StartParamLocation,
 } from "@/lib/startParamLocation";
-import CheckoutLocationSkeleton from "@/components/CheckoutLocationSkeleton";
 import type { CartItem } from "@/lib/cart";
+import { MapPin, Receipt, UtensilsCrossed } from "lucide-react";
 import {
   minScheduledDateTimeLocal,
   validateScheduledDateTimeLocal,
@@ -270,43 +271,42 @@ export default function PremiumCheckout({
                 {showLocationSkeleton ? (
                   <CheckoutLocationSkeleton />
                 ) : (
-                  <>
-                    {isTableOrder ? (
-                      <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
-                          <CheckIcon className="h-4 w-4" />
-                        </span>
-                        <p className="text-sm font-medium leading-snug text-stone-200">
-                          {hasBoundHouse && startParamLocation?.type === "table"
-                            ? `Доставка: ${startParamLocation.label}`
-                            : formatTableOrderBadge(startParamLocation.number)}
-                        </p>
-                      </div>
+                  <div className="space-y-2.5">
+                    {isTableOrder && startParamLocation?.type === "table" ? (
+                      <CheckoutLocationCard
+                        label="Доставка"
+                        value={formatTableOrderBadge(startParamLocation.number)}
+                        icon={
+                          <UtensilsCrossed
+                            className="h-5 w-5"
+                            strokeWidth={1.75}
+                            aria-hidden
+                          />
+                        }
+                      />
                     ) : null}
 
-                    {hasBoundHouse ? (
-                      <div className="flex items-center gap-2.5 rounded-2xl border border-brand-accent/20 bg-brand-accent/8 px-4 py-3">
-                        <span className="text-base" aria-hidden>
-                          {isTableOrder ? "🧾" : "🏠"}
-                        </span>
-                        <p className="text-sm text-stone-200">
-                          {isTableOrder ? (
-                            <>
-                              Рахунок:{" "}
-                              <span className="font-semibold text-brand-accent">
-                                {boundHouseLabel}
-                              </span>
-                            </>
+                    {hasBoundHouse && boundHouseLabel ? (
+                      <CheckoutLocationCard
+                        label="Проживання"
+                        value={boundHouseLabel}
+                        subdued={isTableOrder}
+                        icon={
+                          isTableOrder ? (
+                            <Receipt
+                              className="h-5 w-5"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
                           ) : (
-                            <>
-                              Ви прив&apos;язані до{" "}
-                              <span className="font-semibold text-brand-accent">
-                                {boundHouseLabel}
-                              </span>
-                            </>
-                          )}
-                        </p>
-                      </div>
+                            <MapPin
+                              className="h-5 w-5"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
+                          )
+                        }
+                      />
                     ) : (
                       <>
                         <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
@@ -347,11 +347,9 @@ export default function PremiumCheckout({
                     )}
 
                     {deliverySummary ? (
-                      <p className="mt-2 text-xs text-brand-muted">
-                        {deliverySummary}
-                      </p>
+                      <p className="px-1 text-xs text-brand-muted">{deliverySummary}</p>
                     ) : null}
-                  </>
+                  </div>
                 )}
               </section>
 

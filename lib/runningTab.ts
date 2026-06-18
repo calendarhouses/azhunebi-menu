@@ -44,6 +44,7 @@ export type SessionDetailData = {
   pendingTotal: number;
   orders: TrackedOrder[];
   guestCount: number;
+  checkoutBlocked?: boolean;
 };
 
 export type ClosedSessionArchiveItem = {

@@ -8,8 +8,8 @@ import {
 } from "@/components/HeaderIcons";
 import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
-import RunningTabBar from "@/components/RunningTabBar";
-import RunningTabSkeleton from "@/components/RunningTabSkeleton";
+import HouseBillCard from "@/components/HouseBillCard";
+import HouseBillSkeleton from "@/components/HouseBillSkeleton";
 import SessionHistoryAccordion from "@/components/SessionHistoryAccordion";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
@@ -148,9 +148,10 @@ export default function OrdersPanel({
           ) : null}
 
           {runningTabLoading && !runningTab ? (
-            <RunningTabSkeleton />
+            <HouseBillSkeleton className="mx-5" />
           ) : runningTab && onChangeHouse ? (
-            <RunningTabBar
+            <HouseBillCard
+              className="mx-5"
               data={runningTab}
               onChangeHouse={onChangeHouse}
               busy={changeHouseBusy}
