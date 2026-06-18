@@ -17,7 +17,8 @@ type OrderAction =
   | "attachScreenshot"
   | "getRunningTab"
   | "getHouseBinding"
-  | "changeHouse";
+  | "changeHouse"
+  | "leaveHouse";
 
 function buildRequestBody(
   action: OrderAction,
@@ -186,6 +187,10 @@ export async function fetchRunningTab() {
   }>("getRunningTab");
 
   return result.runningTab ?? null;
+}
+
+export async function leaveHouseRequest() {
+  return orderRequest<{ ok: true }>("leaveHouse");
 }
 
 export async function changeGuestHouseRequest(cabinNumber: number) {

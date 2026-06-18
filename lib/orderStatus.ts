@@ -27,6 +27,7 @@ export type TrackedOrder = {
   updatedAt: string;
   statusLabel: string;
   userFirstName?: string;
+  telegramUserId?: number | null;
 };
 
 export const ORDER_STEPS: { key: OrderStatus; label: string }[] = [

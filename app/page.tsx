@@ -88,6 +88,7 @@ export default function Home() {
     scheduledFor,
     setScheduledFor,
     clearStoredCart,
+    clearLocationNote,
     hydrated: cartHydrated,
   } = useCartStorage();
 
@@ -192,8 +193,16 @@ export default function Home() {
     onBack: handleBack,
   });
 
-  const showBillLink =
-    inTelegram && Boolean(runningTab || houseBinding || runningTabLoading);
+  const showBillLink = inTelegram && Boolean(runningTab || runningTabLoading);
+
+  const resetGuestHouseSelection = useCallback(() => {
+    if (startParamLocationRef.current?.type === "cabin") {
+      setLocationNote(startParamLocationRef.current.label);
+      return;
+    }
+
+    clearLocationNote();
+  }, [clearLocationNote, setLocationNote]);
 
   const syncOrders = useCallback(
     async (options?: {
@@ -254,6 +263,9 @@ export default function Home() {
           );
         } else {
           setHouseBinding(null);
+          if (sessionEnded) {
+            resetGuestHouseSelection();
+          }
         }
 
         const dismissedIds = readDismissedOrderIds();
@@ -405,7 +417,7 @@ export default function Home() {
         }
       }
     },
-    []
+    [resetGuestHouseSelection]
   );
 
   const fetchData = refreshMenu;
@@ -884,7 +896,6 @@ export default function Home() {
         loading={ordersLoading}
         error={ordersError}
         onRetry={() => syncOrders({ silent: false })}
-        runningTab={runningTab}
       />
     </div>
   );

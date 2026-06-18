@@ -8,10 +8,8 @@ import {
 } from "@/components/HeaderIcons";
 import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
-import SessionHistoryAccordion from "@/components/SessionHistoryAccordion";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
-import type { RunningTabData } from "@/lib/runningTab";
 import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
@@ -31,7 +29,6 @@ type OrdersPanelProps = {
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
-  runningTab?: RunningTabData | null;
 };
 
 const chipBase =
@@ -73,7 +70,6 @@ export default function OrdersPanel({
   loading = false,
   error = null,
   onRetry,
-  runningTab = null,
 }: OrdersPanelProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
@@ -87,9 +83,6 @@ export default function OrdersPanel({
   const selectedOrder =
     orders.find((order) => order.id === selectedOrderId) || orders[0] || null;
   const isEmptyState = !loading && !error && !selectedOrder;
-
-  const historyOrders =
-    runningTab?.orders.filter((order) => order.id !== selectedOrder?.id) || [];
 
   const panelStyle: CSSProperties = {
     ...buildSheetPanelTransform(0, dragOffset, isDragging),
@@ -232,10 +225,6 @@ export default function OrdersPanel({
                   </span>
                 </div>
               </div>
-
-              {runningTab ? (
-                <SessionHistoryAccordion orders={historyOrders} />
-              ) : null}
             </div>
           ) : (
             <EmptyStateScreen
