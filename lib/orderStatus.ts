@@ -88,7 +88,54 @@ export function getStatusChangeMessage(
     return null;
   }
 
+  // Ignore regressions from stale poll data — only toast real forward moves.
+  if (
+    previous !== "cancelled" &&
+    orderStatusRank(next) < orderStatusRank(previous)
+  ) {
+    return null;
+  }
+
   return labels[next] || "Статус оновлено";
+}
+
+const STATUS_RANK: Record<OrderStatus, number> = {
+  cancelled: -1,
+  pending: 0,
+  accepted: 1,
+  preparing: 2,
+  ready: 3,
+};
+
+export function orderStatusRank(status: OrderStatus) {
+  return STATUS_RANK[status] ?? 0;
+}
+
+/** Keeps UI stable: never regress lifecycle unless the server cancels. */
+export function mergeTrackedOrder(
+  existing: TrackedOrder,
+  incoming: TrackedOrder
+): TrackedOrder {
+  if (
+    existing.status === incoming.status &&
+    existing.updatedAt === incoming.updatedAt &&
+    existing.readyAt === incoming.readyAt
+  ) {
+    return existing;
+  }
+
+  if (incoming.status === "cancelled") {
+    return incoming;
+  }
+
+  if (
+    existing.status !== "cancelled" &&
+    orderStatusRank(incoming.status) < orderStatusRank(existing.status)
+  ) {
+    return existing;
+  }
+
+  return incoming;
 }
 
 const SCHEDULED_MIN_LEAD_MS = 60 * 60 * 1000;

@@ -27,6 +27,7 @@ import {
 } from "@/lib/orderStorage";
 import {
   getStatusChangeMessage,
+  mergeTrackedOrder,
   dateTimeLocalToIso,
   type OrderStatus,
   type TrackedOrder,
@@ -46,7 +47,9 @@ import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const ORDER_POLL_MS = 5000;
-const ORPHAN_CANCEL_THRESHOLD = 3;
+const ORDER_POLL_OPEN_MS = 2000;
+const RECENT_ORDER_GRACE_MS = 90_000;
+const MISSING_ORDER_GRACE_MS = 45_000;
 
 type CategoryFilter = string | "all";
 
@@ -104,9 +107,11 @@ export default function Home() {
   const startParamLocationRef = useRef(startParamLocation);
   const ordersRef = useRef<TrackedOrder[]>([]);
   const ordersLoadedOnceRef = useRef(false);
-  const orphanMissCountsRef = useRef<Map<string, number>>(new Map());
   const prevRunningConfirmedRef = useRef(0);
   const prevRunningTabSessionRef = useRef<string | null>(null);
+  const houseBindingRef = useRef<HouseBinding | null>(null);
+  const houseBindingRequestRef = useRef(0);
+  const recentlySubmittedOrdersRef = useRef<Map<string, number>>(new Map());
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -115,6 +120,7 @@ export default function Home() {
   scheduledForRef.current = scheduledFor;
   startParamLocationRef.current = startParamLocation;
   ordersRef.current = orders;
+  houseBindingRef.current = houseBinding;
 
   const showOrdersLink = inTelegram || orders.length > 0;
 
@@ -141,11 +147,25 @@ export default function Home() {
       return null;
     }
 
+    if (
+      houseBindingRef.current ||
+      locationNoteRef.current.trim() ||
+      runningTab
+    ) {
+      return houseBindingRef.current;
+    }
+
+    const requestId = ++houseBindingRequestRef.current;
     setHouseBindingLoading(true);
 
     try {
       const binding = await fetchHouseBinding();
+      if (requestId !== houseBindingRequestRef.current) {
+        return binding;
+      }
+
       setHouseBinding(binding);
+      houseBindingRef.current = binding;
 
       if (binding) {
         setLocationNote(
@@ -158,9 +178,11 @@ export default function Home() {
       console.error("[house-binding] refresh failed", error);
       return null;
     } finally {
-      setHouseBindingLoading(false);
+      if (requestId === houseBindingRequestRef.current) {
+        setHouseBindingLoading(false);
+      }
     }
-  }, [setLocationNote]);
+  }, [runningTab, setLocationNote]);
 
   const handleCheckoutClose = useCallback(() => {
     setCartOpen(false);
@@ -261,11 +283,9 @@ export default function Home() {
           setLocationNote(
             formatCabinDisplay(runningTabData.cabinLabel, runningTabData.cabinNumber)
           );
-        } else {
+        } else if (sessionEnded) {
           setHouseBinding(null);
-          if (sessionEnded) {
-            resetGuestHouseSelection();
-          }
+          resetGuestHouseSelection();
         }
 
         const dismissedIds = readDismissedOrderIds();
@@ -274,9 +294,6 @@ export default function Home() {
         );
 
         if (sessionEnded) {
-          activeOrders = activeOrders.filter(
-            (order) => !IN_PROGRESS_STATUSES.has(order.status)
-          );
           prevRunningConfirmedRef.current = 0;
         }
 
@@ -299,52 +316,48 @@ export default function Home() {
           activeOrders = [...activeById.values()];
         }
 
-        // If an in-progress order vanishes from the API repeatedly, treat as cancelled.
-        const trackedIds = new Set(ordersRef.current.map((o) => o.id));
-
-        for (const id of trackedIds) {
-          const order = ordersRef.current.find((o) => o.id === id);
-          if (
-            !order ||
-            !IN_PROGRESS_STATUSES.has(order.status) ||
-            activeById.has(id) ||
-            dismissedIds.has(id)
-          ) {
-            orphanMissCountsRef.current.delete(id);
+        // Keep last-known orders briefly when the list API misses them (no fake cancel).
+        for (const prevOrder of ordersRef.current) {
+          if (activeById.has(prevOrder.id) || dismissedIds.has(prevOrder.id)) {
             continue;
           }
 
-          orphanMissCountsRef.current.set(
-            id,
-            (orphanMissCountsRef.current.get(id) || 0) + 1
-          );
+          const submittedAt = recentlySubmittedOrdersRef.current.get(prevOrder.id);
+          const recentlySubmitted =
+            submittedAt != null &&
+            Date.now() - submittedAt < RECENT_ORDER_GRACE_MS;
+          const recentlyUpdated =
+            Date.now() - new Date(prevOrder.updatedAt).getTime() <
+            MISSING_ORDER_GRACE_MS;
+
+          const keepVisible =
+            prevOrder.status === "ready" ||
+            IN_PROGRESS_STATUSES.has(prevOrder.status);
+
+          if (keepVisible && (recentlySubmitted || recentlyUpdated)) {
+            activeById.set(prevOrder.id, prevOrder);
+          }
         }
 
-        const cancelledOrphans = ordersRef.current
-          .filter(
-            (o) =>
-              IN_PROGRESS_STATUSES.has(o.status) &&
-              !activeById.has(o.id) &&
-              !dismissedIds.has(o.id) &&
-              (orphanMissCountsRef.current.get(o.id) || 0) >=
-                ORPHAN_CANCEL_THRESHOLD
-          )
-          .map((o) => ({ ...o, status: "cancelled" as const }));
+        activeOrders = [...activeById.values()].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
 
-        const nextOrders = [...activeOrders, ...cancelledOrphans];
+        const nextOrders = activeOrders;
 
         const previousById = new Map(
-          ordersRef.current.map((order) => [order.id, order.status])
+          ordersRef.current.map((order) => [order.id, order])
         );
 
         for (const order of nextOrders) {
-          const previousStatus = previousById.get(order.id);
-          if (!previousStatus || previousStatus === order.status) {
+          const previous = previousById.get(order.id);
+          if (!previous || previous.status === order.status) {
             continue;
           }
 
           const message = getStatusChangeMessage(
-            previousStatus as OrderStatus,
+            previous.status as OrderStatus,
             order.status
           );
 
@@ -360,17 +373,7 @@ export default function Home() {
 
           const updatedNext = nextOrders.map((next) => {
             const existing = prevById.get(next.id);
-
-            if (
-              existing &&
-              existing.status === next.status &&
-              existing.updatedAt === next.updatedAt &&
-              existing.readyAt === next.readyAt
-            ) {
-              return existing;
-            }
-
-            return next;
+            return existing ? mergeTrackedOrder(existing, next) : next;
           });
 
           // Also keep already-known cancelled orders that didn't come back from
@@ -440,7 +443,13 @@ export default function Home() {
     }
 
     let cancelled = false;
-    setHouseBindingLoading(true);
+    const hasKnownLocation =
+      Boolean(locationNote.trim()) ||
+      startParamLocation?.type === "cabin";
+
+    if (!hasKnownLocation) {
+      setHouseBindingLoading(true);
+    }
 
     void (async () => {
       try {
@@ -451,6 +460,7 @@ export default function Home() {
 
         if (binding) {
           setHouseBinding(binding);
+          houseBindingRef.current = binding;
           setLocationNote(
             formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
           );
@@ -458,6 +468,7 @@ export default function Home() {
         }
 
         setHouseBinding(null);
+        houseBindingRef.current = null;
 
         if (startParamLocation?.type === "cabin") {
           setLocationNote(startParamLocation.label);
@@ -479,8 +490,16 @@ export default function Home() {
       return;
     }
 
+    if (
+      houseBindingRef.current ||
+      locationNoteRef.current.trim() ||
+      runningTab
+    ) {
+      return;
+    }
+
     void refreshHouseBinding();
-  }, [cartOpen, inTelegram, refreshHouseBinding]);
+  }, [cartOpen, inTelegram, refreshHouseBinding, runningTab]);
 
   useEffect(() => {
     if (activeCategory !== "all" && !categories.includes(activeCategory)) {
@@ -525,12 +544,63 @@ export default function Home() {
       return;
     }
 
+    const pollMs = ordersOpen ? ORDER_POLL_OPEN_MS : ORDER_POLL_MS;
+
     const intervalId = window.setInterval(() => {
       syncOrders({ silent: true });
-    }, ORDER_POLL_MS);
+    }, pollMs);
 
     return () => window.clearInterval(intervalId);
-  }, [syncOrders]);
+  }, [syncOrders, ordersOpen]);
+
+  useEffect(() => {
+    if (!ordersOpen || !selectedOrderId || !isTelegramWebApp()) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshSelected = async () => {
+      try {
+        const order = await fetchOrderById(selectedOrderId);
+        if (cancelled || !order) {
+          return;
+        }
+
+        setOrders((prev) => {
+          const existing = prev.find((entry) => entry.id === order.id);
+          if (!existing) {
+            return prev;
+          }
+
+          const merged = mergeTrackedOrder(existing, order);
+          if (merged === existing) {
+            return prev;
+          }
+
+          return prev.map((entry) => (entry.id === order.id ? merged : entry));
+        });
+      } catch {
+        // full sync will retry
+      }
+    };
+
+    void refreshSelected();
+    const intervalId = window.setInterval(refreshSelected, ORDER_POLL_OPEN_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [ordersOpen, selectedOrderId]);
+
+  useEffect(() => {
+    if (!ordersOpen || !isTelegramWebApp()) {
+      return;
+    }
+
+    void syncOrders({ silent: true });
+  }, [ordersOpen, syncOrders]);
 
   const submitOrder = useCallback(async () => {
     const webApp = window.Telegram?.WebApp;
@@ -548,7 +618,14 @@ export default function Home() {
       return;
     }
 
-    const currentLocation = locationNoteRef.current.trim();
+    const bindingLocation = houseBindingRef.current
+      ? formatCabinDisplay(
+          houseBindingRef.current.cabinLabel,
+          houseBindingRef.current.cabinNumber
+        )
+      : "";
+    const currentLocation =
+      locationNoteRef.current.trim() || bindingLocation;
     const tableDelivery =
       startParamLocationRef.current?.type === "table"
         ? startParamLocationRef.current.label
@@ -599,6 +676,7 @@ export default function Home() {
       });
 
       rememberOrderId(result.orderId);
+      recentlySubmittedOrdersRef.current.set(result.orderId, Date.now());
       if (result.order) {
         setOrders((prev) => {
           const rest = prev.filter((order) => order.id !== result.order.id);

@@ -169,7 +169,8 @@ export default function PremiumCheckout({
     (isCabinQrAuto && startParamLocation?.type === "cabin"
       ? startParamLocation.label
       : "");
-  const showLocationSkeleton = houseBindingLoading;
+  const hasKnownLocation = Boolean(effectiveLocation.trim());
+  const showLocationSkeleton = houseBindingLoading && !hasKnownLocation;
   const deliverySummary =
     isTableOrder && hasBoundHouse && startParamLocation?.type === "table"
       ? formatOrderLocationDisplay(boundHouseLabel, startParamLocation.label)

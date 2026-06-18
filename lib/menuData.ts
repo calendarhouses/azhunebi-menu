@@ -56,12 +56,33 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
 
   const activeCategorySet = new Set(categories);
 
-  const menuItems = menuItemsRaw.filter((item) => {
-    if (item.is_available === false) return false;
-    if (!item.category) return true;
-    // Hide dishes from inactive / unknown categories
-    return activeCategorySet.has(item.category);
-  });
+  const categoryOrder = new Map(
+    categories.map((name, index) => [name, index])
+  );
+
+  const menuItems = menuItemsRaw
+    .filter((item) => {
+      if (item.is_available === false) return false;
+      if (!item.category) return true;
+      // Hide dishes from inactive / unknown categories
+      return activeCategorySet.has(item.category);
+    })
+    .sort((a, b) => {
+      const orderA = a.category
+        ? (categoryOrder.get(a.category) ?? Number.MAX_SAFE_INTEGER)
+        : Number.MAX_SAFE_INTEGER;
+      const orderB = b.category
+        ? (categoryOrder.get(b.category) ?? Number.MAX_SAFE_INTEGER)
+        : Number.MAX_SAFE_INTEGER;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    });
 
   const logoUrl =
     !settingsResult.error && settingsResult.data
