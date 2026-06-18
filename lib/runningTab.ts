@@ -31,6 +31,8 @@ export type SessionDetailData = {
     checkedInAt: string;
     checkedOutAt: string | null;
     closedTotal: number | null;
+    closedAt?: string | null;
+    finalTotal?: number | null;
   };
   confirmedTotal: number;
   pendingTotal: number;

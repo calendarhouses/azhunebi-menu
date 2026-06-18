@@ -26,6 +26,7 @@ export type TrackedOrder = {
   createdAt: string;
   updatedAt: string;
   statusLabel: string;
+  userFirstName?: string;
 };
 
 export const ORDER_STEPS: { key: OrderStatus; label: string }[] = [

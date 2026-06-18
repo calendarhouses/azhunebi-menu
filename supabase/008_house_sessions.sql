@@ -8,7 +8,9 @@ create table if not exists public.house_sessions (
   status text not null default 'active' check (status in ('active', 'closed')),
   checked_in_at timestamptz not null default now(),
   checked_out_at timestamptz,
+  closed_at timestamptz,
   closed_total numeric(10, 2),
+  final_total numeric(10, 2),
   closed_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

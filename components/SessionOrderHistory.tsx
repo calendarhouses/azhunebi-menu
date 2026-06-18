@@ -63,10 +63,15 @@ export default function SessionOrderHistory({ orders }: SessionOrderHistoryProps
 
                 <div className="space-y-2 px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-stone-100">
-                      {formatOrderDateTime(order.createdAt)}
-                    </p>
-                    <p className="text-sm font-bold text-brand-accent">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-stone-100">
+                        {formatOrderDateTime(order.createdAt)}
+                      </p>
+                      <p className="text-xs text-brand-accent/90">
+                        {order.userFirstName || "Гість"}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-bold text-brand-accent">
                       {formatPrice(order.total)}
                     </p>
                   </div>
@@ -78,6 +83,9 @@ export default function SessionOrderHistory({ orders }: SessionOrderHistoryProps
                         className="flex items-center justify-between gap-3 text-sm text-stone-300"
                       >
                         <span className="min-w-0 truncate">
+                          <span className="text-brand-muted/80">
+                            {order.userFirstName || "Гість"} ·{" "}
+                          </span>
                           {line.name}{" "}
                           <span className="text-brand-muted">×{line.quantity}</span>
                         </span>
