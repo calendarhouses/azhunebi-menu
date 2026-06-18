@@ -113,6 +113,22 @@ export async function adminCheckOutSession(sessionId: string) {
   );
 }
 
+export async function adminLoadClosedSessionsArchive() {
+  return adminRequest<{
+    sessions: import("@/lib/runningTab").ClosedSessionArchiveItem[];
+  }>("loadClosedSessionsArchive");
+}
+
+export async function adminCancelOrder(payload: {
+  orderId: string;
+  sessionId: string;
+}) {
+  return adminRequest<import("@/lib/runningTab").SessionDetailData>(
+    "cancelOrder",
+    payload
+  );
+}
+
 /**
  * Uploads a compressed image Blob directly to Supabase Storage.
  * Generates a unique path: menu/dish_<timestamp>.<ext>

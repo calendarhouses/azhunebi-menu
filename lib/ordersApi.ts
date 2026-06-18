@@ -16,6 +16,7 @@ type OrderAction =
   | "create"
   | "attachScreenshot"
   | "getRunningTab"
+  | "getHouseBinding"
   | "changeHouse";
 
 function buildRequestBody(
@@ -161,6 +162,18 @@ export async function attachOrderScreenshot(payload: {
   screenshot: string;
 }) {
   return orderRequest<{ ok: true }>("attachScreenshot", payload);
+}
+
+export async function fetchHouseBinding() {
+  if (!getInitData()) {
+    return null;
+  }
+
+  const result = await orderRequest<{
+    binding: import("@/lib/runningTab").HouseBinding | null;
+  }>("getHouseBinding");
+
+  return result.binding ?? null;
 }
 
 export async function fetchRunningTab() {

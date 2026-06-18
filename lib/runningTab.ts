@@ -1,5 +1,11 @@
 import type { TrackedOrder } from "@/lib/orderStatus";
 
+export type HouseBinding = {
+  sessionId: string;
+  cabinNumber: number;
+  cabinLabel: string;
+};
+
 export type RunningTabData = {
   sessionId: string;
   cabinNumber: number;
@@ -38,4 +44,13 @@ export type SessionDetailData = {
   pendingTotal: number;
   orders: TrackedOrder[];
   guestCount: number;
+};
+
+export type ClosedSessionArchiveItem = {
+  id: string;
+  cabinNumber: number;
+  cabinLabel: string;
+  checkedInAt: string;
+  closedAt: string | null;
+  finalTotal: number | null;
 };

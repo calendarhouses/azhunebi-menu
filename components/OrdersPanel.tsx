@@ -8,9 +8,9 @@ import {
 } from "@/components/HeaderIcons";
 import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
-import RunningTabCard from "@/components/RunningTabCard";
+import RunningTabBar from "@/components/RunningTabBar";
 import RunningTabSkeleton from "@/components/RunningTabSkeleton";
-import SessionOrderHistory from "@/components/SessionOrderHistory";
+import SessionHistoryAccordion from "@/components/SessionHistoryAccordion";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
 import type { RunningTabData } from "@/lib/runningTab";
@@ -96,6 +96,9 @@ export default function OrdersPanel({
     orders.find((order) => order.id === selectedOrderId) || orders[0] || null;
   const isEmptyState = !loading && !error && !selectedOrder;
 
+  const historyOrders =
+    runningTab?.orders.filter((order) => order.id !== selectedOrder?.id) || [];
+
   const panelStyle: CSSProperties = {
     ...buildSheetPanelTransform(0, dragOffset, isDragging),
   };
@@ -125,15 +128,13 @@ export default function OrdersPanel({
           <div className="sheet-handle relative mx-auto mt-3 h-1 w-12 rounded-full" />
 
           {!isEmptyState ? (
-            <div className="relative flex items-start justify-between px-5 pb-3 pt-4">
+            <div className="relative flex items-start justify-between px-5 pb-2 pt-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-brand-accent/75">
                   Мої замовлення
                 </p>
                 <h2 className="mt-1 text-xl font-semibold text-stone-50">
-                  {selectedOrder
-                    ? `Замовлення ${selectedOrder.id.slice(0, 8)}`
-                    : "Статус замовлення"}
+                  Статус замовлення
                 </h2>
               </div>
               <button
@@ -146,8 +147,18 @@ export default function OrdersPanel({
             </div>
           ) : null}
 
+          {runningTabLoading && !runningTab ? (
+            <RunningTabSkeleton />
+          ) : runningTab && onChangeHouse ? (
+            <RunningTabBar
+              data={runningTab}
+              onChangeHouse={onChangeHouse}
+              busy={changeHouseBusy}
+            />
+          ) : null}
+
           {orders.length > 1 ? (
-            <div className="scrollbar-hide flex gap-2 overflow-x-auto px-5 pb-4">
+            <div className="scrollbar-hide flex gap-2 overflow-x-auto px-5 pb-3">
               {orders.map((order) => (
                 <button
                   key={order.id}
@@ -186,29 +197,6 @@ export default function OrdersPanel({
             </div>
           ) : selectedOrder ? (
             <div className="space-y-5">
-              {runningTabLoading && !runningTab ? (
-                <RunningTabSkeleton />
-              ) : runningTab && onChangeHouse ? (
-                <RunningTabCard
-                  data={runningTab}
-                  onChangeHouse={onChangeHouse}
-                  busy={changeHouseBusy}
-                />
-              ) : null}
-
-              {runningTab ? (
-                <div>
-                  <p className="mb-3 text-xs uppercase tracking-[0.18em] text-brand-muted">
-                    Історія рахунку
-                  </p>
-                  <SessionOrderHistory orders={runningTab.orders} />
-                </div>
-              ) : null}
-
-              <div>
-                <p className="mb-3 text-xs uppercase tracking-[0.18em] text-brand-muted">
-                  Поточне замовлення
-                </p>
               <OrderStepper
                 order={selectedOrder}
                 onDismissCancelled={
@@ -220,7 +208,7 @@ export default function OrdersPanel({
 
               <div className="rounded-[24px] border border-stone-600/20 bg-brand-input p-5">
                 <p className="text-xs uppercase tracking-[0.18em] text-brand-muted">
-                  Деталі
+                  Деталі замовлення
                 </p>
                 <div className="mt-3 space-y-2.5">
                   <DetailRow icon={<LocationIcon />}>
@@ -262,7 +250,10 @@ export default function OrdersPanel({
                   </span>
                 </div>
               </div>
-              </div>
+
+              {runningTab ? (
+                <SessionHistoryAccordion orders={historyOrders} />
+              ) : null}
             </div>
           ) : (
             <EmptyStateScreen

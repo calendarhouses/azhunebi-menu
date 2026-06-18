@@ -14,6 +14,7 @@ import {
   changeGuestHouseRequest,
   createOrderRequest,
   fetchActiveOrders,
+  fetchHouseBinding,
   fetchOrderById,
   fetchRunningTab,
   isTelegramWebApp,
@@ -37,7 +38,7 @@ import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
 import { useStartParamLocation } from "@/lib/useStartParamLocation";
 import { useTelegramApp } from "@/lib/useTelegramApp";
-import type { RunningTabData } from "@/lib/runningTab";
+import type { HouseBinding, RunningTabData } from "@/lib/runningTab";
 import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -69,6 +70,7 @@ export default function Home() {
   const [runningTab, setRunningTab] = useState<RunningTabData | null>(null);
   const [runningTabLoading, setRunningTabLoading] = useState(false);
   const [changeHouseBusy, setChangeHouseBusy] = useState(false);
+  const [houseBinding, setHouseBinding] = useState<HouseBinding | null>(null);
 
   const {
     cart,
@@ -126,14 +128,36 @@ export default function Home() {
     setOrdersOpen(false);
   }, []);
 
+  const refreshHouseBinding = useCallback(async () => {
+    if (!isTelegramWebApp()) {
+      setHouseBinding(null);
+      return null;
+    }
+
+    try {
+      const binding = await fetchHouseBinding();
+      setHouseBinding(binding);
+
+      if (binding) {
+        setLocationNote(binding.cabinLabel);
+      }
+
+      return binding;
+    } catch (error) {
+      console.error("[house-binding] refresh failed", error);
+      return null;
+    }
+  }, [setLocationNote]);
+
   const handleCheckoutClose = useCallback(() => {
     setCartOpen(false);
     if (orderJustSubmittedRef.current) {
       orderJustSubmittedRef.current = false;
       clearStoredCart();
+      void refreshHouseBinding();
       setOrdersOpen(true);
     }
-  }, [clearStoredCart]);
+  }, [clearStoredCart, refreshHouseBinding]);
 
   const handleBack = useCallback(() => {
     if (ordersOpen) {
@@ -189,6 +213,17 @@ export default function Home() {
 
         prevRunningConfirmedRef.current = runningTabData?.confirmedTotal ?? 0;
         setRunningTab(runningTabData);
+
+        if (runningTabData) {
+          setHouseBinding({
+            sessionId: runningTabData.sessionId,
+            cabinNumber: runningTabData.cabinNumber,
+            cabinLabel: runningTabData.cabinLabel,
+          });
+          setLocationNote(runningTabData.cabinLabel);
+        } else {
+          setHouseBinding(null);
+        }
         const dismissedIds = readDismissedOrderIds();
         let activeOrders = allFetchedOrders.filter(
           (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
@@ -341,7 +376,14 @@ export default function Home() {
       try {
         const nextTab = await changeGuestHouseRequest(cabinNumber);
         setRunningTab(nextTab);
-        setLocationNote(`Будинок ${cabinNumber}`);
+        if (nextTab) {
+          setHouseBinding({
+            sessionId: nextTab.sessionId,
+            cabinNumber: nextTab.cabinNumber,
+            cabinLabel: nextTab.cabinLabel,
+          });
+          setLocationNote(nextTab.cabinLabel);
+        }
         prevRunningConfirmedRef.current = nextTab?.confirmedTotal ?? 0;
         triggerSuccess();
         await syncOrders({ silent: true });
@@ -372,10 +414,30 @@ export default function Home() {
       return;
     }
 
-    if (startParamLocation?.type === "cabin") {
-      setLocationNote(startParamLocation.label);
-    }
+    void (async () => {
+      const binding = isTelegramWebApp() ? await fetchHouseBinding() : null;
+
+      if (binding) {
+        setHouseBinding(binding);
+        setLocationNote(binding.cabinLabel);
+        return;
+      }
+
+      setHouseBinding(null);
+
+      if (startParamLocation?.type === "cabin") {
+        setLocationNote(startParamLocation.label);
+      }
+    })();
   }, [cartHydrated, startParamReady, startParamLocation, setLocationNote]);
+
+  useEffect(() => {
+    if (!cartOpen || !inTelegram) {
+      return;
+    }
+
+    void refreshHouseBinding();
+  }, [cartOpen, inTelegram, refreshHouseBinding]);
 
   useEffect(() => {
     if (activeCategory !== "all" && !categories.includes(activeCategory)) {
@@ -744,6 +806,7 @@ export default function Home() {
         cart={cart}
         comment={comment}
         locationNote={locationNote}
+        boundHouseLabel={houseBinding?.cabinLabel ?? null}
         isScheduledOrder={isScheduledOrder}
         scheduledFor={scheduledFor}
         onCommentChange={setComment}

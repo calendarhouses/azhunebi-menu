@@ -44,6 +44,7 @@ type PremiumCheckoutProps = {
   isSubmitting: boolean;
   total: number;
   startParamLocation: StartParamLocation | null;
+  boundHouseLabel?: string | null;
 };
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -97,6 +98,7 @@ export default function PremiumCheckout({
   isSubmitting,
   total,
   startParamLocation,
+  boundHouseLabel = null,
 }: PremiumCheckoutProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
@@ -127,12 +129,14 @@ export default function PremiumCheckout({
     return null;
   }
 
-  const isCabinLocked = startParamLocation?.type === "cabin";
+  const isCabinLocked = startParamLocation?.type === "cabin" && !boundHouseLabel;
   const isTableOrder = startParamLocation?.type === "table";
   const lockedCabinLabel = isCabinLocked ? startParamLocation.label : null;
+  const hasBoundHouse = Boolean(boundHouseLabel);
+  const effectiveLocation = boundHouseLabel || locationNote;
 
   async function handleSubmit() {
-    if (!locationNote.trim()) {
+    if (!effectiveLocation.trim()) {
       window.Telegram?.WebApp.showAlert("Вкажіть, в якому будинку ви проживаєте.");
       return;
     }
@@ -265,40 +269,56 @@ export default function PremiumCheckout({
                   </div>
                 ) : null}
 
-                <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
+                {hasBoundHouse ? (
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-brand-accent/20 bg-brand-accent/8 px-4 py-3">
+                    <span className="text-base" aria-hidden>
+                      🏠
+                    </span>
+                    <p className="text-sm text-stone-200">
+                      Ви прив&apos;язані до{" "}
+                      <span className="font-semibold text-brand-accent">
+                        {boundHouseLabel}
+                      </span>
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
 
-                <div className="grid grid-cols-4 gap-2">
-                  {HOUSES.map((house) => {
-                    const isLocked = lockedCabinLabel !== null;
-                    const isThisLocked = house === lockedCabinLabel;
+                    <div className="grid grid-cols-4 gap-2">
+                      {HOUSES.map((house) => {
+                        const isLocked = lockedCabinLabel !== null;
+                        const isThisLocked = house === lockedCabinLabel;
 
-                    return (
-                      <button
-                        key={house}
-                        type="button"
-                        disabled={isLocked && !isThisLocked}
-                        onClick={() => {
-                          if (isLocked) return;
-                          onLocationNoteChange(house);
-                        }}
-                        className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:active:scale-100 ${houseButtonClass(
-                          house,
-                          locationNote,
-                          lockedCabinLabel
-                        )}`}
-                      >
-                        {house.replace("Будинок ", "")}
-                      </button>
-                    );
-                  })}
-                </div>
+                        return (
+                          <button
+                            key={house}
+                            type="button"
+                            disabled={isLocked && !isThisLocked}
+                            onClick={() => {
+                              if (isLocked) return;
+                              onLocationNoteChange(house);
+                            }}
+                            className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:active:scale-100 ${houseButtonClass(
+                              house,
+                              locationNote,
+                              lockedCabinLabel
+                            )}`}
+                          >
+                            {house.replace("Будинок ", "")}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                {locationNote && !isCabinLocked ? (
-                  <p className="mt-2 text-xs text-brand-muted">
-                    Обрано:{" "}
-                    <span className="text-stone-200">{locationNote}</span>
-                  </p>
-                ) : null}
+                    {locationNote && !isCabinLocked ? (
+                      <p className="mt-2 text-xs text-brand-muted">
+                        Обрано:{" "}
+                        <span className="text-stone-200">{locationNote}</span>
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </section>
 
               <section>

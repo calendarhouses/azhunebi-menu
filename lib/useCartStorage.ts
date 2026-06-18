@@ -123,12 +123,29 @@ export function useCartStorage() {
   function clearStoredCart() {
     setCart([]);
     setComment("");
-    setLocationNote("");
     setPaymentMethod("cash");
     setIsScheduledOrder(false);
     setScheduledFor("");
     window.localStorage.removeItem(CART_KEY);
-    window.localStorage.removeItem(META_KEY);
+    window.localStorage.setItem(
+      META_KEY,
+      JSON.stringify({
+        comment: "",
+        locationNote,
+        paymentMethod: "cash",
+        isScheduledOrder: false,
+        scheduledFor: "",
+      })
+    );
+  }
+
+  function clearLocationNote() {
+    setLocationNote("");
+    const meta = readMeta();
+    window.localStorage.setItem(
+      META_KEY,
+      JSON.stringify({ ...meta, locationNote: "" })
+    );
   }
 
   return {
@@ -146,5 +163,6 @@ export function useCartStorage() {
     setScheduledFor,
     hydrated,
     clearStoredCart,
+    clearLocationNote,
   };
 }
