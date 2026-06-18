@@ -1,7 +1,7 @@
 "use client";
 
 import EmptyStateScreen from "@/components/EmptyStateScreen";
-import { TableIcon } from "@/components/HeaderIcons";
+import { CheckIcon } from "@/components/HeaderIcons";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
 import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
@@ -257,7 +257,7 @@ export default function PremiumCheckout({
                 {isTableOrder ? (
                   <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
-                      <TableIcon className="h-4 w-4" />
+                      <CheckIcon className="h-4 w-4" />
                     </span>
                     <p className="text-sm font-medium leading-snug text-stone-200">
                       {formatTableOrderBadge(startParamLocation.number)}

@@ -61,5 +61,5 @@ export function formatOrderLocationDisplay(
 
 /** Checkout badge copy for table QR links. */
 export function formatTableOrderBadge(number: string): string {
-  return `Замовлення за столик №${number}`;
+  return `Замовлення за столиком №${number}`;
 }

@@ -154,6 +154,23 @@ export function TableIcon({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+export function CheckIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="m5 12.5 4 4L19 7" />
+    </svg>
+  );
+}
+
 export function CheckoutIcon({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg
