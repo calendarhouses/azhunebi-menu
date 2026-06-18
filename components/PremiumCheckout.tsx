@@ -1,10 +1,14 @@
 "use client";
 
 import EmptyStateScreen from "@/components/EmptyStateScreen";
+import { TableIcon } from "@/components/HeaderIcons";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
 import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
-import type { StartParamLocation } from "@/lib/startParamLocation";
+import {
+  formatTableOrderBadge,
+  type StartParamLocation,
+} from "@/lib/startParamLocation";
 import type { CartItem } from "@/lib/cart";
 import {
   minScheduledDateTimeLocal,
@@ -51,6 +55,29 @@ function SectionTitle({ children }: { children: ReactNode }) {
 }
 
 const HOUSES = Array.from({ length: 12 }, (_, i) => `Будинок ${i + 1}`);
+
+function houseButtonClass(
+  house: string,
+  locationNote: string,
+  lockedCabin: string | null
+): string {
+  const isSelected = locationNote === house;
+  const isLockedSelection = lockedCabin !== null && house === lockedCabin;
+
+  if (isLockedSelection) {
+    return "border-emerald-400/55 bg-emerald-400/10 text-stone-50 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.3)] ring-1 ring-emerald-400/35";
+  }
+
+  if (lockedCabin !== null) {
+    return "cursor-not-allowed border-stone-600/15 bg-brand-input/40 text-stone-500/35 opacity-45";
+  }
+
+  if (isSelected) {
+    return "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]";
+  }
+
+  return "border-stone-600/25 bg-brand-input text-brand-muted";
+}
 
 export default function PremiumCheckout({
   open,
@@ -102,6 +129,7 @@ export default function PremiumCheckout({
 
   const isCabinLocked = startParamLocation?.type === "cabin";
   const isTableOrder = startParamLocation?.type === "table";
+  const lockedCabinLabel = isCabinLocked ? startParamLocation.label : null;
 
   async function handleSubmit() {
     if (!locationNote.trim()) {
@@ -227,53 +255,50 @@ export default function PremiumCheckout({
 
               <section className="mb-5">
                 {isTableOrder ? (
-                  <div className="mb-2 rounded-lg bg-zinc-800 p-2 text-sm text-amber-500">
-                    📍 Ви замовляєте за {startParamLocation.label}
+                  <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
+                      <TableIcon className="h-4 w-4" />
+                    </span>
+                    <p className="text-sm font-medium leading-snug text-stone-200">
+                      {formatTableOrderBadge(startParamLocation.number)}
+                    </p>
                   </div>
                 ) : null}
 
-                <div className="mb-2 flex items-center gap-2">
-                  <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
-                  {isCabinLocked ? (
-                    <span
-                      className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-sm font-bold text-emerald-400 ring-1 ring-emerald-400/30"
-                      aria-hidden
-                    >
-                      ✓
-                    </span>
-                  ) : null}
+                <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
+
+                <div className="grid grid-cols-4 gap-2">
+                  {HOUSES.map((house) => {
+                    const isLocked = lockedCabinLabel !== null;
+                    const isThisLocked = house === lockedCabinLabel;
+
+                    return (
+                      <button
+                        key={house}
+                        type="button"
+                        disabled={isLocked && !isThisLocked}
+                        onClick={() => {
+                          if (isLocked) return;
+                          onLocationNoteChange(house);
+                        }}
+                        className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:active:scale-100 ${houseButtonClass(
+                          house,
+                          locationNote,
+                          lockedCabinLabel
+                        )}`}
+                      >
+                        {house.replace("Будинок ", "")}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {isCabinLocked ? (
-                  <div className="rounded-2xl border border-brand-accent/30 bg-brand-accent/10 px-4 py-3.5 text-sm font-semibold text-stone-50">
-                    {locationNote}
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-4 gap-2">
-                      {HOUSES.map((house) => (
-                        <button
-                          key={house}
-                          type="button"
-                          onClick={() => onLocationNoteChange(house)}
-                          className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] ${
-                            locationNote === house
-                              ? "border-brand-accent/50 bg-brand-accent/15 text-stone-50 shadow-[inset_0_0_0_1px_rgba(201,165,116,0.25)]"
-                              : "border-stone-600/25 bg-brand-input text-brand-muted"
-                          }`}
-                        >
-                          {house.replace("Будинок ", "")}
-                        </button>
-                      ))}
-                    </div>
-                    {locationNote ? (
-                      <p className="mt-2 text-xs text-brand-muted">
-                        Обрано:{" "}
-                        <span className="text-stone-200">{locationNote}</span>
-                      </p>
-                    ) : null}
-                  </>
-                )}
+                {locationNote && !isCabinLocked ? (
+                  <p className="mt-2 text-xs text-brand-muted">
+                    Обрано:{" "}
+                    <span className="text-stone-200">{locationNote}</span>
+                  </p>
+                ) : null}
               </section>
 
               <section>

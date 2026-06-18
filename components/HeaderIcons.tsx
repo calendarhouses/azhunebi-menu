@@ -133,6 +133,27 @@ export function PickupIcon({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+export function TableIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M4 10h16" />
+      <path d="M6 10V7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v3" />
+      <path d="M8 10v4" />
+      <path d="M16 10v4" />
+      <path d="M12 10v7" />
+    </svg>
+  );
+}
+
 export function CheckoutIcon({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg

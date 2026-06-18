@@ -29,7 +29,7 @@ export function parseStartParamLocation(
   }
 
   if (kind === "t") {
-    return { type: "table", number: num, label: `Столик ${num}` };
+    return { type: "table", number: num, label: `Столик №${num}` };
   }
 
   return null;
@@ -57,4 +57,9 @@ export function formatOrderLocationDisplay(
   }
 
   return cabinLabel || tableLabel || "—";
+}
+
+/** Checkout badge copy for table QR links. */
+export function formatTableOrderBadge(number: string): string {
+  return `Замовлення за столик №${number}`;
 }
