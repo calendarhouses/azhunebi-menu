@@ -8,8 +8,12 @@ import {
 } from "@/components/HeaderIcons";
 import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
+import RunningTabCard from "@/components/RunningTabCard";
+import RunningTabSkeleton from "@/components/RunningTabSkeleton";
+import SessionOrderHistory from "@/components/SessionOrderHistory";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
+import type { RunningTabData } from "@/lib/runningTab";
 import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 import {
@@ -29,6 +33,10 @@ type OrdersPanelProps = {
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
+  runningTab?: RunningTabData | null;
+  runningTabLoading?: boolean;
+  onChangeHouse?: (cabinNumber: number) => Promise<void>;
+  changeHouseBusy?: boolean;
 };
 
 const chipBase =
@@ -70,6 +78,10 @@ export default function OrdersPanel({
   loading = false,
   error = null,
   onRetry,
+  runningTab = null,
+  runningTabLoading = false,
+  onChangeHouse,
+  changeHouseBusy = false,
 }: OrdersPanelProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
@@ -174,6 +186,29 @@ export default function OrdersPanel({
             </div>
           ) : selectedOrder ? (
             <div className="space-y-5">
+              {runningTabLoading && !runningTab ? (
+                <RunningTabSkeleton />
+              ) : runningTab && onChangeHouse ? (
+                <RunningTabCard
+                  data={runningTab}
+                  onChangeHouse={onChangeHouse}
+                  busy={changeHouseBusy}
+                />
+              ) : null}
+
+              {runningTab ? (
+                <div>
+                  <p className="mb-3 text-xs uppercase tracking-[0.18em] text-brand-muted">
+                    Історія рахунку
+                  </p>
+                  <SessionOrderHistory orders={runningTab.orders} />
+                </div>
+              ) : null}
+
+              <div>
+                <p className="mb-3 text-xs uppercase tracking-[0.18em] text-brand-muted">
+                  Поточне замовлення
+                </p>
               <OrderStepper
                 order={selectedOrder}
                 onDismissCancelled={
@@ -226,6 +261,7 @@ export default function OrdersPanel({
                     {formatPrice(selectedOrder.total)}
                   </span>
                 </div>
+              </div>
               </div>
             </div>
           ) : (

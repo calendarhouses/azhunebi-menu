@@ -82,6 +82,37 @@ export async function loadAdminPanelData() {
   return adminRequest<AdminLoadResult>("load");
 }
 
+export async function adminLoadSessionsDashboard() {
+  return adminRequest<{ cabins: import("@/lib/runningTab").CabinDashboardCard[] }>(
+    "loadSessionsDashboard"
+  );
+}
+
+export async function adminLoadSessionDetail(sessionId: string) {
+  return adminRequest<import("@/lib/runningTab").SessionDetailData>(
+    "loadSessionDetail",
+    { sessionId }
+  );
+}
+
+export async function adminMoveOrderToHouse(payload: {
+  orderId: string;
+  cabinNumber: number;
+  sessionId: string;
+}) {
+  return adminRequest<import("@/lib/runningTab").SessionDetailData>(
+    "moveOrderToHouse",
+    payload
+  );
+}
+
+export async function adminCheckOutSession(sessionId: string) {
+  return adminRequest<{ sessionId: string; cabinNumber: number; finalTotal: number }>(
+    "checkOutSession",
+    { sessionId }
+  );
+}
+
 /**
  * Uploads a compressed image Blob directly to Supabase Storage.
  * Generates a unique path: menu/dish_<timestamp>.<ext>

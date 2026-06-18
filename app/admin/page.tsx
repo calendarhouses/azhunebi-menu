@@ -3,6 +3,7 @@
 import AdminCategoriesTab from "@/components/AdminCategoriesTab";
 import AdminDishesTab from "@/components/AdminDishesTab";
 import AdminPageSkeleton from "@/components/AdminPageSkeleton";
+import AdminSessionsTab from "@/components/AdminSessionsTab";
 import {
   adminRequest,
   checkAdminAccess,
@@ -14,7 +15,7 @@ import type { MenuItemRow } from "@/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
-type Tab = "dishes" | "categories" | "access";
+type Tab = "dishes" | "categories" | "sessions" | "access";
 
 type CategoryRow = {
   id: string;
@@ -167,7 +168,11 @@ export default function AdminPage() {
     );
   }
 
-  const tabs: [Tab, string][] = [["dishes", "Страви"], ["categories", "Категорії"]];
+  const tabs: [Tab, string][] = [
+    ["dishes", "Страви"],
+    ["categories", "Категорії"],
+    ["sessions", "Рахунки"],
+  ];
   if (canManageAdmins) tabs.push(["access", "Доступ"]);
 
   return (
@@ -268,6 +273,10 @@ export default function AdminPage() {
               onStatus={showToast}
             />
           </div>
+        )}
+
+        {tab === "sessions" && (
+          <AdminSessionsTab onStatus={showToast} />
         )}
 
         {tab === "access" && canManageAdmins && (

@@ -11,9 +11,11 @@ import MenuHeader from "@/components/MenuHeader";
 import { useAppReady } from "@/components/AppReadyProvider";
 import {
   attachOrderScreenshot,
+  changeGuestHouseRequest,
   createOrderRequest,
   fetchActiveOrders,
   fetchOrderById,
+  fetchRunningTab,
   isTelegramWebApp,
 } from "@/lib/ordersApi";
 import {
@@ -35,6 +37,7 @@ import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
 import { useStartParamLocation } from "@/lib/useStartParamLocation";
 import { useTelegramApp } from "@/lib/useTelegramApp";
+import type { RunningTabData } from "@/lib/runningTab";
 import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -63,6 +66,9 @@ export default function Home() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [inTelegram, setInTelegram] = useState(false);
+  const [runningTab, setRunningTab] = useState<RunningTabData | null>(null);
+  const [runningTabLoading, setRunningTabLoading] = useState(false);
+  const [changeHouseBusy, setChangeHouseBusy] = useState(false);
 
   const {
     cart,
@@ -92,6 +98,7 @@ export default function Home() {
   const ordersRef = useRef<TrackedOrder[]>([]);
   const ordersLoadedOnceRef = useRef(false);
   const orphanMissCountsRef = useRef<Map<string, number>>(new Map());
+  const prevRunningConfirmedRef = useRef(0);
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -162,11 +169,26 @@ export default function Home() {
 
       if (!silent) {
         setOrdersLoading(true);
+        setRunningTabLoading(true);
         setOrdersError(null);
       }
 
       try {
-        const allFetchedOrders = await fetchActiveOrders();
+        const [allFetchedOrders, runningTabData] = await Promise.all([
+          fetchActiveOrders(),
+          fetchRunningTab(),
+        ]);
+
+        if (
+          runningTabData &&
+          runningTabData.confirmedTotal > prevRunningConfirmedRef.current &&
+          prevRunningConfirmedRef.current > 0
+        ) {
+          triggerImpact("light");
+        }
+
+        prevRunningConfirmedRef.current = runningTabData?.confirmedTotal ?? 0;
+        setRunningTab(runningTabData);
         const dismissedIds = readDismissedOrderIds();
         let activeOrders = allFetchedOrders.filter(
           (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
@@ -305,10 +327,38 @@ export default function Home() {
       } finally {
         if (!silent) {
           setOrdersLoading(false);
+          setRunningTabLoading(false);
         }
       }
     },
     []
+  );
+
+  const handleChangeHouse = useCallback(
+    async (cabinNumber: number) => {
+      setChangeHouseBusy(true);
+
+      try {
+        const nextTab = await changeGuestHouseRequest(cabinNumber);
+        setRunningTab(nextTab);
+        setLocationNote(`Будинок ${cabinNumber}`);
+        prevRunningConfirmedRef.current = nextTab?.confirmedTotal ?? 0;
+        triggerSuccess();
+        await syncOrders({ silent: true });
+      } catch (error) {
+        triggerError();
+        const webApp = window.Telegram?.WebApp;
+        webApp?.showAlert?.(
+          error instanceof Error
+            ? error.message
+            : "Не вдалося змінити номер будинку"
+        );
+        throw error;
+      } finally {
+        setChangeHouseBusy(false);
+      }
+    },
+    [setLocationNote, syncOrders]
   );
 
   const fetchData = refreshMenu;
@@ -724,6 +774,10 @@ export default function Home() {
         loading={ordersLoading}
         error={ordersError}
         onRetry={() => syncOrders({ silent: false })}
+        runningTab={runningTab}
+        runningTabLoading={runningTabLoading}
+        onChangeHouse={handleChangeHouse}
+        changeHouseBusy={changeHouseBusy}
       />
     </div>
   );

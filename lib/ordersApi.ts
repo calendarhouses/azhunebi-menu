@@ -10,7 +10,13 @@ export function isTelegramWebApp() {
   return Boolean(getInitData());
 }
 
-type OrderAction = "list" | "get" | "create" | "attachScreenshot";
+type OrderAction =
+  | "list"
+  | "get"
+  | "create"
+  | "attachScreenshot"
+  | "getRunningTab"
+  | "changeHouse";
 
 function buildRequestBody(
   action: OrderAction,
@@ -155,6 +161,26 @@ export async function attachOrderScreenshot(payload: {
   screenshot: string;
 }) {
   return orderRequest<{ ok: true }>("attachScreenshot", payload);
+}
+
+export async function fetchRunningTab() {
+  if (!getInitData()) {
+    return null;
+  }
+
+  const result = await orderRequest<{
+    runningTab: import("@/lib/runningTab").RunningTabData | null;
+  }>("getRunningTab");
+
+  return result.runningTab ?? null;
+}
+
+export async function changeGuestHouseRequest(cabinNumber: number) {
+  const result = await orderRequest<{
+    runningTab: import("@/lib/runningTab").RunningTabData | null;
+  }>("changeHouse", { cabinNumber });
+
+  return result.runningTab ?? null;
 }
 
 export async function checkBotApiVersion() {
