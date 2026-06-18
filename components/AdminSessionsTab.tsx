@@ -12,7 +12,10 @@ import {
   adminLoadSessionsDashboard,
   adminMoveOrderToHouse,
 } from "@/lib/adminApi";
-import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
+import {
+  formatCabinDisplay,
+  formatOrderLocationDisplay,
+} from "@/lib/startParamLocation";
 import type {
   CabinDashboardCard,
   ClosedSessionArchiveItem,
@@ -388,7 +391,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-stone-100">
-                    {cabin.cabinLabel}
+                    {formatCabinDisplay(cabin.cabinLabel, cabin.cabinNumber)}
                   </p>
                   {active ? (
                     <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -396,8 +399,16 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                 </div>
 
                 <p className="mt-3 text-2xl font-bold text-brand-accent">
-                  {active ? `${total.toLocaleString("uk-UA")} ₴` : "—"}
+                  {active
+                    ? `${cabin.confirmedTotal.toLocaleString("uk-UA")} ₴`
+                    : "—"}
                 </p>
+
+                {active && cabin.pendingTotal > 0 ? (
+                  <p className="mt-0.5 text-xs text-brand-muted">
+                    +{cabin.pendingTotal.toLocaleString("uk-UA")} ₴ в обробці
+                  </p>
+                ) : null}
 
                 <p className="mt-1 text-xs text-brand-muted">
                   {active ? `${cabin.orderCount} замовл.` : "Вільний"}
@@ -421,7 +432,9 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                 className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-brand-surface px-4 py-3 text-left transition hover:border-brand-accent/25"
               >
                 <div>
-                  <p className="font-medium text-stone-100">{item.cabinLabel}</p>
+                  <p className="font-medium text-stone-100">
+                    {formatCabinDisplay(item.cabinLabel, item.cabinNumber)}
+                  </p>
                   <p className="mt-0.5 text-xs text-brand-muted">
                     Розраховано: {formatArchiveDate(item.closedAt)}
                   </p>
@@ -450,18 +463,18 @@ export default function AdminSessionsTab({ onStatus }: Props) {
               <p className="text-xs uppercase tracking-[0.18em] text-brand-muted">
                 {isReadOnly ? "Фінальний рахунок" : "Поточний рахунок"}
               </p>
-              <p className="mt-2 text-3xl font-bold text-stone-50">
+              <p className="mt-2 text-3xl font-bold whitespace-nowrap text-stone-50">
                 {isReadOnly
                   ? formatPrice(
                       detail.session.finalTotal ??
                         detail.session.closedTotal ??
                         detail.confirmedTotal
                     )
-                  : formatPrice(detail.confirmedTotal + detail.pendingTotal)}
+                  : formatPrice(detail.confirmedTotal)}
               </p>
               {!isReadOnly && detail.pendingTotal > 0 ? (
                 <p className="mt-1 text-sm text-brand-muted">
-                  з них {formatPrice(detail.pendingTotal)} в обробці
+                  +{formatPrice(detail.pendingTotal)} в обробці
                 </p>
               ) : null}
               {isReadOnly ? (
@@ -503,7 +516,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                             : ""}
                         </p>
                       </div>
-                      <p className="text-sm font-bold text-brand-accent">
+                      <p className="shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-brand-accent">
                         {formatPrice(order.total)}
                       </p>
                     </div>
@@ -601,7 +614,12 @@ export default function AdminSessionsTab({ onStatus }: Props) {
             <>
               Розрахувати гостей у{" "}
               <span className="font-medium text-stone-200">
-                {detail?.session.cabinLabel}
+                {detail?.session
+                  ? formatCabinDisplay(
+                      detail.session.cabinLabel,
+                      detail.session.cabinNumber
+                    )
+                  : ""}
               </span>
               ? Рахунок буде закрито, гостям надійде повідомлення.
             </>

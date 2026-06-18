@@ -2,6 +2,7 @@
 
 import BrandLogo from "@/components/BrandLogo";
 import { OrdersIcon, SettingsIcon } from "@/components/HeaderIcons";
+import { Receipt } from "lucide-react";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -10,7 +11,9 @@ type MenuHeaderProps = {
   ordersCount?: number;
   showAdminLink?: boolean;
   showOrdersLink?: boolean;
+  showBillLink?: boolean;
   onOpenOrders?: () => void;
+  onOpenBill?: () => void;
 };
 
 function ActionBadge({ count, label }: { count: number; label: string }) {
@@ -129,10 +132,20 @@ export default function MenuHeader({
   ordersCount = 0,
   showAdminLink = false,
   showOrdersLink = false,
+  showBillLink = false,
   onOpenOrders,
+  onOpenBill,
 }: MenuHeaderProps) {
-  const actionCount = (showOrdersLink ? 1 : 0) + (showAdminLink ? 1 : 0);
+  const actionCount =
+    (showOrdersLink ? 1 : 0) + (showBillLink ? 1 : 0) + (showAdminLink ? 1 : 0);
   const compactActions = actionCount >= 2;
+
+  const gridClass =
+    actionCount >= 3
+      ? "grid grid-cols-3 gap-2"
+      : compactActions
+        ? "grid grid-cols-2 gap-2"
+        : "flex gap-3";
 
   return (
     <header className="relative border-b border-stone-600/20 bg-brand-bg">
@@ -153,11 +166,7 @@ export default function MenuHeader({
         </div>
 
         {actionCount > 0 ? (
-          <div
-            className={
-              compactActions ? "grid grid-cols-2 gap-2" : "flex gap-3"
-            }
-          >
+          <div className={gridClass}>
             {showOrdersLink ? (
               <PremiumActionCard
                 onClick={onOpenOrders}
@@ -169,6 +178,22 @@ export default function MenuHeader({
                 aria-label="Мої замовлення"
               >
                 <OrdersIcon className={compactActions ? "h-5 w-5" : "h-6 w-6"} />
+              </PremiumActionCard>
+            ) : null}
+
+            {showBillLink ? (
+              <PremiumActionCard
+                onClick={onOpenBill}
+                title="Рахунок"
+                hint={compactActions ? undefined : "Відкритий рахунок"}
+                compact={compactActions}
+                aria-label="Рахунок будинку"
+              >
+                <Receipt
+                  className={compactActions ? "h-5 w-5" : "h-6 w-6"}
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
               </PremiumActionCard>
             ) : null}
 

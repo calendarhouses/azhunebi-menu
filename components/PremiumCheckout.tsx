@@ -7,6 +7,7 @@ import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
 import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
 import {
+  formatCabinDisplay,
   formatOrderLocationDisplay,
   formatTableOrderBadge,
   type StartParamLocation,
@@ -59,7 +60,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
-const HOUSES = Array.from({ length: 12 }, (_, i) => `Будинок ${i + 1}`);
+const HOUSES = Array.from({ length: 12 }, (_, i) => `Будиночок ${i + 1}`);
 
 function houseButtonClass(
   house: string,
@@ -288,8 +289,8 @@ export default function PremiumCheckout({
 
                     {hasBoundHouse && boundHouseLabel ? (
                       <CheckoutLocationCard
-                        label="Проживання"
-                        value={boundHouseLabel}
+                        label={isTableOrder ? "Рахунок" : "Локація"}
+                        value={formatCabinDisplay(boundHouseLabel)}
                         subdued={isTableOrder}
                         icon={
                           isTableOrder ? (
@@ -309,7 +310,7 @@ export default function PremiumCheckout({
                       />
                     ) : (
                       <>
-                        <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
+                        <SectionTitle>Де ви проживаєте?</SectionTitle>
 
                         <div className="grid grid-cols-4 gap-2">
                           {HOUSES.map((house) => {
@@ -331,7 +332,7 @@ export default function PremiumCheckout({
                                   lockedCabinLabel
                                 )}`}
                               >
-                                {house.replace("Будинок ", "")}
+                                {house.replace("Будиночок ", "")}
                               </button>
                             );
                           })}

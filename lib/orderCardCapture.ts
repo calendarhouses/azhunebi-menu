@@ -103,7 +103,7 @@ function buildCardHtml(data: OrderCardData): string {
 
   const metaRows = [
     metaRow(
-      (data.house || "").includes("Доставка") ? "Локація" : "Проживання",
+      (data.house || "").includes("Доставка") ? "Локація" : "Будиночок",
       esc(data.house || "—")
     ),
     data.scheduledFor

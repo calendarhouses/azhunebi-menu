@@ -8,8 +8,6 @@ import {
 } from "@/components/HeaderIcons";
 import OrderStatusSkeleton from "@/components/OrderStatusSkeleton";
 import OrderStepper from "@/components/OrderStepper";
-import HouseBillCard from "@/components/HouseBillCard";
-import HouseBillSkeleton from "@/components/HouseBillSkeleton";
 import SessionHistoryAccordion from "@/components/SessionHistoryAccordion";
 import { formatPrice } from "@/components/ImagePlaceholder";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
@@ -34,9 +32,6 @@ type OrdersPanelProps = {
   error?: string | null;
   onRetry?: () => void;
   runningTab?: RunningTabData | null;
-  runningTabLoading?: boolean;
-  onChangeHouse?: (cabinNumber: number) => Promise<void>;
-  changeHouseBusy?: boolean;
 };
 
 const chipBase =
@@ -79,9 +74,6 @@ export default function OrdersPanel({
   error = null,
   onRetry,
   runningTab = null,
-  runningTabLoading = false,
-  onChangeHouse,
-  changeHouseBusy = false,
 }: OrdersPanelProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
@@ -145,17 +137,6 @@ export default function OrdersPanel({
                 Закрити
               </button>
             </div>
-          ) : null}
-
-          {runningTabLoading && !runningTab ? (
-            <HouseBillSkeleton className="mx-5" />
-          ) : runningTab && onChangeHouse ? (
-            <HouseBillCard
-              className="mx-5"
-              data={runningTab}
-              onChangeHouse={onChangeHouse}
-              busy={changeHouseBusy}
-            />
           ) : null}
 
           {orders.length > 1 ? (

@@ -25,7 +25,7 @@ export function parseStartParamLocation(
   const num = String(number);
 
   if (kind === "c") {
-    return { type: "cabin", number: num, label: `Будинок ${num}` };
+    return { type: "cabin", number: num, label: `Будиночок ${num}` };
   }
 
   if (kind === "t") {
@@ -45,10 +45,31 @@ export function readStartParamLocation(): StartParamLocation | null {
   );
 }
 
-/** Guest copy: house residence line. */
+/** Normalizes stored cabin text to guest-facing «Будиночок N». */
+export function formatCabinDisplay(
+  cabin: string | null | undefined,
+  cabinNumber?: number | string | null
+): string {
+  if (cabinNumber != null && cabinNumber !== "") {
+    return `Будиночок ${cabinNumber}`;
+  }
+
+  const raw = cabin?.trim() || "";
+  if (!raw) {
+    return "";
+  }
+
+  const match = /(\d{1,2})/.exec(raw);
+  if (match) {
+    return `Будиночок ${match[1]}`;
+  }
+
+  return raw;
+}
+
+/** @deprecated Use formatCabinDisplay */
 export function formatResidenceLabel(cabin: string | null | undefined): string {
-  const cabinLabel = cabin?.trim() || "";
-  return cabinLabel ? `Проживання: ${cabinLabel}` : "";
+  return formatCabinDisplay(cabin);
 }
 
 function extractTableNumber(tableLabel: string): string | null {
@@ -74,7 +95,7 @@ export function formatOrderLocationDisplay(
     const deliveryLine = tableNum
       ? `Доставка — ${formatTableOrderBadge(tableNum)}`
       : `Доставка — ${tableLabel}`;
-    return `${deliveryLine} (${formatResidenceLabel(cabinLabel)})`;
+    return `${deliveryLine} (${formatCabinDisplay(cabinLabel)})`;
   }
 
   if (tableLabel) {
@@ -84,5 +105,5 @@ export function formatOrderLocationDisplay(
       : tableLabel;
   }
 
-  return formatResidenceLabel(cabinLabel) || cabinLabel || "—";
+  return formatCabinDisplay(cabinLabel) || "—";
 }

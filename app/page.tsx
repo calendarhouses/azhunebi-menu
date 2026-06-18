@@ -2,8 +2,7 @@
 
 import OrdersPanel from "@/components/OrdersPanel";
 import FloatingCartBar from "@/components/FloatingCartBar";
-import HouseBillCard from "@/components/HouseBillCard";
-import HouseBillSkeleton from "@/components/HouseBillSkeleton";
+import HouseBillPanel from "@/components/HouseBillPanel";
 import PremiumCheckout from "@/components/PremiumCheckout";
 import CategoryBar from "@/components/CategoryBar";
 import DishCard from "@/components/DishCard";
@@ -35,7 +34,10 @@ import {
 } from "@/lib/orderStatus";
 import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
 import { captureOrderCard } from "@/lib/orderCardCapture";
-import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
+import {
+  formatCabinDisplay,
+  formatOrderLocationDisplay,
+} from "@/lib/startParamLocation";
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
 import { useStartParamLocation } from "@/lib/useStartParamLocation";
@@ -64,6 +66,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [orders, setOrders] = useState<TrackedOrder[]>([]);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [orderToast, setOrderToast] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -146,7 +149,9 @@ export default function Home() {
       setHouseBinding(binding);
 
       if (binding) {
-        setLocationNote(binding.cabinLabel);
+        setLocationNote(
+          formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
+        );
       }
 
       return binding;
@@ -173,17 +178,24 @@ export default function Home() {
       setOrdersOpen(false);
       return;
     }
+    if (billOpen) {
+      setBillOpen(false);
+      return;
+    }
     if (cartOpen) {
       setCartOpen(false);
       return;
     }
     setSelectedDish(null);
-  }, [cartOpen, ordersOpen]);
+  }, [billOpen, cartOpen, ordersOpen]);
 
   useTelegramApp({
-    backVisible: ordersOpen || cartOpen || Boolean(selectedDish),
+    backVisible: ordersOpen || billOpen || cartOpen || Boolean(selectedDish),
     onBack: handleBack,
   });
+
+  const showBillLink =
+    inTelegram && Boolean(runningTab || houseBinding || runningTabLoading);
 
   const syncOrders = useCallback(
     async (options?: {
@@ -239,7 +251,9 @@ export default function Home() {
             cabinNumber: runningTabData.cabinNumber,
             cabinLabel: runningTabData.cabinLabel,
           });
-          setLocationNote(runningTabData.cabinLabel);
+          setLocationNote(
+            formatCabinDisplay(runningTabData.cabinLabel, runningTabData.cabinNumber)
+          );
         } else {
           setHouseBinding(null);
         }
@@ -409,7 +423,9 @@ export default function Home() {
             cabinNumber: nextTab.cabinNumber,
             cabinLabel: nextTab.cabinLabel,
           });
-          setLocationNote(nextTab.cabinLabel);
+          setLocationNote(
+            formatCabinDisplay(nextTab.cabinLabel, nextTab.cabinNumber)
+          );
         }
         prevRunningConfirmedRef.current = nextTab?.confirmedTotal ?? 0;
         triggerSuccess();
@@ -461,7 +477,9 @@ export default function Home() {
 
         if (binding) {
           setHouseBinding(binding);
-          setLocationNote(binding.cabinLabel);
+          setLocationNote(
+            formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
+          );
           return;
         }
 
@@ -776,25 +794,16 @@ export default function Home() {
           ordersCount={orders.length}
           showAdminLink={showAdminLink}
           showOrdersLink={showOrdersLink}
+          showBillLink={showBillLink}
           onOpenOrders={() => {
             setOrdersOpen(true);
             syncOrders({ silent: ordersLoadedOnceRef.current });
           }}
+          onOpenBill={() => {
+            setBillOpen(true);
+            syncOrders({ silent: ordersLoadedOnceRef.current });
+          }}
         />
-
-        {inTelegram && (runningTabLoading || runningTab) ? (
-          <div className="mx-auto w-full max-w-3xl px-4 pb-3">
-            {runningTabLoading && !runningTab ? (
-              <HouseBillSkeleton />
-            ) : runningTab ? (
-              <HouseBillCard
-                data={runningTab}
-                onChangeHouse={handleChangeHouse}
-                busy={changeHouseBusy}
-              />
-            ) : null}
-          </div>
-        ) : null}
 
         <CategoryBar
           categories={categories}
@@ -866,7 +875,14 @@ export default function Home() {
         cart={cart}
         comment={comment}
         locationNote={locationNote}
-        boundHouseLabel={houseBinding?.cabinLabel ?? null}
+        boundHouseLabel={
+          houseBinding
+            ? formatCabinDisplay(
+                houseBinding.cabinLabel,
+                houseBinding.cabinNumber
+              )
+            : null
+        }
         houseBindingLoading={houseBindingLoading}
         isScheduledOrder={isScheduledOrder}
         scheduledFor={scheduledFor}
@@ -889,6 +905,15 @@ export default function Home() {
         onOpenCheckout={() => setCartOpen(true)}
       />
 
+      <HouseBillPanel
+        open={billOpen}
+        onClose={() => setBillOpen(false)}
+        runningTab={runningTab}
+        loading={runningTabLoading}
+        onChangeHouse={handleChangeHouse}
+        changeHouseBusy={changeHouseBusy}
+      />
+
       <OrdersPanel
         open={ordersOpen}
         onClose={() => setOrdersOpen(false)}
@@ -900,9 +925,6 @@ export default function Home() {
         error={ordersError}
         onRetry={() => syncOrders({ silent: false })}
         runningTab={runningTab}
-        runningTabLoading={runningTabLoading}
-        onChangeHouse={handleChangeHouse}
-        changeHouseBusy={changeHouseBusy}
       />
     </div>
   );

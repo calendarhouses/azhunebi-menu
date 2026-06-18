@@ -2,6 +2,7 @@
 
 import AnimatedTotal from "@/components/AnimatedTotal";
 import { formatPrice } from "@/components/ImagePlaceholder";
+import { formatCabinDisplay } from "@/lib/startParamLocation";
 import type { RunningTabData } from "@/lib/runningTab";
 import { triggerImpact } from "@/lib/haptic";
 import { MapPin, Pencil } from "lucide-react";
@@ -32,7 +33,7 @@ export default function HouseBillCard({
     }
   }, [data.confirmedTotal]);
 
-  const displayTotal = data.confirmedTotal + data.pendingTotal;
+  const displayTotal = data.confirmedTotal;
 
   return (
     <div className={className}>
@@ -47,17 +48,19 @@ export default function HouseBillCard({
 
             <div className="min-w-0 flex-1">
               <p className="text-base font-semibold leading-tight text-stone-50">
-                Проживання: {data.cabinLabel}
+                {formatCabinDisplay(data.cabinLabel, data.cabinNumber)}
               </p>
               <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.2em] text-brand-muted">
                 Поточний рахунок
               </p>
-              <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+              <div className="mt-1 flex flex-nowrap items-baseline gap-x-1">
                 <AnimatedTotal
                   value={displayTotal}
                   className="text-2xl font-bold tracking-tight text-brand-accent"
                 />
-                <span className="text-lg font-semibold text-brand-accent">₴</span>
+                <span className="shrink-0 text-lg font-semibold text-brand-accent">
+                  ₴
+                </span>
                 {data.pendingTotal > 0 ? (
                   <span className="ml-1 text-xs text-brand-muted">
                     (+{formatPrice(data.pendingTotal)} в обробці)
