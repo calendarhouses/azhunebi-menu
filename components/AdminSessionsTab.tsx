@@ -12,6 +12,7 @@ import {
   adminLoadSessionsDashboard,
   adminMoveOrderToHouse,
 } from "@/lib/adminApi";
+import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
 import type {
   CabinDashboardCard,
   ClosedSessionArchiveItem,
@@ -254,6 +255,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     triggerImpact("medium");
 
     try {
+      // Uses bot handleOrderCallback("cancel") — same as Telegram inline button.
       const data = await adminCancelOrder({
         orderId,
         sessionId: detail.session.id,
@@ -461,6 +463,12 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                         </p>
                         <p className="mt-1 text-xs text-brand-muted">
                           {order.userFirstName || "Гість"} · {order.statusLabel}
+                          {order.locationNote || order.tableNumber
+                            ? ` · ${formatOrderLocationDisplay(
+                                order.locationNote,
+                                order.tableNumber
+                              )}`
+                            : ""}
                         </p>
                       </div>
                       <p className="text-sm font-bold text-brand-accent">

@@ -45,6 +45,7 @@ export function readStartParamLocation(): StartParamLocation | null {
   );
 }
 
+/** Kitchen/admin copy: table delivery with house bill, or single location. */
 export function formatOrderLocationDisplay(
   cabin: string | null | undefined,
   tableNumber: string | null | undefined
@@ -52,8 +53,8 @@ export function formatOrderLocationDisplay(
   const cabinLabel = cabin?.trim() || "";
   const tableLabel = tableNumber?.trim() || "";
 
-  if (cabinLabel && tableLabel) {
-    return `${cabinLabel} | ${tableLabel}`;
+  if (tableLabel && cabinLabel) {
+    return `Доставка: ${tableLabel} (Рахунок: ${cabinLabel})`;
   }
 
   return cabinLabel || tableLabel || "—";

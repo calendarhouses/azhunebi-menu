@@ -71,6 +71,7 @@ export default function Home() {
   const [runningTabLoading, setRunningTabLoading] = useState(false);
   const [changeHouseBusy, setChangeHouseBusy] = useState(false);
   const [houseBinding, setHouseBinding] = useState<HouseBinding | null>(null);
+  const [houseBindingLoading, setHouseBindingLoading] = useState(false);
 
   const {
     cart,
@@ -131,8 +132,11 @@ export default function Home() {
   const refreshHouseBinding = useCallback(async () => {
     if (!isTelegramWebApp()) {
       setHouseBinding(null);
+      setHouseBindingLoading(false);
       return null;
     }
+
+    setHouseBindingLoading(true);
 
     try {
       const binding = await fetchHouseBinding();
@@ -146,6 +150,8 @@ export default function Home() {
     } catch (error) {
       console.error("[house-binding] refresh failed", error);
       return null;
+    } finally {
+      setHouseBindingLoading(false);
     }
   }, [setLocationNote]);
 
@@ -414,21 +420,45 @@ export default function Home() {
       return;
     }
 
-    void (async () => {
-      const binding = isTelegramWebApp() ? await fetchHouseBinding() : null;
-
-      if (binding) {
-        setHouseBinding(binding);
-        setLocationNote(binding.cabinLabel);
-        return;
-      }
-
-      setHouseBinding(null);
-
+    if (!isTelegramWebApp()) {
+      setHouseBindingLoading(false);
       if (startParamLocation?.type === "cabin") {
         setLocationNote(startParamLocation.label);
       }
+      return;
+    }
+
+    let cancelled = false;
+    setHouseBindingLoading(true);
+
+    void (async () => {
+      try {
+        const binding = await fetchHouseBinding();
+        if (cancelled) {
+          return;
+        }
+
+        if (binding) {
+          setHouseBinding(binding);
+          setLocationNote(binding.cabinLabel);
+          return;
+        }
+
+        setHouseBinding(null);
+
+        if (startParamLocation?.type === "cabin") {
+          setLocationNote(startParamLocation.label);
+        }
+      } finally {
+        if (!cancelled) {
+          setHouseBindingLoading(false);
+        }
+      }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [cartHydrated, startParamReady, startParamLocation, setLocationNote]);
 
   useEffect(() => {
@@ -506,6 +536,11 @@ export default function Home() {
     }
 
     const currentLocation = locationNoteRef.current.trim();
+    const tableDelivery =
+      startParamLocationRef.current?.type === "table"
+        ? startParamLocationRef.current.label
+        : undefined;
+
     if (!currentLocation) {
       webApp.showAlert("Вкажіть номер столика або будиночка.");
       return;
@@ -545,10 +580,7 @@ export default function Home() {
         })),
         comment: commentRef.current.trim() || undefined,
         locationNote: currentLocation,
-        tableNumber:
-          startParamLocationRef.current?.type === "table"
-            ? startParamLocationRef.current.label
-            : undefined,
+        tableNumber: tableDelivery,
         paymentMethod: "cash",
         scheduledFor: scheduledPayload,
       });
@@ -568,12 +600,7 @@ export default function Home() {
       // Card capture + admin notify run in background — user sees success immediately.
       const cardPayload = {
         guestName: tgUser?.first_name || "Гість",
-        house: formatOrderLocationDisplay(
-          currentLocation,
-          startParamLocationRef.current?.type === "table"
-            ? startParamLocationRef.current.label
-            : null
-        ),
+        house: formatOrderLocationDisplay(currentLocation, tableDelivery),
         items: currentCart.map((item) => ({
           name: item.name,
           quantity: item.quantity,
@@ -807,6 +834,7 @@ export default function Home() {
         comment={comment}
         locationNote={locationNote}
         boundHouseLabel={houseBinding?.cabinLabel ?? null}
+        houseBindingLoading={houseBindingLoading}
         isScheduledOrder={isScheduledOrder}
         scheduledFor={scheduledFor}
         onCommentChange={setComment}

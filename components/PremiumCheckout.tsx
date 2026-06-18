@@ -6,9 +6,11 @@ import { formatPrice } from "@/components/ImagePlaceholder";
 import QuantityControl from "@/components/QuantityControl";
 import ScheduledDateTimePicker from "@/components/ScheduledDateTimePicker";
 import {
+  formatOrderLocationDisplay,
   formatTableOrderBadge,
   type StartParamLocation,
 } from "@/lib/startParamLocation";
+import CheckoutLocationSkeleton from "@/components/CheckoutLocationSkeleton";
 import type { CartItem } from "@/lib/cart";
 import {
   minScheduledDateTimeLocal,
@@ -45,6 +47,7 @@ type PremiumCheckoutProps = {
   total: number;
   startParamLocation: StartParamLocation | null;
   boundHouseLabel?: string | null;
+  houseBindingLoading?: boolean;
 };
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -99,6 +102,7 @@ export default function PremiumCheckout({
   total,
   startParamLocation,
   boundHouseLabel = null,
+  houseBindingLoading = false,
 }: PremiumCheckoutProps) {
   const { mounted, visible } = useSheetPresence(open);
   const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
@@ -134,6 +138,11 @@ export default function PremiumCheckout({
   const lockedCabinLabel = isCabinLocked ? startParamLocation.label : null;
   const hasBoundHouse = Boolean(boundHouseLabel);
   const effectiveLocation = boundHouseLabel || locationNote;
+  const showLocationSkeleton = houseBindingLoading;
+  const deliverySummary =
+    isTableOrder && hasBoundHouse && startParamLocation?.type === "table"
+      ? formatOrderLocationDisplay(boundHouseLabel, startParamLocation.label)
+      : null;
 
   async function handleSubmit() {
     if (!effectiveLocation.trim()) {
@@ -258,63 +267,88 @@ export default function PremiumCheckout({
               </section>
 
               <section className="mb-5">
-                {isTableOrder ? (
-                  <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
-                      <CheckIcon className="h-4 w-4" />
-                    </span>
-                    <p className="text-sm font-medium leading-snug text-stone-200">
-                      {formatTableOrderBadge(startParamLocation.number)}
-                    </p>
-                  </div>
-                ) : null}
-
-                {hasBoundHouse ? (
-                  <div className="flex items-center gap-2.5 rounded-2xl border border-brand-accent/20 bg-brand-accent/8 px-4 py-3">
-                    <span className="text-base" aria-hidden>
-                      🏠
-                    </span>
-                    <p className="text-sm text-stone-200">
-                      Ви прив&apos;язані до{" "}
-                      <span className="font-semibold text-brand-accent">
-                        {boundHouseLabel}
-                      </span>
-                    </p>
-                  </div>
+                {showLocationSkeleton ? (
+                  <CheckoutLocationSkeleton />
                 ) : (
                   <>
-                    <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
+                    {isTableOrder ? (
+                      <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent ring-1 ring-brand-accent/15">
+                          <CheckIcon className="h-4 w-4" />
+                        </span>
+                        <p className="text-sm font-medium leading-snug text-stone-200">
+                          {hasBoundHouse && startParamLocation?.type === "table"
+                            ? `Доставка: ${startParamLocation.label}`
+                            : formatTableOrderBadge(startParamLocation.number)}
+                        </p>
+                      </div>
+                    ) : null}
 
-                    <div className="grid grid-cols-4 gap-2">
-                      {HOUSES.map((house) => {
-                        const isLocked = lockedCabinLabel !== null;
-                        const isThisLocked = house === lockedCabinLabel;
+                    {hasBoundHouse ? (
+                      <div className="flex items-center gap-2.5 rounded-2xl border border-brand-accent/20 bg-brand-accent/8 px-4 py-3">
+                        <span className="text-base" aria-hidden>
+                          {isTableOrder ? "🧾" : "🏠"}
+                        </span>
+                        <p className="text-sm text-stone-200">
+                          {isTableOrder ? (
+                            <>
+                              Рахунок:{" "}
+                              <span className="font-semibold text-brand-accent">
+                                {boundHouseLabel}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              Ви прив&apos;язані до{" "}
+                              <span className="font-semibold text-brand-accent">
+                                {boundHouseLabel}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <SectionTitle>В якому будинку ви проживаєте?</SectionTitle>
 
-                        return (
-                          <button
-                            key={house}
-                            type="button"
-                            disabled={isLocked && !isThisLocked}
-                            onClick={() => {
-                              if (isLocked) return;
-                              onLocationNoteChange(house);
-                            }}
-                            className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:active:scale-100 ${houseButtonClass(
-                              house,
-                              locationNote,
-                              lockedCabinLabel
-                            )}`}
-                          >
-                            {house.replace("Будинок ", "")}
-                          </button>
-                        );
-                      })}
-                    </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {HOUSES.map((house) => {
+                            const isLocked = lockedCabinLabel !== null;
+                            const isThisLocked = house === lockedCabinLabel;
 
-                    {locationNote && !isCabinLocked ? (
+                            return (
+                              <button
+                                key={house}
+                                type="button"
+                                disabled={isLocked && !isThisLocked}
+                                onClick={() => {
+                                  if (isLocked) return;
+                                  onLocationNoteChange(house);
+                                }}
+                                className={`rounded-2xl border py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:active:scale-100 ${houseButtonClass(
+                                  house,
+                                  locationNote,
+                                  lockedCabinLabel
+                                )}`}
+                              >
+                                {house.replace("Будинок ", "")}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {locationNote && !isCabinLocked ? (
+                          <p className="mt-2 text-xs text-brand-muted">
+                            Обрано:{" "}
+                            <span className="text-stone-200">{locationNote}</span>
+                          </p>
+                        ) : null}
+                      </>
+                    )}
+
+                    {deliverySummary ? (
                       <p className="mt-2 text-xs text-brand-muted">
-                        Обрано:{" "}
-                        <span className="text-stone-200">{locationNote}</span>
+                        {deliverySummary}
                       </p>
                     ) : null}
                   </>

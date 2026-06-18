@@ -1,6 +1,7 @@
 "use client";
 
 import { formatPrice } from "@/components/ImagePlaceholder";
+import { formatOrderLocationDisplay } from "@/lib/startParamLocation";
 import { formatOrderDateTime, type TrackedOrder } from "@/lib/orderStatus";
 
 type SessionOrderHistoryProps = {
@@ -98,7 +99,12 @@ export default function SessionOrderHistory({ orders }: SessionOrderHistoryProps
 
                   <p className={`text-xs ${statusTone(order.status)}`}>
                     {order.statusLabel}
-                    {order.tableNumber ? ` · ${order.tableNumber}` : ""}
+                    {order.locationNote || order.tableNumber
+                      ? ` · ${formatOrderLocationDisplay(
+                          order.locationNote,
+                          order.tableNumber
+                        )}`
+                      : ""}
                   </p>
                 </div>
               </article>

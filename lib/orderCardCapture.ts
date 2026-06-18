@@ -102,7 +102,10 @@ function buildCardHtml(data: OrderCardData): string {
   const badge = dishCountLabel(itemsCount);
 
   const metaRows = [
-    metaRow("Будинок", esc(data.house || "—")),
+    metaRow(
+      (data.house || "").startsWith("Доставка:") ? "Локація" : "Будинок",
+      esc(data.house || "—")
+    ),
     data.scheduledFor
       ? metaRow("Подача", formatDateTime(data.scheduledFor))
       : "",

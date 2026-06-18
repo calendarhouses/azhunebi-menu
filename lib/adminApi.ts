@@ -119,6 +119,7 @@ export async function adminLoadClosedSessionsArchive() {
   }>("loadClosedSessionsArchive");
 }
 
+/** Triggers the same cancel flow as the Telegram admin chat (handleOrderCallback). */
 export async function adminCancelOrder(payload: {
   orderId: string;
   sessionId: string;
