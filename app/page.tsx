@@ -193,7 +193,7 @@ export default function Home() {
     onBack: handleBack,
   });
 
-  const showBillLink = inTelegram && Boolean(runningTab || runningTabLoading);
+  const showBillLink = inTelegram && Boolean(runningTab);
 
   const resetGuestHouseSelection = useCallback(() => {
     if (startParamLocationRef.current?.type === "cabin") {
