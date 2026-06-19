@@ -213,7 +213,13 @@ export default function PremiumCheckout({
     setConfirmHouse(null);
   }
 
+  const checkoutLocked = isSubmitting || showSuccess;
+
   async function handleSubmit() {
+    if (checkoutLocked) {
+      return;
+    }
+
     if (!effectiveLocation.trim()) {
       window.Telegram?.WebApp.showAlert("Вкажіть, в якому будинку ви проживаєте.");
       return;
@@ -273,7 +279,7 @@ export default function PremiumCheckout({
         type="button"
         aria-label="Закрити"
         className="absolute inset-0"
-        onClick={dismissCheckout}
+        onClick={showSuccess ? undefined : dismissCheckout}
       />
 
       <div
@@ -293,7 +299,8 @@ export default function PremiumCheckout({
               <button
                 type="button"
                 onClick={dismissCheckout}
-                className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
+                disabled={showSuccess}
+                className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted disabled:opacity-50"
               >
                 Закрити
               </button>
@@ -309,7 +316,10 @@ export default function PremiumCheckout({
               onGoToMenu={dismissCheckout}
             />
           ) : (
-            <>
+            <fieldset
+              disabled={checkoutLocked}
+              className="min-w-0 border-0 p-0 m-0 disabled:opacity-100"
+            >
               <section className="mb-5">
                 <SectionTitle>Кошик</SectionTitle>
                 <ul className="space-y-2">
@@ -478,7 +488,7 @@ export default function PremiumCheckout({
                   </div>
                 </div>
               </section>
-            </>
+            </fieldset>
           )}
         </div>
 
@@ -486,19 +496,21 @@ export default function PremiumCheckout({
           <div className="shrink-0 border-t border-stone-600/20 bg-brand-surface p-4 pb-safe">
             <button
               type="button"
-              disabled={isSubmitting}
+              disabled={checkoutLocked}
               onClick={handleSubmit}
               className="btn-accent w-full rounded-2xl px-4 py-3.5 text-sm font-semibold transition disabled:opacity-50"
             >
               {isSubmitting
                 ? "Відправка..."
-                : `Оформити замовлення на ${formatPrice(total)}`}
+                : showSuccess
+                  ? "Замовлення відправлено"
+                  : `Оформити замовлення на ${formatPrice(total)}`}
             </button>
           </div>
         ) : null}
 
         {showSuccess ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-brand-surface px-6 text-center">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-brand-surface px-6 text-center">
             {successAnimation ? (
               <Lottie
                 animationData={successAnimation}

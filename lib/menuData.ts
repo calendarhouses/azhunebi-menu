@@ -45,13 +45,23 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
 
   const menuItemsRaw = (menuResult.data || []) as MenuItemRow[];
 
-  // Build active category list — never fall back to "all item categories"
   let categories: string[] = [];
+  const categoriesUnavailable = Boolean(categoriesResult.error);
 
   if (!categoriesResult.error && categoriesResult.data) {
     categories = (categoriesResult.data as CategoryRow[])
       .filter((row) => row.is_active !== false)
       .map((row) => row.name);
+  }
+
+  if (categoriesUnavailable || categories.length === 0) {
+    const seen = new Set<string>();
+    for (const item of menuItemsRaw) {
+      if (item.category && !seen.has(item.category)) {
+        seen.add(item.category);
+        categories.push(item.category);
+      }
+    }
   }
 
   const activeCategorySet = new Set(categories);
@@ -64,7 +74,7 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
     .filter((item) => {
       if (item.is_available === false) return false;
       if (!item.category) return true;
-      // Hide dishes from inactive / unknown categories
+      if (categoriesUnavailable) return true;
       return activeCategorySet.has(item.category);
     })
     .sort((a, b) => {

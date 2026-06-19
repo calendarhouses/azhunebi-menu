@@ -270,6 +270,7 @@ export default function AdminDishesTab({
         title={editingDish ? "Редагувати страву" : "Нова страва"}
       >
         <AdminDishForm
+          key={editingDish?.id ?? "new"}
           dish={editingDish}
           categories={categories}
           onSaved={handleSaved}
