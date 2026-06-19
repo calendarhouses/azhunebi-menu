@@ -18,14 +18,18 @@ export type OrderCardData = {
 const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
-/** Narrow receipt strip — reads well after Telegram width compression. */
-const CARD_WIDTH = 440;
+/** Wide enough for long dish names; still taller than wide after Telegram resize. */
+const CARD_WIDTH = 680;
+const PADDING_SHELL = 28;
+const PADDING_INNER = 28;
+const PRICE_COL_WIDTH = 132;
 
-const TEXT = 50;
-const TITLE = 64;
-const SUM_LABEL = 58;
-const SUM_VALUE = 60;
-const LH = "1.25";
+const TEXT = 44;
+const TEXT_SM = 38;
+const TITLE = 52;
+const SUM_LABEL = 48;
+const SUM_VALUE = 52;
+const LH = "1.42";
 
 const C = {
   bg: "#221f1c",
@@ -36,20 +40,20 @@ const C = {
   accentHover: "#d6bc94",
 };
 
-const GRID_ROW = "display:grid;grid-template-columns:1fr auto;align-items:center";
-const RIGHT = "font-weight:700;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums";
+const TWO_COL = `display:grid;grid-template-columns:minmax(0,1fr) ${PRICE_COL_WIDTH}px;align-items:start;column-gap:20px`;
+const RIGHT =
+  "font-weight:700;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0";
 
 function sectionDivider(): string {
-  return `<div style="height:1px;background:rgba(255,255,255,0.1);margin:10px 0;flex-shrink:0"></div>`;
+  return `<div style="height:1px;background:rgba(255,255,255,0.1);margin:16px 0;flex-shrink:0"></div>`;
 }
 
-function gridRow(
+function twoColRow(
   leftHtml: string,
   rightHtml: string,
-  gap: number,
   rowStyle = ""
 ): string {
-  return `<div style="${GRID_ROW};gap:${gap}px;${rowStyle}">${leftHtml}${rightHtml}</div>`;
+  return `<div style="${TWO_COL};${rowStyle}">${leftHtml}${rightHtml}</div>`;
 }
 
 function rightCell(value: string, color = C.white, size = TEXT): string {
@@ -85,8 +89,9 @@ function formatDateTime(iso?: string | null): string {
 }
 
 function metaRow(label: string, value: string): string {
-  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.muted}">${label}</span>`;
-  return gridRow(left, rightCell(value), 10, "padding:5px 0;box-sizing:border-box");
+  const left = `<span style="font-size:${TEXT_SM}px;font-weight:500;color:${C.muted};line-height:${LH};padding-top:4px">${label}</span>`;
+  const right = `<span style="font-size:${TEXT}px;font-weight:600;color:${C.white};${RIGHT};line-height:${LH}">${value}</span>`;
+  return twoColRow(left, right, "padding:8px 0;box-sizing:border-box");
 }
 
 function itemRow(item: OrderCardItem, isLast: boolean): string {
@@ -95,9 +100,16 @@ function itemRow(item: OrderCardItem, isLast: boolean): string {
     ? ""
     : "border-bottom:1px solid rgba(255,255,255,0.08);";
 
-  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.white};min-width:0;line-height:${LH}">${esc(item.name)} <span style="opacity:0.5">×${item.quantity}</span></span>`;
+  const left = `<div style="min-width:0;word-wrap:break-word;overflow-wrap:anywhere;line-height:${LH}">
+    <span style="font-size:${TEXT}px;font-weight:500;color:${C.white}">${esc(item.name)}</span>
+    <span style="font-size:${TEXT}px;font-weight:500;color:${C.white};opacity:0.55"> ×${item.quantity}</span>
+  </div>`;
 
-  return gridRow(left, rightCell(`${lineTotal} ₴`), 10, `padding:7px 0;${border}`);
+  return twoColRow(
+    left,
+    rightCell(`${lineTotal} ₴`),
+    `padding:12px 0;box-sizing:border-box;${border}`
+  );
 }
 
 function buildCardHtml(data: OrderCardData): string {
@@ -121,40 +133,37 @@ function buildCardHtml(data: OrderCardData): string {
   const commentBlock = data.comment
     ? `
     ${sectionDivider()}
-    <span style="font-size:${TEXT}px;font-weight:500;color:${C.muted}">${esc(data.comment)}</span>`
+    <p style="margin:0;font-size:${TEXT_SM}px;font-weight:500;color:${C.muted};line-height:${LH};word-wrap:break-word">${esc(data.comment)}</p>`
     : "";
 
   return `
-  <div style="width:${CARD_WIDTH}px;padding:6px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
-    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:14px;overflow:hidden;box-sizing:border-box">
+  <div style="width:${CARD_WIDTH}px;padding:${PADDING_SHELL}px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
+    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-sizing:border-box">
 
-      <div style="height:3px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
+      <div style="height:3px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover});border-radius:18px 18px 0 0"></div>
 
-      <div style="padding:12px 10px 14px;font-family:${FONT};line-height:${LH};box-sizing:border-box;display:flex;flex-direction:column">
+      <div style="padding:${PADDING_INNER}px;font-family:${FONT};box-sizing:border-box;display:flex;flex-direction:column">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <span style="font-size:${TITLE}px;font-weight:700;color:${C.white};line-height:1.1">Нове замовлення</span>
-          <span style="font-size:${TEXT}px;font-weight:600;color:${C.accent};white-space:nowrap">${badge}</span>
-        </div>
-
-        <div style="margin-top:10px">
-          <span style="font-size:${TEXT}px;font-weight:600;color:${C.white}">${esc(data.guestName || "Гість")}</span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:${TITLE}px;font-weight:700;color:${C.white};line-height:1.35">Нове замовлення</div>
+            <div style="margin-top:10px;font-size:${TEXT}px;font-weight:600;color:${C.white};line-height:${LH}">${esc(data.guestName || "Гість")}</div>
+          </div>
+          <span style="font-size:${TEXT_SM}px;font-weight:600;color:${C.accent};white-space:nowrap;flex-shrink:0;line-height:${LH};padding-top:6px">${badge}</span>
         </div>
 
         ${sectionDivider()}
 
-        <div style="display:block;height:auto">
-          ${metaRows}
-        </div>
+        <div>${metaRows}</div>
 
-        <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:2px 8px;margin-top:8px;margin-bottom:10px;box-sizing:border-box;height:auto">
+        <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:4px 16px;margin-top:12px;margin-bottom:16px;box-sizing:border-box">
           ${itemsHtml}
         </div>
 
         ${sectionDivider()}
 
-        <div style="${GRID_ROW};gap:10px">
-          <span style="font-size:${SUM_LABEL}px;font-weight:800;color:${C.white}">Сума</span>
+        <div style="${TWO_COL};align-items:center">
+          <span style="font-size:${SUM_LABEL}px;font-weight:800;color:${C.white};line-height:${LH}">Сума</span>
           <span style="font-size:${SUM_VALUE}px;font-weight:900;color:${C.accent};${RIGHT}">${data.total} ₴</span>
         </div>
 
@@ -197,6 +206,6 @@ export async function captureOrderCard(
     console.error("[order-card] capture failed", error);
     return null;
   } finally {
-    document.body.removeChild(host);
+    host.remove();
   }
 }
