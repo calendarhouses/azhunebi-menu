@@ -112,6 +112,7 @@ export default function Home() {
   const houseBindingRef = useRef<HouseBinding | null>(null);
   const houseBindingRequestRef = useRef(0);
   const recentlySubmittedOrdersRef = useRef<Map<string, number>>(new Map());
+  const syncInFlightRef = useRef(false);
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -237,6 +238,11 @@ export default function Home() {
         return;
       }
 
+      if (syncInFlightRef.current) {
+        return;
+      }
+
+      syncInFlightRef.current = true;
       setInTelegram(true);
 
       const silent = options?.silent ?? ordersLoadedOnceRef.current;
@@ -299,21 +305,28 @@ export default function Home() {
 
         const activeById = new Map(activeOrders.map((o) => [o.id, o]));
 
-        // Recover known orders missing from list (e.g. after reopening the app).
-        const knownIds = readKnownOrderIds();
-        const missingKnown = knownIds.filter(
-          (id) => !activeById.has(id) && !dismissedIds.has(id)
-        );
-        if (missingKnown.length > 0) {
-          const recovered = await Promise.all(
-            missingKnown.slice(0, 8).map((id) => fetchOrderById(id))
+        // Recover missing orders only on explicit load — not every silent poll.
+        if (!silent) {
+          const knownIds = readKnownOrderIds();
+          const missingKnown = knownIds.filter(
+            (id) =>
+              !activeById.has(id) &&
+              !dismissedIds.has(id) &&
+              (recentlySubmittedOrdersRef.current.has(id) ||
+                ordersRef.current.some((order) => order.id === id))
           );
-          for (const order of recovered) {
-            if (order && !activeById.has(order.id)) {
-              activeById.set(order.id, order);
+
+          if (missingKnown.length > 0) {
+            const recovered = await Promise.all(
+              missingKnown.slice(0, 4).map((id) => fetchOrderById(id))
+            );
+            for (const order of recovered) {
+              if (order && !activeById.has(order.id)) {
+                activeById.set(order.id, order);
+              }
             }
+            activeOrders = [...activeById.values()];
           }
-          activeOrders = [...activeById.values()];
         }
 
         // Keep last-known orders briefly when the list API misses them (no fake cancel).
@@ -414,6 +427,7 @@ export default function Home() {
           );
         }
       } finally {
+        syncInFlightRef.current = false;
         if (!silent) {
           setOrdersLoading(false);
           setRunningTabLoading(false);
@@ -546,61 +560,14 @@ export default function Home() {
 
     const pollMs = ordersOpen ? ORDER_POLL_OPEN_MS : ORDER_POLL_MS;
 
+    void syncOrders({ silent: true });
+
     const intervalId = window.setInterval(() => {
-      syncOrders({ silent: true });
+      void syncOrders({ silent: true });
     }, pollMs);
 
     return () => window.clearInterval(intervalId);
   }, [syncOrders, ordersOpen]);
-
-  useEffect(() => {
-    if (!ordersOpen || !selectedOrderId || !isTelegramWebApp()) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const refreshSelected = async () => {
-      try {
-        const order = await fetchOrderById(selectedOrderId);
-        if (cancelled || !order) {
-          return;
-        }
-
-        setOrders((prev) => {
-          const existing = prev.find((entry) => entry.id === order.id);
-          if (!existing) {
-            return prev;
-          }
-
-          const merged = mergeTrackedOrder(existing, order);
-          if (merged === existing) {
-            return prev;
-          }
-
-          return prev.map((entry) => (entry.id === order.id ? merged : entry));
-        });
-      } catch {
-        // full sync will retry
-      }
-    };
-
-    void refreshSelected();
-    const intervalId = window.setInterval(refreshSelected, ORDER_POLL_OPEN_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [ordersOpen, selectedOrderId]);
-
-  useEffect(() => {
-    if (!ordersOpen || !isTelegramWebApp()) {
-      return;
-    }
-
-    void syncOrders({ silent: true });
-  }, [ordersOpen, syncOrders]);
 
   const submitOrder = useCallback(async (): Promise<boolean> => {
     const webApp = window.Telegram?.WebApp;
