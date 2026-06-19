@@ -18,15 +18,19 @@ export type OrderCardData = {
 const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
-/** Uniform 3× scale — same layout as the original card, everything proportionally larger. */
-const SCALE = 3;
-const s = (px: number) => px * SCALE;
+/** Layout scale — keeps the original card proportions. */
+const LAYOUT_SCALE = 3;
+/** Extra text boost so letters stay readable on a phone in Telegram. */
+const FONT_SCALE = 1.65;
+
+const s = (px: number) => px * LAYOUT_SCALE;
+const fs = (px: number) => Math.round(px * LAYOUT_SCALE * FONT_SCALE);
 
 const CARD_WIDTH = s(800);
-const TEXT = s(21);
-const TITLE = s(28);
-const SUM_LABEL = s(26);
-const SUM_VALUE = s(26);
+const TEXT = fs(21);
+const TITLE = fs(28);
+const SUM_LABEL = fs(26);
+const SUM_VALUE = fs(26);
 const LH = "1.3";
 
 const C = {
