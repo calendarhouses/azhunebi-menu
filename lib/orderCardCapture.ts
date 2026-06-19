@@ -18,10 +18,15 @@ export type OrderCardData = {
 const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
-const TEXT = 63;
-const TITLE = 84;
-const SUM_LABEL = 78;
-const SUM_VALUE = 78;
+/** Uniform 3× scale — same layout as the original card, everything proportionally larger. */
+const SCALE = 3;
+const s = (px: number) => px * SCALE;
+
+const CARD_WIDTH = s(800);
+const TEXT = s(21);
+const TITLE = s(28);
+const SUM_LABEL = s(26);
+const SUM_VALUE = s(26);
 const LH = "1.3";
 
 const C = {
@@ -37,7 +42,7 @@ const GRID_ROW = "display:grid;grid-template-columns:1fr auto;align-items:center
 const RIGHT = "font-weight:700;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums";
 
 function sectionDivider(): string {
-  return `<div style="height:1px;background:rgba(255,255,255,0.1);margin:20px 0;flex-shrink:0"></div>`;
+  return `<div style="height:1px;background:rgba(255,255,255,0.1);margin:${s(20)}px 0;flex-shrink:0"></div>`;
 }
 
 function gridRow(
@@ -83,7 +88,12 @@ function formatDateTime(iso?: string | null): string {
 
 function metaRow(label: string, value: string): string {
   const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.muted}">${label}</span>`;
-  return gridRow(left, rightCell(value), 20, "padding:10px 0;box-sizing:border-box");
+  return gridRow(
+    left,
+    rightCell(value),
+    s(20),
+    `padding:${s(10)}px 0;box-sizing:border-box`
+  );
 }
 
 function itemRow(item: OrderCardItem, isLast: boolean): string {
@@ -94,7 +104,12 @@ function itemRow(item: OrderCardItem, isLast: boolean): string {
 
   const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.white};min-width:0">${esc(item.name)} <span style="opacity:0.5">×${item.quantity}</span></span>`;
 
-  return gridRow(left, rightCell(`${lineTotal} ₴`), 16, `padding:12px 0;${border}`);
+  return gridRow(
+    left,
+    rightCell(`${lineTotal} ₴`),
+    s(16),
+    `padding:${s(12)}px 0;${border}`
+  );
 }
 
 function buildCardHtml(data: OrderCardData): string {
@@ -122,35 +137,35 @@ function buildCardHtml(data: OrderCardData): string {
     : "";
 
   return `
-  <div style="width:800px;padding:36px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
-    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:20px;overflow:hidden;box-sizing:border-box">
+  <div style="width:${CARD_WIDTH}px;padding:${s(36)}px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
+    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:${s(20)}px;overflow:hidden;box-sizing:border-box">
 
-      <div style="height:3px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
+      <div style="height:${s(3)}px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
 
-      <div style="padding:30px 32px 34px;font-family:${FONT};line-height:${LH};box-sizing:border-box;display:flex;flex-direction:column">
+      <div style="padding:${s(30)}px ${s(32)}px ${s(34)}px;font-family:${FONT};line-height:${LH};box-sizing:border-box;display:flex;flex-direction:column">
 
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:${s(16)}px">
           <span style="font-size:${TITLE}px;font-weight:700;color:${C.white}">Нове замовлення</span>
-          <span style="font-size:${TEXT}px;font-weight:600;color:${C.accent};white-space:nowrap">${badge}</span>
+          <span style="font-size:${TEXT}px;font-weight:600;color:${C.accent};white-space:nowrap;flex-shrink:0">${badge}</span>
         </div>
 
-        <div style="margin-top:20px">
+        <div style="margin-top:${s(20)}px">
           <span style="font-size:${TEXT}px;font-weight:600;color:${C.white}">${esc(data.guestName || "Гість")}</span>
         </div>
 
         ${sectionDivider()}
 
-        <div style="display:block;height:auto;margin-bottom:4px">
+        <div style="display:block;height:auto;margin-bottom:${s(4)}px">
           ${metaRows}
         </div>
 
-        <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:4px 16px;margin-top:16px;margin-bottom:24px;box-sizing:border-box;height:auto">
+        <div style="background:rgba(255,255,255,0.06);border-radius:${s(12)}px;padding:${s(4)}px ${s(16)}px;margin-top:${s(16)}px;margin-bottom:${s(24)}px;box-sizing:border-box;height:auto">
           ${itemsHtml}
         </div>
 
         ${sectionDivider()}
 
-        <div style="${GRID_ROW};gap:16px">
+        <div style="${GRID_ROW};gap:${s(16)}px">
           <span style="font-size:${SUM_LABEL}px;font-weight:800;color:${C.white}">Сума</span>
           <span style="font-size:${SUM_VALUE}px;font-weight:900;color:${C.accent};${RIGHT}">${data.total} ₴</span>
         </div>
@@ -170,7 +185,7 @@ export async function captureOrderCard(
   host.style.position = "fixed";
   host.style.left = "-9999px";
   host.style.top = "0";
-  host.style.width = "800px";
+  host.style.width = `${CARD_WIDTH}px`;
   host.style.pointerEvents = "none";
   host.style.zIndex = "-1";
   host.innerHTML = buildCardHtml(data);
@@ -182,7 +197,7 @@ export async function captureOrderCard(
     const target = host.firstElementChild as HTMLElement;
 
     const canvas = await html2canvas(target, {
-      width: 800,
+      width: CARD_WIDTH,
       scale: 1.5,
       backgroundColor: C.bg,
       logging: false,
