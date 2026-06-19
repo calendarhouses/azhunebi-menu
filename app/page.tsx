@@ -53,6 +53,17 @@ const MISSING_ORDER_GRACE_MS = 45_000;
 
 type CategoryFilter = string | "all";
 
+type HeaderActionConfig = {
+  showOrders: boolean;
+  showBill: boolean;
+};
+
+type SyncOrdersResult = {
+  inTelegram: boolean;
+  hasRunningTab: boolean;
+  orderCount: number;
+};
+
 export default function Home() {
   const {
     items,
@@ -77,6 +88,8 @@ export default function Home() {
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [inTelegram, setInTelegram] = useState(false);
   const [runningTab, setRunningTab] = useState<RunningTabData | null>(null);
+  const [headerActionConfig, setHeaderActionConfig] =
+    useState<HeaderActionConfig | null>(null);
   const [runningTabLoading, setRunningTabLoading] = useState(false);
   const [houseBinding, setHouseBinding] = useState<HouseBinding | null>(null);
   const [houseBindingLoading, setHouseBindingLoading] = useState(false);
@@ -115,6 +128,8 @@ export default function Home() {
   const houseBindingRequestRef = useRef(0);
   const recentlySubmittedOrdersRef = useRef<Map<string, number>>(new Map());
   const syncInFlightRef = useRef(false);
+  const syncPromiseRef = useRef<Promise<SyncOrdersResult> | null>(null);
+  const runningTabRef = useRef<RunningTabData | null>(null);
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -124,8 +139,12 @@ export default function Home() {
   startParamLocationRef.current = startParamLocation;
   ordersRef.current = orders;
   houseBindingRef.current = houseBinding;
+  runningTabRef.current = runningTab;
 
-  const showOrdersLink = inTelegram || orders.length > 0;
+  const showOrdersLink = Boolean(headerActionConfig?.showOrders);
+  const showBillLink = Boolean(
+    headerActionConfig?.showBill || (inTelegram && runningTab)
+  );
 
   const cartTotal = useMemo(() => getCartTotal(cart), [cart]);
   const cartCount = useMemo(() => getCartCount(cart), [cart]);
@@ -218,8 +237,6 @@ export default function Home() {
     onBack: handleBack,
   });
 
-  const showBillLink = inTelegram && Boolean(runningTab);
-
   const resetGuestHouseSelection = useCallback(() => {
     if (startParamLocationRef.current?.type === "cabin") {
       setLocationNote(startParamLocationRef.current.label);
@@ -234,207 +251,235 @@ export default function Home() {
       openPanel?: boolean;
       focusOrderId?: string;
       silent?: boolean;
-    }) => {
+    }): Promise<SyncOrdersResult> => {
       if (!window.Telegram?.WebApp?.initData) {
         setInTelegram(false);
-        return;
+        return {
+          inTelegram: false,
+          hasRunningTab: Boolean(runningTabRef.current),
+          orderCount: ordersRef.current.length,
+        };
       }
 
-      if (syncInFlightRef.current) {
-        return;
+      if (syncInFlightRef.current && syncPromiseRef.current) {
+        return syncPromiseRef.current;
       }
 
-      syncInFlightRef.current = true;
-      setInTelegram(true);
+      const task = (async (): Promise<SyncOrdersResult> => {
+        syncInFlightRef.current = true;
+        setInTelegram(true);
 
-      const silent = options?.silent ?? ordersLoadedOnceRef.current;
+        const silent = options?.silent ?? ordersLoadedOnceRef.current;
+        let hasRunningTab = Boolean(runningTabRef.current);
+        let orderCount = ordersRef.current.length;
 
-      if (!silent) {
-        setOrdersLoading(true);
-        setRunningTabLoading(true);
-        setOrdersError(null);
-      }
-
-      try {
-        const IN_PROGRESS_STATUSES = new Set([
-          "pending",
-          "accepted",
-          "preparing",
-        ]);
-
-        const [allFetchedOrders, runningTabData] = await Promise.all([
-          fetchActiveOrders(),
-          fetchRunningTab(),
-        ]);
-
-        const sessionEnded =
-          prevRunningTabSessionRef.current !== null && !runningTabData;
-
-        if (
-          runningTabData &&
-          runningTabData.confirmedTotal > prevRunningConfirmedRef.current &&
-          prevRunningConfirmedRef.current > 0
-        ) {
-          triggerImpact("light");
-        }
-
-        prevRunningConfirmedRef.current = runningTabData?.confirmedTotal ?? 0;
-        prevRunningTabSessionRef.current = runningTabData?.sessionId ?? null;
-        setRunningTab(runningTabData);
-
-        if (runningTabData) {
-          setHouseBinding({
-            sessionId: runningTabData.sessionId,
-            cabinNumber: runningTabData.cabinNumber,
-            cabinLabel: runningTabData.cabinLabel,
-          });
-          setLocationNote(
-            formatCabinDisplay(runningTabData.cabinLabel, runningTabData.cabinNumber)
-          );
-        } else if (sessionEnded) {
-          setHouseBinding(null);
-          resetGuestHouseSelection();
-        }
-
-        const dismissedIds = readDismissedOrderIds();
-        let activeOrders = allFetchedOrders.filter(
-          (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
-        );
-
-        if (sessionEnded) {
-          prevRunningConfirmedRef.current = 0;
-        }
-
-        const activeById = new Map(activeOrders.map((o) => [o.id, o]));
-
-        // Recover missing orders only on explicit load — not every silent poll.
         if (!silent) {
-          const knownIds = readKnownOrderIds();
-          const missingKnown = knownIds.filter(
-            (id) =>
-              !activeById.has(id) &&
-              !dismissedIds.has(id) &&
-              (recentlySubmittedOrdersRef.current.has(id) ||
-                ordersRef.current.some((order) => order.id === id))
-          );
+          setOrdersLoading(true);
+          setRunningTabLoading(true);
+          setOrdersError(null);
+        }
 
-          if (missingKnown.length > 0) {
-            const recovered = await Promise.all(
-              missingKnown.slice(0, 4).map((id) => fetchOrderById(id))
+        try {
+          const IN_PROGRESS_STATUSES = new Set([
+            "pending",
+            "accepted",
+            "preparing",
+          ]);
+
+          const [allFetchedOrders, runningTabData] = await Promise.all([
+            fetchActiveOrders(),
+            fetchRunningTab(),
+          ]);
+
+          hasRunningTab = Boolean(runningTabData);
+
+          const sessionEnded =
+            prevRunningTabSessionRef.current !== null && !runningTabData;
+
+          if (
+            runningTabData &&
+            runningTabData.confirmedTotal > prevRunningConfirmedRef.current &&
+            prevRunningConfirmedRef.current > 0
+          ) {
+            triggerImpact("light");
+          }
+
+          prevRunningConfirmedRef.current = runningTabData?.confirmedTotal ?? 0;
+          prevRunningTabSessionRef.current = runningTabData?.sessionId ?? null;
+          setRunningTab(runningTabData);
+          runningTabRef.current = runningTabData;
+
+          if (runningTabData) {
+            setHouseBinding({
+              sessionId: runningTabData.sessionId,
+              cabinNumber: runningTabData.cabinNumber,
+              cabinLabel: runningTabData.cabinLabel,
+            });
+            setLocationNote(
+              formatCabinDisplay(runningTabData.cabinLabel, runningTabData.cabinNumber)
             );
-            for (const order of recovered) {
-              if (order && !activeById.has(order.id)) {
-                activeById.set(order.id, order);
-              }
-            }
-            activeOrders = [...activeById.values()];
-          }
-        }
-
-        // Keep last-known orders briefly when the list API misses them (no fake cancel).
-        for (const prevOrder of ordersRef.current) {
-          if (activeById.has(prevOrder.id) || dismissedIds.has(prevOrder.id)) {
-            continue;
+          } else if (sessionEnded) {
+            setHouseBinding(null);
+            resetGuestHouseSelection();
           }
 
-          const submittedAt = recentlySubmittedOrdersRef.current.get(prevOrder.id);
-          const recentlySubmitted =
-            submittedAt != null &&
-            Date.now() - submittedAt < RECENT_ORDER_GRACE_MS;
-          const recentlyUpdated =
-            Date.now() - new Date(prevOrder.updatedAt).getTime() <
-            MISSING_ORDER_GRACE_MS;
-
-          const keepVisible =
-            prevOrder.status === "ready" ||
-            IN_PROGRESS_STATUSES.has(prevOrder.status);
-
-          if (keepVisible && (recentlySubmitted || recentlyUpdated)) {
-            activeById.set(prevOrder.id, prevOrder);
-          }
-        }
-
-        activeOrders = [...activeById.values()].sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-
-        const nextOrders = activeOrders;
-
-        const previousById = new Map(
-          ordersRef.current.map((order) => [order.id, order])
-        );
-
-        for (const order of nextOrders) {
-          const previous = previousById.get(order.id);
-          if (!previous || previous.status === order.status) {
-            continue;
-          }
-
-          const message = getStatusChangeMessage(
-            previous.status as OrderStatus,
-            order.status
+          const dismissedIds = readDismissedOrderIds();
+          let activeOrders = allFetchedOrders.filter(
+            (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
           );
 
-          if (message) {
-            setOrderToast(message);
-            triggerSuccess();
+          if (sessionEnded) {
+            prevRunningConfirmedRef.current = 0;
           }
-        }
 
-        setOrders((prev) => {
-          const prevById = new Map(prev.map((order) => [order.id, order]));
-          const nextById = new Map(nextOrders.map((order) => [order.id, order]));
+          const activeById = new Map(activeOrders.map((o) => [o.id, o]));
 
-          const updatedNext = nextOrders.map((next) => {
-            const existing = prevById.get(next.id);
-            return existing ? mergeTrackedOrder(existing, next) : next;
+          // Recover missing orders only on explicit load — not every silent poll.
+          if (!silent) {
+            const knownIds = readKnownOrderIds();
+            const missingKnown = knownIds.filter(
+              (id) =>
+                !activeById.has(id) &&
+                !dismissedIds.has(id) &&
+                (recentlySubmittedOrdersRef.current.has(id) ||
+                  ordersRef.current.some((order) => order.id === id))
+            );
+
+            if (missingKnown.length > 0) {
+              const recovered = await Promise.all(
+                missingKnown.slice(0, 4).map((id) => fetchOrderById(id))
+              );
+              for (const order of recovered) {
+                if (order && !activeById.has(order.id)) {
+                  activeById.set(order.id, order);
+                }
+              }
+              activeOrders = [...activeById.values()];
+            }
+          }
+
+          // Keep last-known orders briefly when the list API misses them (no fake cancel).
+          for (const prevOrder of ordersRef.current) {
+            if (activeById.has(prevOrder.id) || dismissedIds.has(prevOrder.id)) {
+              continue;
+            }
+
+            const submittedAt = recentlySubmittedOrdersRef.current.get(prevOrder.id);
+            const recentlySubmitted =
+              submittedAt != null &&
+              Date.now() - submittedAt < RECENT_ORDER_GRACE_MS;
+            const recentlyUpdated =
+              Date.now() - new Date(prevOrder.updatedAt).getTime() <
+              MISSING_ORDER_GRACE_MS;
+
+            const keepVisible =
+              prevOrder.status === "ready" ||
+              IN_PROGRESS_STATUSES.has(prevOrder.status);
+
+            if (keepVisible && (recentlySubmitted || recentlyUpdated)) {
+              activeById.set(prevOrder.id, prevOrder);
+            }
+          }
+
+          activeOrders = [...activeById.values()].sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          const nextOrders = activeOrders;
+          orderCount = nextOrders.length;
+
+          const previousById = new Map(
+            ordersRef.current.map((order) => [order.id, order])
+          );
+
+          for (const order of nextOrders) {
+            const previous = previousById.get(order.id);
+            if (!previous || previous.status === order.status) {
+              continue;
+            }
+
+            const message = getStatusChangeMessage(
+              previous.status as OrderStatus,
+              order.status
+            );
+
+            if (message) {
+              setOrderToast(message);
+              triggerSuccess();
+            }
+          }
+
+          setOrders((prev) => {
+            const prevById = new Map(prev.map((order) => [order.id, order]));
+            const nextById = new Map(nextOrders.map((order) => [order.id, order]));
+
+            const updatedNext = nextOrders.map((next) => {
+              const existing = prevById.get(next.id);
+              return existing ? mergeTrackedOrder(existing, next) : next;
+            });
+
+            // Also keep already-known cancelled orders that didn't come back from
+            // either the active list or the individual fetch (e.g. race condition).
+            const survivingCancelled = prev.filter(
+              (order) =>
+                order.status === "cancelled" &&
+                !nextById.has(order.id) &&
+                !dismissedIds.has(order.id)
+            );
+
+            return [...updatedNext, ...survivingCancelled];
           });
 
-          // Also keep already-known cancelled orders that didn't come back from
-          // either the active list or the individual fetch (e.g. race condition).
-          const survivingCancelled = prev.filter(
-            (order) =>
-              order.status === "cancelled" &&
-              !nextById.has(order.id) &&
-              !dismissedIds.has(order.id)
-          );
+          ordersLoadedOnceRef.current = true;
 
-          return [...updatedNext, ...survivingCancelled];
-        });
+          setSelectedOrderId((current) => {
+            if (options?.focusOrderId) {
+              return options.focusOrderId;
+            }
 
-        ordersLoadedOnceRef.current = true;
+            if (current && nextOrders.some((order) => order.id === current)) {
+              return current;
+            }
 
-        setSelectedOrderId((current) => {
-          if (options?.focusOrderId) {
-            return options.focusOrderId;
+            return nextOrders[0]?.id ?? null;
+          });
+
+          if (options?.openPanel) {
+            setOrdersOpen(true);
           }
 
-          if (current && nextOrders.some((order) => order.id === current)) {
-            return current;
+          return {
+            inTelegram: true,
+            hasRunningTab,
+            orderCount,
+          };
+        } catch (error) {
+          if (!silent || ordersRef.current.length === 0) {
+            setOrdersError(
+              error instanceof Error
+                ? error.message
+                : "Не вдалося завантажити статус замовлення"
+            );
           }
 
-          return nextOrders[0]?.id ?? null;
-        });
+          return {
+            inTelegram: true,
+            hasRunningTab,
+            orderCount,
+          };
+        } finally {
+          syncInFlightRef.current = false;
+          syncPromiseRef.current = null;
+          if (!silent) {
+            setOrdersLoading(false);
+            setRunningTabLoading(false);
+          }
+        }
+      })();
 
-        if (options?.openPanel) {
-          setOrdersOpen(true);
-        }
-      } catch (error) {
-        if (!silent || ordersRef.current.length === 0) {
-          setOrdersError(
-            error instanceof Error
-              ? error.message
-              : "Не вдалося завантажити статус замовлення"
-          );
-        }
-      } finally {
-        syncInFlightRef.current = false;
-        if (!silent) {
-          setOrdersLoading(false);
-          setRunningTabLoading(false);
-        }
-      }
+      syncPromiseRef.current = task;
+      return task;
     },
     [resetGuestHouseSelection]
   );
@@ -525,6 +570,7 @@ export default function Home() {
 
   useEffect(() => {
     setHeaderActionsReady(false);
+    setHeaderActionConfig(null);
   }, [setHeaderActionsReady]);
 
   useEffect(() => {
@@ -542,18 +588,26 @@ export default function Home() {
         return;
       }
 
-      setInTelegram(isTelegramWebApp());
+      const inTelegramApp = isTelegramWebApp();
+      setInTelegram(inTelegramApp);
 
       if (window.location.hash === "#orders") {
         setOrdersOpen(true);
         window.history.replaceState(null, "", window.location.pathname);
       }
 
-      await syncOrders();
-
-      if (!cancelled) {
-        setHeaderActionsReady(true);
+      const syncResult = await syncOrders();
+      if (cancelled) {
+        return;
       }
+
+      const nextHeaderConfig: HeaderActionConfig = {
+        showOrders: syncResult.inTelegram || syncResult.orderCount > 0,
+        showBill: syncResult.inTelegram && syncResult.hasRunningTab,
+      };
+
+      setHeaderActionConfig(nextHeaderConfig);
+      setHeaderActionsReady(true);
     };
 
     boot();
@@ -564,7 +618,7 @@ export default function Home() {
   }, [syncOrders, setHeaderActionsReady]);
 
   useEffect(() => {
-    if (!isTelegramWebApp()) {
+    if (!headerActionsReady || !isTelegramWebApp()) {
       return;
     }
 
@@ -577,7 +631,7 @@ export default function Home() {
     }, pollMs);
 
     return () => window.clearInterval(intervalId);
-  }, [syncOrders, ordersOpen]);
+  }, [headerActionsReady, syncOrders, ordersOpen]);
 
   const submitOrder = useCallback(async (): Promise<boolean> => {
     const webApp = window.Telegram?.WebApp;
@@ -806,6 +860,14 @@ export default function Home() {
     });
   }
 
+  const headerSkeletonCount = headerActionConfig
+    ? (headerActionConfig.showOrders ? 1 : 0) +
+      (headerActionConfig.showBill ? 1 : 0) +
+      (showAdminLink ? 1 : 0)
+    : showAdminLink
+      ? 3
+      : 2;
+
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-stone-100">
       {orderToast ? (
@@ -829,7 +891,7 @@ export default function Home() {
           showOrdersLink={showOrdersLink}
           showBillLink={showBillLink}
           actionsLoading={!headerActionsReady}
-          skeletonCount={showAdminLink ? 3 : 2}
+          skeletonCount={headerSkeletonCount}
           onOpenOrders={() => {
             setOrdersOpen(true);
             syncOrders({ silent: ordersLoadedOnceRef.current });
