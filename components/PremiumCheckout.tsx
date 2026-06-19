@@ -27,7 +27,7 @@ import {
 } from "@/lib/useSheetPresence";
 import { useSwipeToDismissSheet } from "@/lib/useSwipeToDismissSheet";
 import Lottie from "lottie-react";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 const LOTTIE_BASE_PATH = "/azhunebi-menu";
 const SUCCESS_CLOSE_MS = 2500;
@@ -46,7 +46,7 @@ type PremiumCheckoutProps = {
   onScheduledForChange: (value: string) => void;
   onIncrement: (itemId: string) => void;
   onDecrement: (itemId: string) => void;
-  onSubmit: () => Promise<void>;
+  onSubmit: () => Promise<boolean>;
   isSubmitting: boolean;
   total: number;
   startParamLocation: StartParamLocation | null;
@@ -108,12 +108,23 @@ export default function PremiumCheckout({
   boundHouseLabel = null,
   houseBindingLoading = false,
 }: PremiumCheckoutProps) {
-  const { mounted, visible } = useSheetPresence(open);
-  const { dragOffset, isDragging, swipeAreaProps } = useSwipeToDismissSheet(onClose);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
   const [confirmHouse, setConfirmHouse] = useState<string | null>(null);
   const closeTimerRef = useRef<number | null>(null);
+
+  const dismissCheckout = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    onClose();
+  }, [onClose]);
+
+  const { mounted, visible } = useSheetPresence(open);
+  const { dragOffset, isDragging, swipeAreaProps } =
+    useSwipeToDismissSheet(dismissCheckout);
+
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
 
   useBodyScrollLock(open);
 
@@ -125,7 +136,15 @@ export default function PremiumCheckout({
   }, []);
 
   useEffect(() => {
-    if (!open) setShowSuccess(false);
+    if (!open) {
+      setShowSuccess(false);
+      return;
+    }
+
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
   }, [open]);
 
   useEffect(() => {
@@ -219,10 +238,14 @@ export default function PremiumCheckout({
     }
 
     try {
-      await onSubmit();
+      const submitted = await onSubmit();
+      if (!submitted) {
+        return;
+      }
+
       setShowSuccess(true);
       closeTimerRef.current = window.setTimeout(() => {
-        onClose();
+        dismissCheckout();
       }, SUCCESS_CLOSE_MS);
     } catch {
       // errors are surfaced by submitOrder via Telegram alert
@@ -250,7 +273,7 @@ export default function PremiumCheckout({
         type="button"
         aria-label="Закрити"
         className="absolute inset-0"
-        onClick={onClose}
+        onClick={dismissCheckout}
       />
 
       <div
@@ -269,7 +292,7 @@ export default function PremiumCheckout({
               </h2>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={dismissCheckout}
                 className="rounded-full border border-stone-600/25 bg-brand-surface-elevated/70 px-3 py-1.5 text-sm text-brand-muted"
               >
                 Закрити
@@ -283,7 +306,7 @@ export default function PremiumCheckout({
             <EmptyStateScreen
               title="Ваш кошик сумує"
               subtitle="Додайте кілька страв, щоб ми почали готувати магію"
-              onGoToMenu={onClose}
+              onGoToMenu={dismissCheckout}
             />
           ) : (
             <>

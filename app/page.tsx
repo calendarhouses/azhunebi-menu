@@ -602,20 +602,20 @@ export default function Home() {
     void syncOrders({ silent: true });
   }, [ordersOpen, syncOrders]);
 
-  const submitOrder = useCallback(async () => {
+  const submitOrder = useCallback(async (): Promise<boolean> => {
     const webApp = window.Telegram?.WebApp;
     if (!webApp || isSubmittingRef.current) {
-      return;
+      return false;
     }
 
     const currentCart = cartRef.current;
     if (currentCart.length === 0) {
-      return;
+      return false;
     }
 
     if (!webApp.initData) {
       webApp.showAlert("Відкрийте меню через Telegram-бота.");
-      return;
+      return false;
     }
 
     const bindingLocation = houseBindingRef.current
@@ -633,7 +633,7 @@ export default function Home() {
 
     if (!currentLocation) {
       webApp.showAlert("Вкажіть номер столика або будиночка.");
-      return;
+      return false;
     }
 
     let scheduledPayload: string | undefined;
@@ -641,7 +641,7 @@ export default function Home() {
     if (isScheduledOrderRef.current) {
       if (!scheduledForRef.current.trim()) {
         webApp.showAlert("Оберіть час подачі замовлення.");
-        return;
+        return false;
       }
 
       try {
@@ -652,7 +652,7 @@ export default function Home() {
             ? error.message
             : "Невірний час подачі замовлення."
         );
-        return;
+        return false;
       }
     }
 
@@ -677,6 +677,8 @@ export default function Home() {
 
       rememberOrderId(result.orderId);
       recentlySubmittedOrdersRef.current.set(result.orderId, Date.now());
+      setSelectedOrderId(result.orderId);
+
       if (result.order) {
         setOrders((prev) => {
           const rest = prev.filter((order) => order.id !== result.order.id);
@@ -713,10 +715,12 @@ export default function Home() {
           console.error("[submitOrder] background card attach failed", error);
         });
 
-      await syncOrders({
+      void syncOrders({
         focusOrderId: result.orderId as string,
         silent: true,
       });
+
+      return true;
     } catch (error) {
       triggerError();
       const message =
