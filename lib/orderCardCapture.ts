@@ -18,10 +18,10 @@ export type OrderCardData = {
 const FONT =
   "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif";
 
-const TEXT = 21;
-const TITLE = 28;
-const SUM_LABEL = 26;
-const SUM_VALUE = 26;
+const TEXT = 63;
+const TITLE = 84;
+const SUM_LABEL = 78;
+const SUM_VALUE = 78;
 const LH = "1.3";
 
 const C = {
