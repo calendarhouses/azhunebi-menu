@@ -12,6 +12,8 @@ type MenuHeaderProps = {
   showAdminLink?: boolean;
   showOrdersLink?: boolean;
   showBillLink?: boolean;
+  actionsLoading?: boolean;
+  skeletonCount?: number;
   onOpenOrders?: () => void;
   onOpenBill?: () => void;
 };
@@ -90,6 +92,33 @@ function PremiumActionCard({
   );
 }
 
+function ActionCardSkeleton({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <div
+        className="flex min-h-[4.75rem] animate-pulse flex-col items-center justify-center gap-2 rounded-[20px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-2.5"
+        aria-hidden
+      >
+        <div className="h-10 w-10 rounded-2xl bg-stone-800/80" />
+        <div className="h-3 w-16 rounded-full bg-stone-800/70" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex min-h-[5.5rem] min-w-0 flex-1 animate-pulse items-center gap-3.5 rounded-[22px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-4"
+      aria-hidden
+    >
+      <div className="h-12 w-12 shrink-0 rounded-2xl bg-stone-800/80" />
+      <div className="min-w-0 flex-1 space-y-2 pr-4">
+        <div className="h-4 w-24 rounded-full bg-stone-800/80" />
+        <div className="h-3 w-32 rounded-full bg-stone-800/70" />
+      </div>
+    </div>
+  );
+}
+
 function AdminActionCard({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
@@ -133,19 +162,30 @@ export default function MenuHeader({
   showAdminLink = false,
   showOrdersLink = false,
   showBillLink = false,
+  actionsLoading = false,
+  skeletonCount,
   onOpenOrders,
   onOpenBill,
 }: MenuHeaderProps) {
   const actionCount =
     (showOrdersLink ? 1 : 0) + (showBillLink ? 1 : 0) + (showAdminLink ? 1 : 0);
-  const compactActions = actionCount >= 2;
+  const placeholderCount = skeletonCount ?? (showAdminLink ? 3 : 2);
+  const compactActions = actionsLoading
+    ? placeholderCount >= 2
+    : actionCount >= 2;
 
   const gridClass =
-    actionCount >= 3
+    actionsLoading && placeholderCount >= 3
       ? "grid grid-cols-3 gap-2"
-      : compactActions
+      : actionsLoading && placeholderCount === 2
         ? "grid grid-cols-2 gap-2"
-        : "flex gap-3";
+        : actionCount >= 3
+          ? "grid grid-cols-3 gap-2"
+          : compactActions
+            ? "grid grid-cols-2 gap-2"
+            : "flex gap-3";
+
+  const showActionsRow = actionsLoading || actionCount > 0;
 
   return (
     <header className="relative border-b border-stone-600/20 bg-brand-bg">
@@ -165,43 +205,58 @@ export default function MenuHeader({
           </div>
         </div>
 
-        {actionCount > 0 ? (
-          <div className={gridClass}>
-            {showOrdersLink ? (
-              <PremiumActionCard
-                onClick={onOpenOrders}
-                title="Замовлення"
-                hint={compactActions ? undefined : "Статус подачі"}
-                badge={ordersCount}
-                badgeLabel={`Активних замовлень: ${ordersCount}`}
-                compact={compactActions}
-                aria-label="Мої замовлення"
-              >
-                <ClipboardList
-                  className={compactActions ? "h-5 w-5" : "h-6 w-6"}
-                  strokeWidth={1.75}
-                  aria-hidden
+        {showActionsRow ? (
+          <div
+            className={gridClass}
+            aria-busy={actionsLoading}
+            aria-label={actionsLoading ? "Завантаження кнопок" : undefined}
+          >
+            {actionsLoading ? (
+              Array.from({ length: placeholderCount }).map((_, index) => (
+                <ActionCardSkeleton
+                  key={index}
+                  compact={compactActions}
                 />
-              </PremiumActionCard>
-            ) : null}
+              ))
+            ) : (
+              <>
+                {showOrdersLink ? (
+                  <PremiumActionCard
+                    onClick={onOpenOrders}
+                    title="Замовлення"
+                    hint={compactActions ? undefined : "Статус подачі"}
+                    badge={ordersCount}
+                    badgeLabel={`Активних замовлень: ${ordersCount}`}
+                    compact={compactActions}
+                    aria-label="Мої замовлення"
+                  >
+                    <ClipboardList
+                      className={compactActions ? "h-5 w-5" : "h-6 w-6"}
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                  </PremiumActionCard>
+                ) : null}
 
-            {showBillLink ? (
-              <PremiumActionCard
-                onClick={onOpenBill}
-                title="Рахунок"
-                hint={compactActions ? undefined : "Відкритий рахунок"}
-                compact={compactActions}
-                aria-label="Рахунок будинку"
-              >
-                <Receipt
-                  className={compactActions ? "h-5 w-5" : "h-6 w-6"}
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-              </PremiumActionCard>
-            ) : null}
+                {showBillLink ? (
+                  <PremiumActionCard
+                    onClick={onOpenBill}
+                    title="Рахунок"
+                    hint={compactActions ? undefined : "Відкритий рахунок"}
+                    compact={compactActions}
+                    aria-label="Рахунок будинку"
+                  >
+                    <Receipt
+                      className={compactActions ? "h-5 w-5" : "h-6 w-6"}
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                  </PremiumActionCard>
+                ) : null}
 
-            {showAdminLink ? <AdminActionCard compact={compactActions} /> : null}
+                {showAdminLink ? <AdminActionCard compact={compactActions} /> : null}
+              </>
+            )}
           </div>
         ) : null}
       </div>

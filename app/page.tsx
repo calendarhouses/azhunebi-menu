@@ -61,6 +61,8 @@ export default function Home() {
     showAdminLink,
     menuLoadError: loadError,
     refreshMenu,
+    headerActionsReady,
+    setHeaderActionsReady,
   } = useAppReady();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -522,6 +524,10 @@ export default function Home() {
   }, [activeCategory, categories]);
 
   useEffect(() => {
+    setHeaderActionsReady(false);
+  }, [setHeaderActionsReady]);
+
+  useEffect(() => {
     let cancelled = false;
     let attempts = 0;
 
@@ -544,6 +550,10 @@ export default function Home() {
       }
 
       await syncOrders();
+
+      if (!cancelled) {
+        setHeaderActionsReady(true);
+      }
     };
 
     boot();
@@ -551,7 +561,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [syncOrders]);
+  }, [syncOrders, setHeaderActionsReady]);
 
   useEffect(() => {
     if (!isTelegramWebApp()) {
@@ -818,6 +828,8 @@ export default function Home() {
           showAdminLink={showAdminLink}
           showOrdersLink={showOrdersLink}
           showBillLink={showBillLink}
+          actionsLoading={!headerActionsReady}
+          skeletonCount={showAdminLink ? 3 : 2}
           onOpenOrders={() => {
             setOrdersOpen(true);
             syncOrders({ silent: ordersLoadedOnceRef.current });

@@ -7,6 +7,7 @@ import { prefetchMenuImages } from "@/lib/prefetchMenuImages";
 import { fetchMenuData } from "@/lib/menuData";
 import { waitForTelegramWebApp } from "@/lib/waitForTelegramWebApp";
 import type { MenuItemRow } from "@/lib/supabase";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -19,6 +20,9 @@ import {
 
 type AppReadyContextValue = {
   isAppReady: boolean;
+  isFullyReady: boolean;
+  headerActionsReady: boolean;
+  setHeaderActionsReady: (ready: boolean) => void;
   items: MenuItemRow[];
   categories: string[];
   logoUrl: string;
@@ -38,12 +42,25 @@ export function useAppReady() {
 }
 
 export default function AppReadyProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const needsHeaderActions = pathname === "/";
+
   const [isAppReady, setIsAppReady] = useState(false);
+  const [headerActionsReady, setHeaderActionsReady] = useState(
+    !needsHeaderActions
+  );
   const [items, setItems] = useState<MenuItemRow[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState(resolveLogoUrl());
   const [showAdminLink, setShowAdminLink] = useState(false);
   const [menuLoadError, setMenuLoadError] = useState(false);
+
+  useEffect(() => {
+    setHeaderActionsReady(!needsHeaderActions);
+  }, [needsHeaderActions]);
+
+  const isFullyReady =
+    isAppReady && (!needsHeaderActions || headerActionsReady);
 
   const refreshMenu = useCallback(async () => {
     const menuData = await fetchMenuData();
@@ -99,6 +116,9 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
   const value = useMemo(
     () => ({
       isAppReady,
+      isFullyReady,
+      headerActionsReady,
+      setHeaderActionsReady,
       items,
       categories,
       logoUrl,
@@ -108,6 +128,8 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
     }),
     [
       isAppReady,
+      isFullyReady,
+      headerActionsReady,
       items,
       categories,
       logoUrl,
@@ -120,7 +142,7 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
   return (
     <AppReadyContext.Provider value={value}>
       {children}
-      <Preloader logoUrl={logoUrl} isAppReady={isAppReady} />
+      <Preloader logoUrl={logoUrl} isAppReady={isFullyReady} />
     </AppReadyContext.Provider>
   );
 }
