@@ -172,6 +172,18 @@ export default function PremiumCheckout({
     };
   }, []);
 
+  useEffect(() => {
+    if (!open || !isScheduledOrder || !scheduledFor) {
+      return;
+    }
+
+    try {
+      validateScheduledDateTimeLocal(scheduledFor);
+    } catch {
+      onScheduledForChange(minScheduledDateTimeLocal());
+    }
+  }, [open, isScheduledOrder, scheduledFor, onScheduledForChange]);
+
   if (!mounted) {
     return null;
   }
@@ -276,18 +288,6 @@ export default function PremiumCheckout({
       onScheduledForChange(minScheduledDateTimeLocal());
     }
   }
-
-  useEffect(() => {
-    if (!open || !isScheduledOrder || !scheduledFor) {
-      return;
-    }
-
-    try {
-      validateScheduledDateTimeLocal(scheduledFor);
-    } catch {
-      onScheduledForChange(minScheduledDateTimeLocal());
-    }
-  }, [open, isScheduledOrder, scheduledFor, onScheduledForChange]);
 
   const panelStyle: CSSProperties = {
     ...buildSheetPanelTransform(0, dragOffset, isDragging),
