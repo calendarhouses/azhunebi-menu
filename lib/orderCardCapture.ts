@@ -91,13 +91,10 @@ function formatDateTime(iso?: string | null): string {
 }
 
 function metaRow(label: string, value: string): string {
-  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.muted}">${label}</span>`;
-  return gridRow(
-    left,
-    rightCell(value),
-    s(20),
-    `padding:${s(10)}px 0;box-sizing:border-box`
-  );
+  return `<div style="padding:${s(10)}px 0;box-sizing:border-box">
+    <span style="display:block;font-size:${TEXT}px;font-weight:500;color:${C.muted};line-height:${LH}">${label}</span>
+    <span style="display:block;margin-top:${s(4)}px;font-size:${TEXT}px;font-weight:600;color:${C.white};line-height:1.35;word-wrap:break-word;overflow-wrap:anywhere">${value}</span>
+  </div>`;
 }
 
 function itemRow(item: OrderCardItem, isLast: boolean): string {
@@ -106,7 +103,7 @@ function itemRow(item: OrderCardItem, isLast: boolean): string {
     ? ""
     : "border-bottom:1px solid rgba(255,255,255,0.08);";
 
-  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.white};min-width:0">${esc(item.name)} <span style="opacity:0.5">×${item.quantity}</span></span>`;
+  const left = `<span style="font-size:${TEXT}px;font-weight:500;color:${C.white};min-width:0;word-wrap:break-word;overflow-wrap:anywhere;line-height:${LH}">${esc(item.name)} <span style="opacity:0.5">×${item.quantity}</span></span>`;
 
   return gridRow(
     left,
@@ -142,7 +139,7 @@ function buildCardHtml(data: OrderCardData): string {
 
   return `
   <div style="width:${CARD_WIDTH}px;padding:${s(36)}px;background:${C.bg};font-family:${FONT};box-sizing:border-box">
-    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:${s(20)}px;overflow:hidden;box-sizing:border-box">
+    <div style="background:${C.card};border:1px solid rgba(255,255,255,0.1);border-radius:${s(20)}px;box-sizing:border-box">
 
       <div style="height:${s(3)}px;background:linear-gradient(90deg, ${C.accent}, ${C.accentHover})"></div>
 
