@@ -293,11 +293,11 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         checkoutBlocked: data.checkoutBlocked,
       });
       setConfirmAction(null);
-      onStatus("Замовлення скасовано");
+      onStatus("Замовлення видалено");
       await loadDashboard(true);
     } catch (err) {
       onStatus(
-        err instanceof Error ? err.message : "Не вдалося скасувати замовлення"
+        err instanceof Error ? err.message : "Не вдалося видалити замовлення"
       );
     } finally {
       setBusy(false);
@@ -608,7 +608,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                             onClick={() => openCancelConfirm(order.id)}
                             className="inline-flex items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/15 disabled:opacity-50"
                           >
-                            Скасувати
+                            Видалити
                           </button>
                         </div>
 
@@ -659,7 +659,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
             ? "Розрахувати гостей?"
             : confirmAction?.type === "deleteArchive"
               ? "Видалити архівний рахунок?"
-              : "Скасувати замовлення?"
+              : "Видалити замовлення?"
         }
         description={
           confirmAction?.type === "checkout" ? (
@@ -699,8 +699,9 @@ export default function AdminSessionsTab({ onStatus }: Props) {
             ? "Розрахувати"
             : confirmAction?.type === "deleteArchive"
               ? "Видалити"
-              : "Скасувати"
+              : "Видалити"
         }
+        cancelLabel="Назад"
         destructive={
           confirmAction?.type === "cancel" ||
           confirmAction?.type === "deleteArchive"
