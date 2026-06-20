@@ -260,10 +260,34 @@ export default function PremiumCheckout({
 
   function setOrderTiming(scheduled: boolean) {
     onIsScheduledOrderChange(scheduled);
-    if (scheduled && !scheduledFor) {
+    if (!scheduled) {
+      onScheduledForChange("");
+      return;
+    }
+
+    if (!scheduledFor) {
+      onScheduledForChange(minScheduledDateTimeLocal());
+      return;
+    }
+
+    try {
+      validateScheduledDateTimeLocal(scheduledFor);
+    } catch {
       onScheduledForChange(minScheduledDateTimeLocal());
     }
   }
+
+  useEffect(() => {
+    if (!open || !isScheduledOrder || !scheduledFor) {
+      return;
+    }
+
+    try {
+      validateScheduledDateTimeLocal(scheduledFor);
+    } catch {
+      onScheduledForChange(minScheduledDateTimeLocal());
+    }
+  }, [open, isScheduledOrder, scheduledFor, onScheduledForChange]);
 
   const panelStyle: CSSProperties = {
     ...buildSheetPanelTransform(0, dragOffset, isDragging),

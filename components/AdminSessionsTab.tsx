@@ -556,6 +556,15 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                               )}`
                             : ""}
                         </p>
+                        {order.scheduledFor ? (
+                          <p className="mt-1 text-xs text-brand-accent/90">
+                            Подача: {formatOrderDateTime(order.scheduledFor)}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-brand-muted/70">
+                            Якнайшвидше
+                          </p>
+                        )}
                       </div>
                       <p className="shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-brand-accent">
                         {formatPrice(order.total)}

@@ -6,7 +6,7 @@ import {
   KITCHEN_ORDER_START_HOUR,
   minScheduledDateTimeLocal,
 } from "@/lib/orderStatus";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type ScheduledDateTimePickerProps = {
   value: string;
@@ -86,10 +86,21 @@ export default function ScheduledDateTimePicker({
   value,
   onChange,
 }: ScheduledDateTimePickerProps) {
-  const minAllowed = useMemo(
-    () => parseDateTimeLocal(minScheduledDateTimeLocal()) ?? new Date(),
-    []
+  const [minAllowed, setMinAllowed] = useState(
+    () => parseDateTimeLocal(minScheduledDateTimeLocal()) ?? new Date()
   );
+
+  useEffect(() => {
+    const refreshMinAllowed = () => {
+      setMinAllowed(
+        parseDateTimeLocal(minScheduledDateTimeLocal()) ?? new Date()
+      );
+    };
+
+    refreshMinAllowed();
+    const intervalId = window.setInterval(refreshMinAllowed, 30_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const dateOptions = useMemo(() => {
     const options: Date[] = [];

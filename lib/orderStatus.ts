@@ -55,12 +55,15 @@ export function getStepIndex(status: OrderStatus) {
   return 0;
 }
 
+export const DISPLAY_TIMEZONE = "Europe/Kyiv";
+
 export function formatOrderDateTime(isoDate?: string | null) {
   if (!isoDate) {
     return "";
   }
 
   return new Date(isoDate).toLocaleString("uk-UA", {
+    timeZone: DISPLAY_TIMEZONE,
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
