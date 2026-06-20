@@ -11,7 +11,6 @@ import ErrorState from "@/components/ErrorState";
 import MenuHeader from "@/components/MenuHeader";
 import { useAppReady } from "@/components/AppReadyProvider";
 import {
-  attachOrderScreenshot,
   changeGuestHouseRequest,
   createOrderRequest,
   fetchActiveOrders,
@@ -34,7 +33,6 @@ import {
   type TrackedOrder,
 } from "@/lib/orderStatus";
 import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
-import { captureOrderCard } from "@/lib/orderCardCapture";
 import {
   formatCabinDisplay,
   formatOrderLocationDisplay,
@@ -800,8 +798,6 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
-      const tgUser = webApp.initDataUnsafe?.user;
-
       const result = await createOrderRequest({
         initData: webApp.initData,
         cart: currentCart.map((item) => ({
@@ -829,31 +825,6 @@ export default function Home() {
       setSelectedDish(null);
       triggerSuccess();
       orderJustSubmittedRef.current = true;
-
-      // Card capture + admin notify run in background — user sees success immediately.
-      const cardPayload = {
-        guestName: tgUser?.first_name || "Гість",
-        house: formatOrderLocationDisplay(currentLocation, tableDelivery),
-        items: currentCart.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        total: getCartTotal(currentCart),
-        scheduledFor: scheduledPayload || null,
-        comment: commentRef.current.trim() || null,
-      };
-      const initData = webApp.initData;
-      const orderId = result.orderId;
-
-      void captureOrderCard(cardPayload)
-        .then(async (card) => {
-          if (!card) return;
-          await attachOrderScreenshot({ initData, orderId, screenshot: card });
-        })
-        .catch((error) => {
-          console.error("[submitOrder] background card attach failed", error);
-        });
 
       void syncOrders({
         focusOrderId: result.orderId as string,
