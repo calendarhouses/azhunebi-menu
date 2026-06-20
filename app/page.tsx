@@ -12,6 +12,7 @@ import MenuHeader from "@/components/MenuHeader";
 import { useAppReady } from "@/components/AppReadyProvider";
 import {
   attachOrderScreenshot,
+  changeGuestHouseRequest,
   createOrderRequest,
   fetchActiveOrders,
   fetchHouseBinding,
@@ -130,6 +131,9 @@ export default function Home() {
   const syncInFlightRef = useRef(false);
   const syncPromiseRef = useRef<Promise<SyncOrdersResult> | null>(null);
   const runningTabRef = useRef<RunningTabData | null>(null);
+  const cabinQrSwitchPromiseRef = useRef<Promise<void> | null>(null);
+  const cartHydratedRef = useRef(false);
+  const startParamReadyRef = useRef(false);
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -140,6 +144,9 @@ export default function Home() {
   ordersRef.current = orders;
   houseBindingRef.current = houseBinding;
   runningTabRef.current = runningTab;
+  cartHydratedRef.current = cartHydrated;
+  startParamReadyRef.current = startParamReady;
+  startParamLocationRef.current = startParamLocation;
 
   const showOrdersLink = Boolean(headerActionConfig?.showOrders);
   const showBillLink = Boolean(
@@ -246,6 +253,62 @@ export default function Home() {
     clearLocationNote();
   }, [clearLocationNote, setLocationNote]);
 
+  const ensureCabinQrHouseApplied = useCallback(async () => {
+    const cabinQr = startParamLocationRef.current;
+    if (cabinQr?.type !== "cabin" || !isTelegramWebApp()) {
+      return;
+    }
+
+    if (cabinQrSwitchPromiseRef.current) {
+      return cabinQrSwitchPromiseRef.current;
+    }
+
+    const task = (async () => {
+      const qrCabinNumber = Number(cabinQr.number);
+      if (!Number.isFinite(qrCabinNumber) || qrCabinNumber < 1 || qrCabinNumber > 12) {
+        return;
+      }
+
+      try {
+        const binding = await fetchHouseBinding();
+
+        if (binding?.cabinNumber === qrCabinNumber) {
+          setHouseBinding(binding);
+          houseBindingRef.current = binding;
+          setLocationNote(
+            formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
+          );
+          return;
+        }
+
+        await changeGuestHouseRequest(qrCabinNumber);
+
+        const updated = await fetchHouseBinding();
+        if (updated) {
+          setHouseBinding(updated);
+          houseBindingRef.current = updated;
+          setLocationNote(
+            formatCabinDisplay(updated.cabinLabel, updated.cabinNumber)
+          );
+        } else {
+          setHouseBinding(null);
+          houseBindingRef.current = null;
+          setLocationNote(cabinQr.label);
+        }
+
+        const tab = await fetchRunningTab();
+        setRunningTab(tab);
+        runningTabRef.current = tab;
+      } catch (error) {
+        console.error("[cabin-qr] failed to switch house", error);
+        setLocationNote(cabinQr.label);
+      }
+    })();
+
+    cabinQrSwitchPromiseRef.current = task;
+    return task;
+  }, [setLocationNote]);
+
   const syncOrders = useCallback(
     async (options?: {
       openPanel?: boolean;
@@ -306,19 +369,35 @@ export default function Home() {
 
           prevRunningConfirmedRef.current = runningTabData?.confirmedTotal ?? 0;
           prevRunningTabSessionRef.current = runningTabData?.sessionId ?? null;
-          setRunningTab(runningTabData);
-          runningTabRef.current = runningTabData;
 
-          if (runningTabData) {
+          const cabinQr = startParamLocationRef.current;
+          const cabinQrMismatch =
+            cabinQr?.type === "cabin" &&
+            runningTabData &&
+            runningTabData.cabinNumber !== Number(cabinQr.number);
+
+          if (runningTabData && !cabinQrMismatch) {
+            setRunningTab(runningTabData);
+            runningTabRef.current = runningTabData;
             setHouseBinding({
               sessionId: runningTabData.sessionId,
               cabinNumber: runningTabData.cabinNumber,
               cabinLabel: runningTabData.cabinLabel,
             });
             setLocationNote(
-              formatCabinDisplay(runningTabData.cabinLabel, runningTabData.cabinNumber)
+              formatCabinDisplay(
+                runningTabData.cabinLabel,
+                runningTabData.cabinNumber
+              )
             );
-          } else if (sessionEnded) {
+          } else if (runningTabData && cabinQrMismatch) {
+            hasRunningTab = Boolean(runningTabRef.current);
+          } else {
+            setRunningTab(runningTabData);
+            runningTabRef.current = runningTabData;
+          }
+
+          if (!runningTabData && sessionEnded) {
             setHouseBinding(null);
             resetGuestHouseSelection();
           }
@@ -503,10 +582,27 @@ export default function Home() {
       return;
     }
 
+    if (startParamLocation?.type === "cabin") {
+      let cancelled = false;
+      setHouseBindingLoading(true);
+
+      void (async () => {
+        try {
+          await ensureCabinQrHouseApplied();
+        } finally {
+          if (!cancelled) {
+            setHouseBindingLoading(false);
+          }
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
     let cancelled = false;
-    const hasKnownLocation =
-      Boolean(locationNote.trim()) ||
-      startParamLocation?.type === "cabin";
+    const hasKnownLocation = Boolean(locationNote.trim());
 
     if (!hasKnownLocation) {
       setHouseBindingLoading(true);
@@ -530,10 +626,6 @@ export default function Home() {
 
         setHouseBinding(null);
         houseBindingRef.current = null;
-
-        if (startParamLocation?.type === "cabin") {
-          setLocationNote(startParamLocation.label);
-        }
       } finally {
         if (!cancelled) {
           setHouseBindingLoading(false);
@@ -544,7 +636,14 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [cartHydrated, startParamReady, startParamLocation, setLocationNote]);
+  }, [
+    cartHydrated,
+    startParamReady,
+    startParamLocation,
+    locationNote,
+    setLocationNote,
+    ensureCabinQrHouseApplied,
+  ]);
 
   useEffect(() => {
     if (!cartOpen || !inTelegram) {
@@ -596,6 +695,16 @@ export default function Home() {
         window.history.replaceState(null, "", window.location.pathname);
       }
 
+      const guestContextDeadline = Date.now() + 5000;
+      while (
+        (!cartHydratedRef.current || !startParamReadyRef.current) &&
+        Date.now() < guestContextDeadline
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+      }
+
+      await ensureCabinQrHouseApplied();
+
       const syncResult = await syncOrders();
       if (cancelled) {
         return;
@@ -615,7 +724,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [syncOrders, setHeaderActionsReady]);
+  }, [syncOrders, setHeaderActionsReady, ensureCabinQrHouseApplied]);
 
   useEffect(() => {
     if (!headerActionsReady || !isTelegramWebApp()) {
