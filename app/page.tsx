@@ -167,19 +167,20 @@ export default function Home() {
     setOrdersOpen(false);
   }, []);
 
+  const resetGuestHouseSelection = useCallback(() => {
+    if (startParamLocationRef.current?.type === "cabin") {
+      setLocationNote(startParamLocationRef.current.label);
+      return;
+    }
+
+    clearLocationNote();
+  }, [clearLocationNote, setLocationNote]);
+
   const refreshHouseBinding = useCallback(async () => {
     if (!isTelegramWebApp()) {
       setHouseBinding(null);
       setHouseBindingLoading(false);
       return null;
-    }
-
-    if (
-      houseBindingRef.current ||
-      locationNoteRef.current.trim() ||
-      runningTab
-    ) {
-      return houseBindingRef.current;
     }
 
     const requestId = ++houseBindingRequestRef.current;
@@ -198,6 +199,8 @@ export default function Home() {
         setLocationNote(
           formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
         );
+      } else if (!runningTabRef.current) {
+        resetGuestHouseSelection();
       }
 
       return binding;
@@ -209,7 +212,7 @@ export default function Home() {
         setHouseBindingLoading(false);
       }
     }
-  }, [runningTab, setLocationNote]);
+  }, [resetGuestHouseSelection, setLocationNote]);
 
   const handleCheckoutClose = useCallback(() => {
     setCartOpen(false);
@@ -241,15 +244,6 @@ export default function Home() {
     backVisible: ordersOpen || billOpen || cartOpen || Boolean(selectedDish),
     onBack: handleBack,
   });
-
-  const resetGuestHouseSelection = useCallback(() => {
-    if (startParamLocationRef.current?.type === "cabin") {
-      setLocationNote(startParamLocationRef.current.label);
-      return;
-    }
-
-    clearLocationNote();
-  }, [clearLocationNote, setLocationNote]);
 
   const ensureCabinQrHouseApplied = useCallback(async () => {
     const cabinQr = startParamLocationRef.current;
@@ -393,21 +387,29 @@ export default function Home() {
           } else {
             setRunningTab(runningTabData);
             runningTabRef.current = runningTabData;
+
+            const binding = await fetchHouseBinding();
+            if (binding) {
+              setHouseBinding(binding);
+              houseBindingRef.current = binding;
+              setLocationNote(
+                formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
+              );
+            } else {
+              setHouseBinding(null);
+              houseBindingRef.current = null;
+              resetGuestHouseSelection();
+            }
           }
 
           if (!runningTabData && sessionEnded) {
-            setHouseBinding(null);
-            resetGuestHouseSelection();
+            prevRunningConfirmedRef.current = 0;
           }
 
           const dismissedIds = readDismissedOrderIds();
           let activeOrders = allFetchedOrders.filter(
             (order) => !(order.status === "cancelled" && dismissedIds.has(order.id))
           );
-
-          if (sessionEnded) {
-            prevRunningConfirmedRef.current = 0;
-          }
 
           const activeById = new Map(activeOrders.map((o) => [o.id, o]));
 
@@ -624,6 +626,7 @@ export default function Home() {
 
         setHouseBinding(null);
         houseBindingRef.current = null;
+        resetGuestHouseSelection();
       } finally {
         if (!cancelled) {
           setHouseBindingLoading(false);
@@ -638,9 +641,9 @@ export default function Home() {
     cartHydrated,
     startParamReady,
     startParamLocation,
-    locationNote,
-    setLocationNote,
     ensureCabinQrHouseApplied,
+    resetGuestHouseSelection,
+    setLocationNote,
   ]);
 
   useEffect(() => {
@@ -648,16 +651,8 @@ export default function Home() {
       return;
     }
 
-    if (
-      houseBindingRef.current ||
-      locationNoteRef.current.trim() ||
-      runningTab
-    ) {
-      return;
-    }
-
     void refreshHouseBinding();
-  }, [cartOpen, inTelegram, refreshHouseBinding, runningTab]);
+  }, [cartOpen, inTelegram, refreshHouseBinding]);
 
   useEffect(() => {
     if (activeCategory !== "all" && !categories.includes(activeCategory)) {

@@ -125,6 +125,7 @@ export default function PremiumCheckout({
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAnimation, setSuccessAnimation] = useState<object | null>(null);
+  const [manualHouseLocked, setManualHouseLocked] = useState(false);
 
   useBodyScrollLock(open);
 
@@ -138,6 +139,7 @@ export default function PremiumCheckout({
   useEffect(() => {
     if (!open) {
       setShowSuccess(false);
+      setManualHouseLocked(false);
       return;
     }
 
@@ -193,7 +195,7 @@ export default function PremiumCheckout({
   const isTableOrder = startParamLocation?.type === "table";
   const hasBoundHouse = Boolean(boundHouseLabel);
   const houseSelectionLocked =
-    !hasBoundHouse && !isCabinQrAuto && Boolean(locationNote.trim());
+    hasBoundHouse || isCabinQrAuto || manualHouseLocked;
   const effectiveLocation =
     boundHouseLabel ||
     locationNote ||
@@ -222,6 +224,7 @@ export default function PremiumCheckout({
 
     triggerImpact("medium");
     onLocationNoteChange(confirmHouse);
+    setManualHouseLocked(true);
     setConfirmHouse(null);
   }
 
