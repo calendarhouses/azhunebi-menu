@@ -203,7 +203,8 @@ export default function PremiumCheckout({
       ? startParamLocation.label
       : "");
   const hasKnownLocation = Boolean(effectiveLocation.trim());
-  const showLocationSkeleton = houseBindingLoading && !hasKnownLocation;
+  const showLocationSkeleton =
+    houseBindingLoading && !hasKnownLocation && !open;
   const deliverySummary =
     isTableOrder && hasBoundHouse && startParamLocation?.type === "table"
       ? formatOrderLocationDisplay(boundHouseLabel, startParamLocation.label)

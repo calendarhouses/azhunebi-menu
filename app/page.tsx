@@ -132,6 +132,7 @@ export default function Home() {
   const cabinQrSwitchPromiseRef = useRef<Promise<void> | null>(null);
   const cartHydratedRef = useRef(false);
   const startParamReadyRef = useRef(false);
+  const cartOpenRef = useRef(false);
 
   cartRef.current = cart;
   commentRef.current = comment;
@@ -144,7 +145,7 @@ export default function Home() {
   runningTabRef.current = runningTab;
   cartHydratedRef.current = cartHydrated;
   startParamReadyRef.current = startParamReady;
-  startParamLocationRef.current = startParamLocation;
+  cartOpenRef.current = cartOpen;
 
   const showOrdersLink = Boolean(headerActionConfig?.showOrders);
   const showBillLink = Boolean(
@@ -176,43 +177,55 @@ export default function Home() {
     clearLocationNote();
   }, [clearLocationNote, setLocationNote]);
 
-  const refreshHouseBinding = useCallback(async () => {
-    if (!isTelegramWebApp()) {
-      setHouseBinding(null);
-      setHouseBindingLoading(false);
-      return null;
-    }
+  const refreshHouseBinding = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!isTelegramWebApp()) {
+        setHouseBinding(null);
+        if (!options?.silent) {
+          setHouseBindingLoading(false);
+        }
+        return null;
+      }
 
-    const requestId = ++houseBindingRequestRef.current;
-    setHouseBindingLoading(true);
+      const requestId = ++houseBindingRequestRef.current;
+      if (!options?.silent) {
+        setHouseBindingLoading(true);
+      }
 
-    try {
-      const binding = await fetchHouseBinding();
-      if (requestId !== houseBindingRequestRef.current) {
+      try {
+        const binding = await fetchHouseBinding();
+        if (requestId !== houseBindingRequestRef.current) {
+          return binding;
+        }
+
+        const hadBinding = Boolean(houseBindingRef.current);
+
+        setHouseBinding(binding);
+        houseBindingRef.current = binding;
+
+        if (binding) {
+          setLocationNote(
+            formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
+          );
+        } else if (
+          !runningTabRef.current &&
+          (hadBinding || !cartOpenRef.current)
+        ) {
+          resetGuestHouseSelection();
+        }
+
         return binding;
+      } catch (error) {
+        console.error("[house-binding] refresh failed", error);
+        return null;
+      } finally {
+        if (!options?.silent && requestId === houseBindingRequestRef.current) {
+          setHouseBindingLoading(false);
+        }
       }
-
-      setHouseBinding(binding);
-      houseBindingRef.current = binding;
-
-      if (binding) {
-        setLocationNote(
-          formatCabinDisplay(binding.cabinLabel, binding.cabinNumber)
-        );
-      } else if (!runningTabRef.current) {
-        resetGuestHouseSelection();
-      }
-
-      return binding;
-    } catch (error) {
-      console.error("[house-binding] refresh failed", error);
-      return null;
-    } finally {
-      if (requestId === houseBindingRequestRef.current) {
-        setHouseBindingLoading(false);
-      }
-    }
-  }, [resetGuestHouseSelection, setLocationNote]);
+    },
+    [resetGuestHouseSelection, setLocationNote]
+  );
 
   const handleCheckoutClose = useCallback(() => {
     setCartOpen(false);
@@ -388,6 +401,7 @@ export default function Home() {
             setRunningTab(runningTabData);
             runningTabRef.current = runningTabData;
 
+            const hadBinding = Boolean(houseBindingRef.current);
             const binding = await fetchHouseBinding();
             if (binding) {
               setHouseBinding(binding);
@@ -398,7 +412,9 @@ export default function Home() {
             } else {
               setHouseBinding(null);
               houseBindingRef.current = null;
-              resetGuestHouseSelection();
+              if (hadBinding || !cartOpenRef.current) {
+                resetGuestHouseSelection();
+              }
             }
           }
 
@@ -626,7 +642,9 @@ export default function Home() {
 
         setHouseBinding(null);
         houseBindingRef.current = null;
-        resetGuestHouseSelection();
+        if (!cartOpenRef.current) {
+          resetGuestHouseSelection();
+        }
       } finally {
         if (!cancelled) {
           setHouseBindingLoading(false);
@@ -651,7 +669,7 @@ export default function Home() {
       return;
     }
 
-    void refreshHouseBinding();
+    void refreshHouseBinding({ silent: true });
   }, [cartOpen, inTelegram, refreshHouseBinding]);
 
   useEffect(() => {
