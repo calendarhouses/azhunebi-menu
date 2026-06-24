@@ -370,29 +370,31 @@ export default function AdminSessionsTab({ onStatus }: Props) {
 
   return (
     <div className="max-w-5xl">
-      <div className="mb-4 inline-flex rounded-xl bg-white/5 p-1">
-        {(
-          [
-            ["active", "Активні"],
-            ["archive", "Архів розрахунків"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              setViewMode(id);
-              closeSheet();
-            }}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              viewMode === id
-                ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
-                : "text-white/40 hover:text-white/70"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="scroll-strip-x scrollbar-hide -mx-4 mb-4 px-4">
+        <div className="inline-flex rounded-xl bg-white/5 p-1">
+          {(
+            [
+              ["active", "Активні"],
+              ["archive", "Архів розрахунків"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                setViewMode(id);
+                closeSheet();
+              }}
+              className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                viewMode === id
+                  ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
+                  : "text-white/40 hover:text-white/70"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error ? (

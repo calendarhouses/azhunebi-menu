@@ -220,26 +220,34 @@ export default function AdminPage() {
         </div>
       </header>
 
+      <nav
+        aria-label="Розділи адмін-панелі"
+        className="shrink-0 border-b border-white/10 bg-brand-surface"
+      >
+        <div className="scroll-strip-x scrollbar-hide">
+          <div className="mx-auto max-w-6xl px-4 py-3">
+            <div className="inline-flex rounded-xl bg-white/5 p-1">
+              {tabs.map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTab(id)}
+                  className={`shrink-0 whitespace-nowrap rounded-lg px-5 py-2 text-sm font-medium transition-all duration-300 ${
+                    tab === id
+                      ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
+                      : "text-white/40 hover:text-white/70"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </nav>
+
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-none touch-pan-y">
       <div className="mx-auto max-w-6xl px-4 py-6">
-        {/* iOS-style segmented control */}
-        <div className="mb-6 inline-flex rounded-xl bg-white/5 p-1">
-          {tabs.map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className={`rounded-lg px-5 py-2 text-sm font-medium transition-all duration-300 ${
-                tab === id
-                  ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
-                  : "text-white/40 hover:text-white/70"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         {/* Load error banner with retry */}
         {loadError && (
           <div className="mb-4 flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
