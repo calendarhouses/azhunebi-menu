@@ -33,6 +33,7 @@ import {
   type TrackedOrder,
 } from "@/lib/orderStatus";
 import { getCartCount, getCartTotal, type CartItem } from "@/lib/cart";
+import { isValidCabinNumber } from "@/lib/cabins";
 import {
   formatCabinDisplay,
   formatOrderLocationDisplay,
@@ -270,7 +271,7 @@ export default function Home() {
 
     const task = (async () => {
       const qrCabinNumber = Number(cabinQr.number);
-      if (!Number.isFinite(qrCabinNumber) || qrCabinNumber < 1 || qrCabinNumber > 12) {
+      if (!isValidCabinNumber(qrCabinNumber)) {
         return;
       }
 

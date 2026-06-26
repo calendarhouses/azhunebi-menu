@@ -23,6 +23,7 @@ import type {
   ClosedSessionArchiveItem,
   SessionDetailData,
 } from "@/lib/runningTab";
+import { listAdminCabinNumbers } from "@/lib/cabins";
 import { formatOrderDateTime } from "@/lib/orderStatus";
 import { triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { ArrowRightLeft, Home } from "lucide-react";
@@ -616,8 +617,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
 
                         {moveOrderId === order.id ? (
                           <div className="mt-3 grid grid-cols-4 gap-2">
-                            {Array.from({ length: 12 }, (_, index) => index + 1).map(
-                              (house) => (
+                            {listAdminCabinNumbers().map((house) => (
                                 <button
                                   key={house}
                                   type="button"
@@ -629,8 +629,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                                 >
                                   {house}
                                 </button>
-                              )
-                            )}
+                            ))}
                           </div>
                         ) : null}
                       </>

@@ -2,7 +2,7 @@ export type StartParamLocation =
   | { type: "cabin"; number: string; label: string }
   | { type: "table"; number: string; label: string };
 
-/** Parses Telegram start_param from QR (c1–c12 cabins, t1–t12 tables). */
+/** Parses Telegram start_param from QR (c0–c12 cabins, t1–t12 tables). */
 export function parseStartParamLocation(
   raw?: string | null
 ): StartParamLocation | null {
@@ -18,15 +18,19 @@ export function parseStartParamLocation(
   const kind = match[1].toLowerCase();
   const number = parseInt(match[2], 10);
 
+  if (kind === "c") {
+    if (!Number.isFinite(number) || number < 0 || number > 12) {
+      return null;
+    }
+    const num = String(number);
+    return { type: "cabin", number: num, label: `Будиночок ${num}` };
+  }
+
   if (!Number.isFinite(number) || number < 1 || number > 12) {
     return null;
   }
 
   const num = String(number);
-
-  if (kind === "c") {
-    return { type: "cabin", number: num, label: `Будиночок ${num}` };
-  }
 
   if (kind === "t") {
     return { type: "table", number: num, label: `За столиком №${num}` };

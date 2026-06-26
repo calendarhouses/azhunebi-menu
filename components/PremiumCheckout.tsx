@@ -14,6 +14,7 @@ import {
   type StartParamLocation,
 } from "@/lib/startParamLocation";
 import type { CartItem } from "@/lib/cart";
+import { GUEST_CABIN_PICKER_OPTIONS } from "@/lib/cabins";
 import { triggerImpact } from "@/lib/haptic";
 import { MapPin, Receipt, UtensilsCrossed } from "lucide-react";
 import {
@@ -62,7 +63,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
-const HOUSES = Array.from({ length: 12 }, (_, i) => `Будиночок ${i + 1}`);
+const HOUSES = GUEST_CABIN_PICKER_OPTIONS;
 
 function houseButtonClass(
   house: string,
@@ -472,6 +473,18 @@ export default function PremiumCheckout({
                     ) : null}
                   </div>
                 )}
+              </section>
+
+              <section>
+                <SectionTitle>Коментар</SectionTitle>
+                <textarea
+                  value={comment}
+                  onChange={(event) => onCommentChange(event.target.value)}
+                  placeholder="Побажання, алергії, час подачі окремих страв…"
+                  rows={3}
+                  disabled={checkoutLocked}
+                  className="w-full resize-none rounded-2xl border border-stone-600/20 bg-brand-input px-4 py-3 text-sm text-stone-100 placeholder:text-brand-muted/70 outline-none transition focus:border-brand-accent/40 disabled:opacity-60"
+                />
               </section>
 
               <section>
