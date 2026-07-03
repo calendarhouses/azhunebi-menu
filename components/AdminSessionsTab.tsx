@@ -1,6 +1,7 @@
 "use client";
 
 import AdminArchiveSwipeRow from "@/components/AdminArchiveSwipeRow";
+import AdminBillOrderCard from "@/components/AdminBillOrderCard";
 import AdminBottomSheet from "@/components/AdminBottomSheet";
 import AdminConfirmDialog from "@/components/AdminConfirmDialog";
 import AdminSessionsSkeleton from "@/components/AdminSessionsSkeleton";
@@ -125,6 +126,17 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     }
   }, []);
 
+  function applySessionDetail(data: SessionDetailData) {
+    setDetail({
+      session: data.session,
+      confirmedTotal: data.confirmedTotal,
+      pendingTotal: data.pendingTotal,
+      orders: data.orders,
+      guestCount: data.guestCount,
+      checkoutBlocked: data.checkoutBlocked,
+    });
+  }
+
   const loadDetail = useCallback(async (sessionId: string, silent = false) => {
     if (!silent) {
       setDetailLoading(true);
@@ -132,14 +144,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
 
     try {
       const data = await adminLoadSessionDetail(sessionId);
-      setDetail({
-        session: data.session,
-        confirmedTotal: data.confirmedTotal,
-        pendingTotal: data.pendingTotal,
-        orders: data.orders,
-        guestCount: data.guestCount,
-        checkoutBlocked: data.checkoutBlocked,
-      });
+      applySessionDetail(data);
     } catch (err) {
       onStatus(
         err instanceof Error ? err.message : "Не вдалося завантажити сесію"
@@ -194,8 +199,16 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     }
 
     if (detail.checkoutBlocked) {
+      const openTotal = detail.confirmedTotal + detail.pendingTotal;
+      if (openTotal > 0) {
+        onStatus(
+          `Залишилось до оплати: ${formatPrice(openTotal)}. Спочатку розрахуйте страви.`
+        );
+        return;
+      }
+
       onStatus(
-        "Неможливо розрахувати: є замовлення, які ще очікують або готуються."
+        "Неможливо закрити рахунок: є замовлення, які ще очікують або готуються."
       );
       return;
     }
@@ -541,50 +554,35 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                 <p className="text-sm text-brand-muted">Замовлень немає</p>
               ) : (
                 detail.orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="rounded-xl border border-white/10 bg-brand-surface p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-stone-100">
-                          {formatOrderDateTime(order.createdAt)}
-                        </p>
-                        <p className="mt-1 text-xs text-brand-muted">
-                          {order.userFirstName || "Гість"} · {order.statusLabel}
-                          {order.locationNote || order.tableNumber
-                            ? ` · ${formatOrderLocationDisplay(
-                                order.locationNote,
-                                order.tableNumber
-                              )}`
-                            : ""}
-                        </p>
-                        {order.scheduledFor ? (
-                          <p className="mt-1 text-xs text-brand-accent/90">
-                            Подача: {formatOrderDateTime(order.scheduledFor)}
-                          </p>
-                        ) : (
-                          <p className="mt-1 text-xs text-brand-muted/70">
-                            Якнайшвидше
-                          </p>
-                        )}
-                      </div>
-                      <p className="shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-brand-accent">
-                        {formatPrice(order.total)}
+                  <div key={order.id} className="space-y-3">
+                    <div className="px-1">
+                      <p className="text-xs text-brand-muted">
+                        {formatOrderDateTime(order.createdAt)} · {order.statusLabel}
+                        {order.locationNote || order.tableNumber
+                          ? ` · ${formatOrderLocationDisplay(
+                              order.locationNote,
+                              order.tableNumber
+                            )}`
+                          : ""}
                       </p>
+                      {order.scheduledFor ? (
+                        <p className="mt-1 text-xs text-brand-accent/90">
+                          Подача: {formatOrderDateTime(order.scheduledFor)}
+                        </p>
+                      ) : null}
                     </div>
 
-                    <div className="mt-3 space-y-1 border-t border-white/10 pt-3 text-sm text-stone-300">
-                      {order.cart.map((line) => (
-                        <p key={`${order.id}-${line.id}`}>
-                          {line.name} ×{line.quantity}
-                        </p>
-                      ))}
-                    </div>
+                    <AdminBillOrderCard
+                      order={order}
+                      sessionId={detail.session.id}
+                      disabled={isReadOnly || order.status === "cancelled" || busy}
+                      onDetailChange={applySessionDetail}
+                      onStatus={onStatus}
+                    />
 
                     {!isReadOnly && order.status !== "cancelled" ? (
                       <>
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             disabled={busy}
@@ -616,19 +614,19 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                         </div>
 
                         {moveOrderId === order.id ? (
-                          <div className="mt-3 grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-4 gap-2">
                             {listAdminCabinNumbers().map((house) => (
-                                <button
-                                  key={house}
-                                  type="button"
-                                  disabled={
-                                    busy || house === detail.session.cabinNumber
-                                  }
-                                  onClick={() => handleMoveOrder(order.id, house)}
-                                  className="rounded-lg border border-white/10 bg-brand-input px-2 py-2 text-xs font-semibold text-stone-200 disabled:opacity-40"
-                                >
-                                  {house}
-                                </button>
+                              <button
+                                key={house}
+                                type="button"
+                                disabled={
+                                  busy || house === detail.session.cabinNumber
+                                }
+                                onClick={() => handleMoveOrder(order.id, house)}
+                                className="rounded-lg border border-white/10 bg-brand-input px-2 py-2 text-xs font-semibold text-stone-200 disabled:opacity-40"
+                              >
+                                {house}
+                              </button>
                             ))}
                           </div>
                         ) : null}
@@ -646,7 +644,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                 onClick={openCheckOutConfirm}
                 className="btn-accent w-full rounded-2xl py-4 text-base font-bold shadow-[0_12px_32px_rgba(196,165,116,0.22)] disabled:opacity-50"
               >
-                {busy ? "Обробка…" : "Розрахувати / Виселити"}
+                {busy ? "Обробка…" : "Закрити рахунок / Виселити"}
               </button>
             ) : null}
           </div>
@@ -657,7 +655,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         open={confirmAction !== null}
         title={
           confirmAction?.type === "checkout"
-            ? "Розрахувати гостей?"
+              ? "Закрити рахунок і виселити гостей?"
             : confirmAction?.type === "deleteArchive"
               ? "Видалити архівний рахунок?"
               : "Видалити замовлення?"
@@ -674,7 +672,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
                     )
                   : ""}
               </span>
-              ? Рахунок буде закрито, гостям надійде повідомлення.
+              ? Рахунок буде закрито після розрахунку всіх страв.
             </>
           ) : confirmAction?.type === "deleteArchive" ? (
             <>

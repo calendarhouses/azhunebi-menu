@@ -10,6 +10,7 @@ export type OrderCartLine = {
   name: string;
   price: number;
   quantity: number;
+  settledQuantity?: number;
 };
 
 export type TrackedOrder = {

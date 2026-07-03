@@ -134,6 +134,29 @@ export async function adminDeleteClosedSession(sessionId: string) {
   return adminRequest<{ sessionId: string }>("deleteClosedSession", { sessionId });
 }
 
+export async function adminUpdateOrderCart(payload: {
+  orderId: string;
+  sessionId: string;
+  cart: import("@/lib/orderStatus").OrderCartLine[];
+}) {
+  return adminRequest<import("@/lib/runningTab").SessionDetailData>(
+    "updateOrderCart",
+    payload
+  );
+}
+
+export async function adminSettleOrderLine(payload: {
+  orderId: string;
+  sessionId: string;
+  lineIndex: number;
+  quantity?: number;
+}) {
+  return adminRequest<import("@/lib/runningTab").SessionDetailData>(
+    "settleOrderLine",
+    payload
+  );
+}
+
 /**
  * Uploads a compressed image Blob directly to Supabase Storage.
  * Generates a unique path: menu/dish_<timestamp>.<ext>
