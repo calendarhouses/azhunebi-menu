@@ -2,6 +2,7 @@
 
 import { formatPrice } from "@/components/ImagePlaceholder";
 import {
+  adminCancelOrder,
   adminSettleOrderLine,
   adminUpdateOrderCart,
 } from "@/lib/adminApi";
@@ -15,7 +16,7 @@ import {
 } from "@/lib/billCart";
 import type { OrderCartLine, TrackedOrder } from "@/lib/orderStatus";
 import { triggerImpact, triggerSuccess } from "@/lib/haptic";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 type Props = {
@@ -27,6 +28,9 @@ type Props = {
   ) => void;
   onStatus: (message: string) => void;
 };
+
+const lineActionClass =
+  "inline-flex h-9 shrink-0 items-center justify-center rounded-xl border text-xs font-semibold transition disabled:opacity-50";
 
 export default function AdminBillOrderCard({
   order,
@@ -70,20 +74,49 @@ export default function AdminBillOrderCard({
 
     const nextQuantity = line.quantity + delta;
     if (nextQuantity <= 0) {
-      cart.splice(lineIndex, 1);
-    } else {
-      line.quantity = nextQuantity;
-      if (line.settledQuantity && line.settledQuantity > nextQuantity) {
-        line.settledQuantity = nextQuantity;
-      }
-    }
-
-    if (cart.length === 0) {
-      onStatus("Щоб прибрати останню страву, видаліть замовлення");
+      await handleRemoveLine(lineIndex);
       return;
     }
 
+    line.quantity = nextQuantity;
+    if (line.settledQuantity && line.settledQuantity > nextQuantity) {
+      line.settledQuantity = nextQuantity;
+    }
+
     await persistCart(cart);
+  }
+
+  async function handleRemoveLine(lineIndex: number) {
+    const cart = normalizeCart(order.cart).map((line) => ({ ...line }));
+
+    if (!cart[lineIndex]) {
+      return;
+    }
+
+    if (cart.length === 1) {
+      setBusy(true);
+      triggerImpact("medium");
+
+      try {
+        const detail = await adminCancelOrder({
+          orderId: order.id,
+          sessionId,
+        });
+        onDetailChange(detail);
+        onStatus("Замовлення видалено");
+      } catch (error) {
+        onStatus(
+          error instanceof Error ? error.message : "Не вдалося видалити замовлення"
+        );
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    cart.splice(lineIndex, 1);
+    await persistCart(cart);
+    onStatus("Страву видалено");
   }
 
   async function handleSettleLine(lineIndex: number) {
@@ -176,25 +209,25 @@ export default function AdminBillOrderCard({
               </div>
 
               {!disabled ? (
-                <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center rounded-xl border border-white/10 bg-brand-surface">
+                <div className="mt-2.5 flex flex-wrap items-stretch gap-2">
+                  <div className="inline-flex h-9 items-stretch rounded-xl border border-white/10 bg-brand-surface">
                     <button
                       type="button"
                       disabled={cardBusy}
                       onClick={() => void handleQuantityChange(lineIndex, -1)}
-                      className="px-2.5 py-1.5 text-brand-muted transition hover:text-stone-100 disabled:opacity-40"
+                      className="flex h-full items-center justify-center px-2.5 text-brand-muted transition hover:text-stone-100 disabled:opacity-40"
                       aria-label="Зменшити кількість"
                     >
                       <Minus className="h-3.5 w-3.5" />
                     </button>
-                    <span className="min-w-6 text-center text-sm font-medium tabular-nums text-stone-100">
+                    <span className="flex min-w-7 items-center justify-center text-sm font-medium tabular-nums text-stone-100">
                       {line.quantity}
                     </span>
                     <button
                       type="button"
                       disabled={cardBusy}
                       onClick={() => void handleQuantityChange(lineIndex, 1)}
-                      className="px-2.5 py-1.5 text-brand-muted transition hover:text-stone-100 disabled:opacity-40"
+                      className="flex h-full items-center justify-center px-2.5 text-brand-muted transition hover:text-stone-100 disabled:opacity-40"
                       aria-label="Збільшити кількість"
                     >
                       <Plus className="h-3.5 w-3.5" />
@@ -206,7 +239,7 @@ export default function AdminBillOrderCard({
                       type="button"
                       disabled={cardBusy}
                       onClick={() => void handleSettleLine(lineIndex)}
-                      className="rounded-xl border border-brand-accent/30 bg-brand-accent/10 px-3 py-1.5 text-xs font-semibold text-brand-accent transition hover:bg-brand-accent/15 disabled:opacity-50"
+                      className={`${lineActionClass} border-brand-accent/30 bg-brand-accent/10 px-3 text-brand-accent hover:bg-brand-accent/15`}
                     >
                       Розрахувати
                       {openQuantity < line.quantity
@@ -214,10 +247,20 @@ export default function AdminBillOrderCard({
                         : ""}
                     </button>
                   ) : (
-                    <span className="text-xs font-medium text-emerald-300/90">
+                    <span className="inline-flex h-9 items-center px-1 text-xs font-medium text-emerald-300/90">
                       Розраховано
                     </span>
                   )}
+
+                  <button
+                    type="button"
+                    disabled={cardBusy}
+                    onClick={() => void handleRemoveLine(lineIndex)}
+                    className={`${lineActionClass} gap-1.5 border-red-400/25 bg-red-500/10 px-3 text-red-300 hover:bg-red-500/15`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    Видалити
+                  </button>
                 </div>
               ) : null}
             </div>
