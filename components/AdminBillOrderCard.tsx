@@ -29,8 +29,8 @@ type Props = {
   onStatus: (message: string) => void;
 };
 
-const lineActionClass =
-  "inline-flex h-9 shrink-0 items-center justify-center rounded-xl border text-xs font-semibold transition disabled:opacity-50";
+const lineActionBase =
+  "inline-flex h-9 items-center justify-center rounded-xl border text-xs font-semibold transition disabled:opacity-50";
 
 export default function AdminBillOrderCard({
   order,
@@ -209,8 +209,8 @@ export default function AdminBillOrderCard({
               </div>
 
               {!disabled ? (
-                <div className="mt-2.5 flex flex-wrap items-stretch gap-2">
-                  <div className="inline-flex h-9 items-stretch rounded-xl border border-white/10 bg-brand-surface">
+                <div className="@container mt-2.5 flex flex-nowrap items-stretch gap-2">
+                  <div className="inline-flex h-9 shrink-0 items-stretch rounded-xl border border-white/10 bg-brand-surface">
                     <button
                       type="button"
                       disabled={cardBusy}
@@ -239,7 +239,7 @@ export default function AdminBillOrderCard({
                       type="button"
                       disabled={cardBusy}
                       onClick={() => void handleSettleLine(lineIndex)}
-                      className={`${lineActionClass} border-brand-accent/30 bg-brand-accent/10 px-3 text-brand-accent hover:bg-brand-accent/15`}
+                      className={`${lineActionBase} min-w-0 flex-1 shrink truncate border-brand-accent/30 bg-brand-accent/10 px-2 text-brand-accent hover:bg-brand-accent/15 @[300px]:px-3`}
                     >
                       Розрахувати
                       {openQuantity < line.quantity
@@ -247,7 +247,7 @@ export default function AdminBillOrderCard({
                         : ""}
                     </button>
                   ) : (
-                    <span className="inline-flex h-9 items-center px-1 text-xs font-medium text-emerald-300/90">
+                    <span className="inline-flex h-9 min-w-0 flex-1 items-center justify-center truncate px-1 text-xs font-medium text-emerald-300/90">
                       Розраховано
                     </span>
                   )}
@@ -256,10 +256,11 @@ export default function AdminBillOrderCard({
                     type="button"
                     disabled={cardBusy}
                     onClick={() => void handleRemoveLine(lineIndex)}
-                    className={`${lineActionClass} gap-1.5 border-red-400/25 bg-red-500/10 px-3 text-red-300 hover:bg-red-500/15`}
+                    aria-label="Видалити страву"
+                    className={`${lineActionBase} w-9 shrink-0 gap-0 border-red-400/25 bg-red-500/10 px-0 text-red-300 hover:bg-red-500/15 @[300px]:w-auto @[300px]:gap-1.5 @[300px]:px-3`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Видалити
+                    <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                    <span className="hidden @[300px]:inline">Видалити</span>
                   </button>
                 </div>
               ) : null}
