@@ -45,6 +45,9 @@ export type SessionDetailData = {
   orders: TrackedOrder[];
   guestCount: number;
   checkoutBlocked?: boolean;
+  checkoutBlockReason?: string | null;
+  unpaidTotal?: number;
+  blockingKitchenCount?: number;
 };
 
 export type ClosedSessionArchiveItem = {

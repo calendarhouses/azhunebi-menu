@@ -157,6 +157,13 @@ export async function adminSettleOrderLine(payload: {
   );
 }
 
+export async function adminSettleAllSessionOrders(sessionId: string) {
+  return adminRequest<import("@/lib/runningTab").SessionDetailData>(
+    "settleAllSessionOrders",
+    { sessionId }
+  );
+}
+
 /**
  * Uploads a compressed image Blob directly to Supabase Storage.
  * Generates a unique path: menu/dish_<timestamp>.<ext>

@@ -14,6 +14,7 @@ import {
   adminLoadSessionDetail,
   adminLoadSessionsDashboard,
   adminMoveOrderToHouse,
+  adminSettleAllSessionOrders,
 } from "@/lib/adminApi";
 import {
   formatCabinDisplay,
@@ -134,6 +135,9 @@ export default function AdminSessionsTab({ onStatus }: Props) {
       orders: data.orders,
       guestCount: data.guestCount,
       checkoutBlocked: data.checkoutBlocked,
+      checkoutBlockReason: data.checkoutBlockReason,
+      unpaidTotal: data.unpaidTotal,
+      blockingKitchenCount: data.blockingKitchenCount,
     });
   }
 
@@ -241,6 +245,29 @@ export default function AdminSessionsTab({ onStatus }: Props) {
     }
   }
 
+  async function handleSettleAllSession() {
+    if (!detail?.session?.id || isReadOnly) {
+      return;
+    }
+
+    setBusy(true);
+    triggerImpact("medium");
+
+    try {
+      const data = await adminSettleAllSessionOrders(detail.session.id);
+      applySessionDetail(data);
+      triggerSuccess();
+      onStatus("Усі страви розраховано");
+      await loadDashboard(true);
+    } catch (err) {
+      onStatus(
+        err instanceof Error ? err.message : "Не вдалося розрахувати страви"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleMoveOrder(orderId: string, cabinNumber: number) {
     if (!detail?.session?.id || isReadOnly) {
       return;
@@ -255,14 +282,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         sessionId: detail.session.id,
       });
 
-      setDetail({
-        session: data.session,
-        confirmedTotal: data.confirmedTotal,
-        pendingTotal: data.pendingTotal,
-        orders: data.orders,
-        guestCount: data.guestCount,
-        checkoutBlocked: data.checkoutBlocked,
-      });
+      applySessionDetail(data);
       setMoveOrderId(null);
       onStatus(`Замовлення перенесено до Будинку ${cabinNumber}`);
       await loadDashboard(true);
@@ -298,14 +318,7 @@ export default function AdminSessionsTab({ onStatus }: Props) {
         sessionId: detail.session.id,
       });
 
-      setDetail({
-        session: data.session,
-        confirmedTotal: data.confirmedTotal,
-        pendingTotal: data.pendingTotal,
-        orders: data.orders,
-        guestCount: data.guestCount,
-        checkoutBlocked: data.checkoutBlocked,
-      });
+      applySessionDetail(data);
       setConfirmAction(null);
       onStatus("Замовлення видалено");
       await loadDashboard(true);
@@ -638,14 +651,34 @@ export default function AdminSessionsTab({ onStatus }: Props) {
             </div>
 
             {!isReadOnly ? (
-              <button
-                type="button"
-                disabled={busy || Boolean(detail.checkoutBlocked)}
-                onClick={openCheckOutConfirm}
-                className="btn-accent w-full rounded-2xl py-4 text-base font-bold shadow-[0_12px_32px_rgba(196,165,116,0.22)] disabled:opacity-50"
-              >
-                {busy ? "Обробка…" : "Закрити рахунок / Виселити"}
-              </button>
+              <div className="space-y-3">
+                {(detail.unpaidTotal ?? 0) > 0 &&
+                (detail.blockingKitchenCount ?? 0) === 0 ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void handleSettleAllSession()}
+                    className="w-full rounded-2xl border border-brand-accent/30 bg-brand-accent/10 py-3.5 text-sm font-semibold text-brand-accent transition hover:bg-brand-accent/15 disabled:opacity-50"
+                  >
+                    {busy ? "Обробка…" : "Розрахувати усі страви"}
+                  </button>
+                ) : null}
+
+                {detail.checkoutBlocked && detail.checkoutBlockReason ? (
+                  <p className="px-1 text-center text-xs text-brand-muted">
+                    {detail.checkoutBlockReason}
+                  </p>
+                ) : null}
+
+                <button
+                  type="button"
+                  disabled={busy || Boolean(detail.checkoutBlocked)}
+                  onClick={openCheckOutConfirm}
+                  className="btn-accent w-full rounded-2xl py-4 text-base font-bold shadow-[0_12px_32px_rgba(196,165,116,0.22)] disabled:opacity-50"
+                >
+                  {busy ? "Обробка…" : "Закрити рахунок / Виселити"}
+                </button>
+              </div>
             ) : null}
           </div>
         ) : null}
