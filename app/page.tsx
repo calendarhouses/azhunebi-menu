@@ -13,10 +13,10 @@ import { useAppReady } from "@/components/AppReadyProvider";
 import {
   changeGuestHouseRequest,
   createOrderRequest,
-  fetchActiveOrders,
   fetchHouseBinding,
   fetchOrderById,
   fetchRunningTab,
+  fetchSessionSync,
   isTelegramWebApp,
 } from "@/lib/ordersApi";
 import {
@@ -46,8 +46,9 @@ import type { HouseBinding, RunningTabData } from "@/lib/runningTab";
 import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const ORDER_POLL_MS = 5000;
-const ORDER_POLL_OPEN_MS = 2000;
+const ORDER_POLL_IDLE_MS = 45_000;
+const ORDER_POLL_ACTIVE_MS = 12_000;
+const ORDER_POLL_OPEN_MS = 8_000;
 const RECENT_ORDER_GRACE_MS = 90_000;
 const MISSING_ORDER_GRACE_MS = 45_000;
 
@@ -355,10 +356,8 @@ export default function Home() {
             "preparing",
           ]);
 
-          const [allFetchedOrders, runningTabData] = await Promise.all([
-            fetchActiveOrders(),
-            fetchRunningTab(),
-          ]);
+          const { orders: allFetchedOrders, runningTab: runningTabData } =
+            await fetchSessionSync();
 
           hasRunningTab = Boolean(runningTabData);
 
@@ -743,15 +742,72 @@ export default function Home() {
       return;
     }
 
-    const pollMs = ordersOpen ? ORDER_POLL_OPEN_MS : ORDER_POLL_MS;
+    let cancelled = false;
+    let timeoutId = 0;
 
-    void syncOrders({ silent: true });
+    const IN_PROGRESS = new Set(["pending", "accepted", "preparing"]);
 
-    const intervalId = window.setInterval(() => {
-      void syncOrders({ silent: true });
-    }, pollMs);
+    function nextPollMs() {
+      if (document.visibilityState === "hidden") {
+        return null;
+      }
 
-    return () => window.clearInterval(intervalId);
+      if (ordersOpen) {
+        return ORDER_POLL_OPEN_MS;
+      }
+
+      const hasInProgress = ordersRef.current.some((order) =>
+        IN_PROGRESS.has(order.status)
+      );
+      if (hasInProgress) {
+        return ORDER_POLL_ACTIVE_MS;
+      }
+
+      if (runningTabRef.current) {
+        return ORDER_POLL_ACTIVE_MS;
+      }
+
+      return ORDER_POLL_IDLE_MS;
+    }
+
+    const tick = async () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (document.visibilityState !== "hidden") {
+        await syncOrders({ silent: true });
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      const delay = nextPollMs();
+      if (delay == null) {
+        return;
+      }
+
+      timeoutId = window.setTimeout(() => {
+        void tick();
+      }, delay);
+    };
+
+    const onVisibility = () => {
+      window.clearTimeout(timeoutId);
+      if (document.visibilityState === "visible") {
+        void tick();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+    void tick();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [headerActionsReady, syncOrders, ordersOpen]);
 
   const submitOrder = useCallback(async (): Promise<boolean> => {

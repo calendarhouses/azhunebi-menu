@@ -15,6 +15,7 @@ type OrderAction =
   | "get"
   | "create"
   | "attachScreenshot"
+  | "sync"
   | "getRunningTab"
   | "getHouseBinding"
   | "changeHouse"
@@ -114,6 +115,26 @@ export async function fetchActiveOrders(): Promise<TrackedOrder[]> {
 
   const result = await orderRequest<{ orders: TrackedOrder[] }>("list");
   return result.orders || [];
+}
+
+/** One request: active orders + running house tab (for polling). */
+export async function fetchSessionSync(): Promise<{
+  orders: TrackedOrder[];
+  runningTab: import("@/lib/runningTab").RunningTabData | null;
+}> {
+  if (!getInitData()) {
+    return { orders: [], runningTab: null };
+  }
+
+  const result = await orderRequest<{
+    orders: TrackedOrder[];
+    runningTab: import("@/lib/runningTab").RunningTabData | null;
+  }>("sync");
+
+  return {
+    orders: result.orders || [],
+    runningTab: result.runningTab ?? null,
+  };
 }
 
 export async function fetchOrderById(

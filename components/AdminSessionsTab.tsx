@@ -31,7 +31,8 @@ import { triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { ArrowRightLeft, Home } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const POLL_MS = 5000;
+const POLL_MS = 12_000;
+const POLL_DETAIL_MS = 10_000;
 
 type ViewMode = "active" | "archive";
 
@@ -161,16 +162,51 @@ export default function AdminSessionsTab({ onStatus }: Props) {
   }, [onStatus]);
 
   useEffect(() => {
-    if (viewMode === "active") {
-      void loadDashboard();
-      const timer = window.setInterval(() => {
-        void loadDashboard(true);
-      }, POLL_MS);
-      return () => window.clearInterval(timer);
+    if (viewMode !== "active") {
+      void loadArchive();
+      return undefined;
     }
 
-    void loadArchive();
-    return undefined;
+    let cancelled = false;
+    let timeoutId = 0;
+
+    const tick = async () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (document.visibilityState !== "hidden") {
+        await loadDashboard(true);
+      }
+
+      if (cancelled || document.visibilityState === "hidden") {
+        return;
+      }
+
+      timeoutId = window.setTimeout(() => {
+        void tick();
+      }, POLL_MS);
+    };
+
+    const onVisibility = () => {
+      window.clearTimeout(timeoutId);
+      if (document.visibilityState === "visible") {
+        void tick();
+      }
+    };
+
+    void loadDashboard();
+    timeoutId = window.setTimeout(() => {
+      void tick();
+    }, POLL_MS);
+
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [viewMode, loadDashboard, loadArchive]);
 
   useEffect(() => {
@@ -184,17 +220,51 @@ export default function AdminSessionsTab({ onStatus }: Props) {
       return;
     }
 
+    let cancelled = false;
+    let timeoutId = 0;
+
     void loadDetail(sessionId);
 
     if (viewMode !== "active") {
       return undefined;
     }
 
-    const timer = window.setInterval(() => {
-      void loadDetail(sessionId, true);
-    }, POLL_MS);
+    const tick = async () => {
+      if (cancelled) {
+        return;
+      }
 
-    return () => window.clearInterval(timer);
+      if (document.visibilityState !== "hidden") {
+        await loadDetail(sessionId, true);
+      }
+
+      if (cancelled || document.visibilityState === "hidden") {
+        return;
+      }
+
+      timeoutId = window.setTimeout(() => {
+        void tick();
+      }, POLL_DETAIL_MS);
+    };
+
+    const onVisibility = () => {
+      window.clearTimeout(timeoutId);
+      if (document.visibilityState === "visible") {
+        void tick();
+      }
+    };
+
+    timeoutId = window.setTimeout(() => {
+      void tick();
+    }, POLL_DETAIL_MS);
+
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [selectedCabin, selectedArchiveId, viewMode, loadDetail]);
 
   function openCheckOutConfirm() {
