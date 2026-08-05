@@ -2,7 +2,7 @@
 
 import BrandLogo from "@/components/BrandLogo";
 import { SettingsIcon } from "@/components/HeaderIcons";
-import { ClipboardList, Receipt } from "lucide-react";
+import { ClipboardList, Receipt, Scale } from "lucide-react";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -12,6 +12,8 @@ type MenuHeaderProps = {
   showAdminLink?: boolean;
   showOrdersLink?: boolean;
   showBillLink?: boolean;
+  /** Admin-only: house settlements (admin sessions), replaces guest bill. */
+  showSettlementsLink?: boolean;
   actionsLoading?: boolean;
   skeletonCount?: number;
   onOpenOrders?: () => void;
@@ -119,19 +121,33 @@ function ActionCardSkeleton({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function AdminActionCard({ compact = false }: { compact?: boolean }) {
+function LinkActionCard({
+  href,
+  title,
+  hint,
+  ariaLabel,
+  compact = false,
+  children,
+}: {
+  href: string;
+  title: string;
+  hint?: string;
+  ariaLabel: string;
+  compact?: boolean;
+  children: ReactNode;
+}) {
   if (compact) {
     return (
       <Link
-        href="/admin"
+        href={href}
         className="group relative flex min-h-[4.75rem] flex-col items-center justify-center gap-2 rounded-[20px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99]"
-        aria-label="Адмін-панель"
+        aria-label={ariaLabel}
       >
         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18">
-          <SettingsIcon className="h-5 w-5" />
+          {children}
         </span>
         <span className="text-xs font-semibold leading-tight text-stone-50">
-          Адмін
+          {title}
         </span>
       </Link>
     );
@@ -139,20 +155,36 @@ function AdminActionCard({ compact = false }: { compact?: boolean }) {
 
   return (
     <Link
-      href="/admin"
+      href={href}
       className="group relative flex min-h-[5.5rem] min-w-0 flex-1 items-center gap-3.5 rounded-[22px] border border-stone-600/20 bg-gradient-to-br from-brand-surface-elevated/95 to-brand-surface/70 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_28px_rgba(0,0,0,0.16)] transition hover:border-brand-accent/25 active:scale-[0.99]"
-      aria-label="Адмін-панель"
+      aria-label={ariaLabel}
     >
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-accent/12 text-brand-accent ring-1 ring-brand-accent/20 transition group-hover:bg-brand-accent/18">
-        <SettingsIcon className="h-6 w-6" />
+        {children}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-semibold leading-tight text-stone-50">
-          Адмін
+          {title}
         </span>
-        <span className="mt-0.5 block text-xs text-brand-muted">Керування меню</span>
+        {hint ? (
+          <span className="mt-0.5 block text-xs text-brand-muted">{hint}</span>
+        ) : null}
       </span>
     </Link>
+  );
+}
+
+function AdminActionCard({ compact = false }: { compact?: boolean }) {
+  return (
+    <LinkActionCard
+      href="/admin"
+      title="Адмін"
+      hint="Керування меню"
+      ariaLabel="Адмін-панель"
+      compact={compact}
+    >
+      <SettingsIcon className={compact ? "h-5 w-5" : "h-6 w-6"} />
+    </LinkActionCard>
   );
 }
 
@@ -162,13 +194,17 @@ export default function MenuHeader({
   showAdminLink = false,
   showOrdersLink = false,
   showBillLink = false,
+  showSettlementsLink = false,
   actionsLoading = false,
   skeletonCount,
   onOpenOrders,
   onOpenBill,
 }: MenuHeaderProps) {
   const actionCount =
-    (showOrdersLink ? 1 : 0) + (showBillLink ? 1 : 0) + (showAdminLink ? 1 : 0);
+    (showOrdersLink ? 1 : 0) +
+    (showBillLink ? 1 : 0) +
+    (showSettlementsLink ? 1 : 0) +
+    (showAdminLink ? 1 : 0);
   const placeholderCount = skeletonCount ?? (showAdminLink ? 3 : 2);
   const compactActions = actionsLoading
     ? placeholderCount >= 2
@@ -252,6 +288,22 @@ export default function MenuHeader({
                       aria-hidden
                     />
                   </PremiumActionCard>
+                ) : null}
+
+                {showSettlementsLink ? (
+                  <LinkActionCard
+                    href="/admin?tab=sessions"
+                    title="Розрахунки"
+                    hint="Рахунки будинків"
+                    ariaLabel="Розрахунки будинків"
+                    compact={compactActions}
+                  >
+                    <Scale
+                      className={compactActions ? "h-5 w-5" : "h-6 w-6"}
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                  </LinkActionCard>
                 ) : null}
 
                 {showAdminLink ? <AdminActionCard compact={compactActions} /> : null}

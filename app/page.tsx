@@ -150,9 +150,11 @@ export default function Home() {
   cartOpenRef.current = cartOpen;
 
   const showOrdersLink = Boolean(headerActionConfig?.showOrders);
-  const showBillLink = Boolean(
-    headerActionConfig?.showBill || (inTelegram && runningTab)
-  );
+  // Guests: personal house bill. Admins: settlements instead (see MenuHeader).
+  const showBillLink =
+    !showAdminLink &&
+    Boolean(headerActionConfig?.showBill || (inTelegram && runningTab));
+  const showSettlementsLink = showAdminLink;
 
   const cartTotal = useMemo(() => getCartTotal(cart), [cart]);
   const cartCount = useMemo(() => getCartCount(cart), [cart]);
@@ -1012,7 +1014,11 @@ export default function Home() {
 
   const headerSkeletonCount = headerActionConfig
     ? (headerActionConfig.showOrders ? 1 : 0) +
-      (headerActionConfig.showBill ? 1 : 0) +
+      (showAdminLink
+        ? 1
+        : headerActionConfig.showBill
+          ? 1
+          : 0) +
       (showAdminLink ? 1 : 0)
     : showAdminLink
       ? 3
@@ -1040,6 +1046,7 @@ export default function Home() {
           showAdminLink={showAdminLink}
           showOrdersLink={showOrdersLink}
           showBillLink={showBillLink}
+          showSettlementsLink={showSettlementsLink}
           actionsLoading={!headerActionsReady}
           skeletonCount={headerSkeletonCount}
           onOpenOrders={() => {

@@ -59,6 +59,13 @@ export default function AdminPage() {
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "sessions") {
+      setTab("sessions");
+    }
+  }, []);
+
   useTelegramApp({ backVisible: true, onBack: () => window.history.back() });
 
   const loadAdminData = useCallback(async () => {
@@ -171,9 +178,10 @@ export default function AdminPage() {
   const tabs: [Tab, string][] = [
     ["dishes", "Страви"],
     ["categories", "Категорії"],
-    ["sessions", "Рахунки"],
   ];
   if (canManageAdmins) tabs.push(["access", "Доступ"]);
+
+  const isSessionsView = tab === "sessions";
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-white">
@@ -200,7 +208,7 @@ export default function AdminPage() {
         <div className="mx-auto flex max-w-6xl items-start justify-between gap-4 px-4 py-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-brand-accent/70">
-              Адмін панель
+              {isSessionsView ? "Розрахунки" : "Адмін панель"}
             </h1>
             {telegramUsername && (
               <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-brand-surface-elevated px-4 py-2">
@@ -220,31 +228,33 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <nav
-        aria-label="Розділи адмін-панелі"
-        className="shrink-0 border-b border-white/10 bg-brand-surface"
-      >
-        <div className="scroll-strip-x scrollbar-hide">
-          <div className="mx-auto max-w-6xl px-4 py-3">
-            <div className="inline-flex rounded-xl bg-white/5 p-1">
-              {tabs.map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={`shrink-0 whitespace-nowrap rounded-lg px-5 py-2 text-sm font-medium transition-all duration-300 ${
-                    tab === id
-                      ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
-                      : "text-white/40 hover:text-white/70"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+      {!isSessionsView ? (
+        <nav
+          aria-label="Розділи адмін-панелі"
+          className="shrink-0 border-b border-white/10 bg-brand-surface"
+        >
+          <div className="scroll-strip-x scrollbar-hide">
+            <div className="mx-auto max-w-6xl px-4 py-3">
+              <div className="inline-flex rounded-xl bg-white/5 p-1">
+                {tabs.map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTab(id)}
+                    className={`shrink-0 whitespace-nowrap rounded-lg px-5 py-2 text-sm font-medium transition-all duration-300 ${
+                      tab === id
+                        ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
+                        : "text-white/40 hover:text-white/70"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-none touch-pan-y">
       <div className="mx-auto max-w-6xl px-4 py-6">
