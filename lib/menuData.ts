@@ -14,11 +14,14 @@ type CategoryRow = {
   is_active?: boolean;
 };
 
+const MENU_ITEM_COLUMNS =
+  "id, tenant_id, name, price, image_url, category, description, allergens, weight_g, is_available, created_at";
+
 export async function fetchMenuData(): Promise<MenuDataResult> {
   const [menuResult, categoriesResult, settingsResult] = await Promise.all([
     supabase
       .from("menu_items")
-      .select("*")
+      .select(MENU_ITEM_COLUMNS)
       .eq("tenant_id", TENANT_ID)
       .eq("is_available", true)
       .order("created_at", { ascending: true }),
@@ -29,7 +32,7 @@ export async function fetchMenuData(): Promise<MenuDataResult> {
       .order("sort_order", { ascending: true }),
     supabase
       .from("tenant_settings")
-      .select("tenant_id")
+      .select("tenant_id, logo_url")
       .eq("tenant_id", TENANT_ID)
       .maybeSingle(),
   ]);

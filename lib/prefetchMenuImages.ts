@@ -21,20 +21,23 @@ function loadImage(url: string): Promise<void> {
 }
 
 /**
- * Warms the in-memory + browser cache for all menu photos.
- * Optional timeout so the preloader never blocks too long on slow networks.
+ * Warm cache for a small set of visible dish photos only.
+ * Full-menu prefetch was a major Supabase Storage egress source.
  */
 export async function prefetchMenuImages(
   items: { image_url: string | null }[],
-  options?: { timeoutMs?: number }
+  options?: { timeoutMs?: number; limit?: number }
 ): Promise<void> {
+  const limit = options?.limit ?? 6;
   const urls = [
     ...new Set(
       items
         .map((item) => item.image_url)
         .filter((url): url is string => Boolean(url))
     ),
-  ].filter((url) => !isImageCached(url) && !isImageFailed(url));
+  ]
+    .filter((url) => !isImageCached(url) && !isImageFailed(url))
+    .slice(0, limit);
 
   if (urls.length === 0) return;
 

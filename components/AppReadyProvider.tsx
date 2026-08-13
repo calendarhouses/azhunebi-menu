@@ -14,9 +14,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+
+const MENU_VISIBILITY_REFRESH_MS = 5 * 60 * 1000;
 
 type AppReadyContextValue = {
   isAppReady: boolean;
@@ -44,6 +47,7 @@ export function useAppReady() {
 export default function AppReadyProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const needsHeaderActions = pathname === "/";
+  const lastMenuFetchAtRef = useRef(0);
 
   const [isAppReady, setIsAppReady] = useState(false);
   const [headerActionsReady, setHeaderActionsReady] = useState(
@@ -62,13 +66,24 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
   const isFullyReady =
     isAppReady && (!needsHeaderActions || headerActionsReady);
 
-  const refreshMenu = useCallback(async () => {
+  const refreshMenu = useCallback(async (options?: { force?: boolean }) => {
+    const now = Date.now();
+    if (
+      !options?.force &&
+      lastMenuFetchAtRef.current > 0 &&
+      now - lastMenuFetchAtRef.current < MENU_VISIBILITY_REFRESH_MS
+    ) {
+      return;
+    }
+
     const menuData = await fetchMenuData();
+    lastMenuFetchAtRef.current = Date.now();
     setItems(menuData.items);
     setCategories(menuData.categories);
     setLogoUrl(menuData.logoUrl);
     setMenuLoadError(menuData.error);
-    void prefetchMenuImages(menuData.items);
+    // Only warm first screen of photos — rest load lazily via DishImage
+    void prefetchMenuImages(menuData.items, { limit: 8, timeoutMs: 2500 });
   }, []);
 
   useEffect(() => {
@@ -86,6 +101,7 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
         return;
       }
 
+      lastMenuFetchAtRef.current = Date.now();
       setItems(menuData.items);
       setCategories(menuData.categories);
       setLogoUrl(menuData.logoUrl);
@@ -93,8 +109,7 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
       setShowAdminLink(adminResult.isAdmin);
       setIsAppReady(true);
 
-      // Prefetch photos in the background — never blocks the preloader for guests
-      void prefetchMenuImages(menuData.items);
+      void prefetchMenuImages(menuData.items, { limit: 8, timeoutMs: 2500 });
     };
 
     bootstrap();
@@ -124,7 +139,7 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
       logoUrl,
       showAdminLink,
       menuLoadError,
-      refreshMenu,
+      refreshMenu: () => refreshMenu({ force: true }),
     }),
     [
       isAppReady,

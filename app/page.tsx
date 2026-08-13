@@ -46,9 +46,9 @@ import type { HouseBinding, RunningTabData } from "@/lib/runningTab";
 import type { MenuItemRow } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const ORDER_POLL_IDLE_MS = 45_000;
-const ORDER_POLL_ACTIVE_MS = 12_000;
-const ORDER_POLL_OPEN_MS = 8_000;
+const ORDER_POLL_IDLE_MS = 90_000;
+const ORDER_POLL_ACTIVE_MS = 30_000;
+const ORDER_POLL_OPEN_MS = 15_000;
 const RECENT_ORDER_GRACE_MS = 90_000;
 const MISSING_ORDER_GRACE_MS = 45_000;
 
@@ -583,9 +583,7 @@ export default function Home() {
 
   const fetchData = refreshMenu;
 
-  useEffect(() => {
-    void refreshMenu();
-  }, [refreshMenu]);
+  // Menu bootstrap lives in AppReadyProvider — avoid a second full Supabase fetch on mount
 
   useEffect(() => {
     if (!cartHydrated || !startParamReady) {

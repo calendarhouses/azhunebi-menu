@@ -31,8 +31,8 @@ import { triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { ArrowRightLeft, Home } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const POLL_MS = 12_000;
-const POLL_DETAIL_MS = 10_000;
+const POLL_MS = 45_000;
+const POLL_DETAIL_MS = 20_000;
 
 type ViewMode = "active" | "archive";
 

@@ -1,7 +1,8 @@
-const MAX_DIMENSION = 1280; // sharp on retina phones
-const TARGET_BYTES = 250 * 1024; // aim for ≤250 KB
+// Menu cards are small; 960 + ~180KB cuts Storage egress vs prior 1280/250KB
+const MAX_DIMENSION = 960;
+const TARGET_BYTES = 180 * 1024;
 const MIN_QUALITY = 0.5;
-const START_QUALITY = 0.82;
+const START_QUALITY = 0.8;
 
 export type CompressedImage = {
   blob: Blob;

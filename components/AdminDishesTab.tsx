@@ -64,7 +64,7 @@ export default function AdminDishesTab({
 
   useEffect(() => {
     setLocalDishes(dishes);
-    void prefetchMenuImages(dishes);
+    void prefetchMenuImages(dishes, { limit: 24, timeoutMs: 4000 });
   }, [dishes]);
 
   const categoryNames = Array.from(

@@ -183,7 +183,8 @@ export async function uploadDishImage(
     .from(STORAGE_BUCKET)
     .upload(fileName, blob, {
       contentType,
-      cacheControl: "3600",
+      // Match booking platform: year-long browser/CDN cache to cut Storage egress
+      cacheControl: "31536000",
       upsert: false,
     });
 

@@ -16,13 +16,9 @@ type DishImageProps = {
   large?: boolean;
   compact?: boolean;
   fit?: "contain" | "cover";
+  /** Eager only for above-the-fold / selected dish; default lazy to cut Storage egress */
+  priority?: boolean;
 };
-
-function probeBrowserCache(src: string): boolean {
-  const probe = new Image();
-  probe.src = src;
-  return probe.complete && probe.naturalWidth > 0;
-}
 
 function DishImage({
   src,
@@ -31,13 +27,13 @@ function DishImage({
   large = false,
   compact = false,
   fit = "contain",
+  priority = false,
 }: DishImageProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(() => {
     if (!src) return false;
     if (isImageFailed(src)) return false;
-    if (isImageCached(src)) return true;
-    return probeBrowserCache(src);
+    return isImageCached(src);
   });
   const [hasError, setHasError] = useState(() =>
     Boolean(src && isImageFailed(src))
@@ -56,8 +52,7 @@ function DishImage({
       return;
     }
 
-    if (isImageCached(src) || probeBrowserCache(src)) {
-      markImageCached(src);
+    if (isImageCached(src)) {
       setHasError(false);
       setLoaded(true);
       return;
@@ -97,23 +92,15 @@ function DishImage({
         </div>
       ) : null}
 
-      {fit === "contain" && loaded ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          aria-hidden
-          decoding="async"
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-md saturate-125"
-        />
-      ) : null}
-
+      {/* Single <img> only — blur duplicate doubled Storage downloads on cache miss */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imgRef}
         src={src}
         alt={alt}
         decoding="async"
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
         onLoad={() => {
           markImageCached(src);
           setLoaded(true);

@@ -79,7 +79,7 @@ export default function AdminPage() {
       setAdmins((data.admins || []) as AdminRow[]);
       setCanManageAdmins(Boolean(data.canManageAdmins));
       setTelegramUsername(data.username || null);
-      void prefetchMenuImages(dishList);
+      void prefetchMenuImages(dishList, { limit: 24, timeoutMs: 4000 });
     } catch (err) {
       setLoadError(
         err instanceof Error ? err.message : "Не вдалося завантажити дані"
