@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 
-const ADMIN_API_URL = "https://azhunebi-bot.vercel.app/api/admin";
+const ADMIN_API_URL =
+  process.env.NEXT_PUBLIC_ADMIN_API_URL ||
+  "https://azhunebi-bot-six.vercel.app/api/admin";
 const STORAGE_BUCKET = "xata-public";
 const STORAGE_FOLDER = "menu";
 

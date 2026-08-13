@@ -1,6 +1,8 @@
 import type { TrackedOrder } from "@/lib/orderStatus";
 
-export const BOT_API_URL = "https://azhunebi-bot.vercel.app/api/order";
+export const BOT_API_URL =
+  process.env.NEXT_PUBLIC_BOT_API_URL ||
+  "https://azhunebi-bot-six.vercel.app/api/order";
 
 function getInitData() {
   return window.Telegram?.WebApp?.initData || "";
