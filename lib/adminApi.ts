@@ -1,10 +1,6 @@
-import { supabase } from "@/lib/supabase";
-
 const ADMIN_API_URL =
   process.env.NEXT_PUBLIC_ADMIN_API_URL ||
   "https://azhunebi-bot-six.vercel.app/api/admin";
-const STORAGE_BUCKET = "xata-public";
-const STORAGE_FOLDER = "menu";
 
 type AdminCheckResult = {
   isAdmin: boolean;
@@ -167,9 +163,8 @@ export async function adminSettleAllSessionOrders(sessionId: string) {
 }
 
 /**
- * Uploads a compressed image Blob directly to Supabase Storage.
- * Generates a unique path: menu/dish_<timestamp>.<ext>
- * Returns the public URL of the uploaded file.
+ * Uploads a compressed image via bot service role (bypasses Storage RLS).
+ * Direct anon uploads to xata-public fail on the new Supabase project.
  */
 export async function uploadDishImage(
   blob: Blob,
@@ -177,26 +172,43 @@ export async function uploadDishImage(
 ): Promise<string> {
   const ext = options.ext || "webp";
   const contentType = options.contentType || blob.type || "image/webp";
-  const fileName = `${STORAGE_FOLDER}/dish_${Date.now()}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(fileName, blob, {
-      contentType,
-      // Match booking platform: year-long browser/CDN cache to cut Storage egress
-      cacheControl: "31536000",
-      upsert: false,
-    });
+  const fileBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
 
-  if (error) {
-    throw new Error(`Помилка завантаження фото: ${error.message}`);
+    reader.onload = () => {
+      const value = reader.result;
+
+      if (typeof value !== "string") {
+        reject(new Error("Failed to read file"));
+        return;
+      }
+
+      const base64 = value.split(",")[1];
+      if (!base64) {
+        reject(new Error("Failed to read file"));
+        return;
+      }
+
+      resolve(base64);
+    };
+
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(blob);
+  });
+
+  const result = await adminRequest<{ imageUrl: string }>("uploadDishImage", {
+    fileBase64,
+    contentType,
+    ext,
+    fileName: `dish.${ext}`,
+  });
+
+  if (!result.imageUrl) {
+    throw new Error("Помилка завантаження фото: порожня відповідь сервера");
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fileName);
-
-  return publicUrl;
+  return result.imageUrl;
 }
 
 export async function uploadAdminLogo(file: File) {
