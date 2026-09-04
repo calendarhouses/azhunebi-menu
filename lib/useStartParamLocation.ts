@@ -7,6 +7,8 @@ import {
 import { useEffect, useState } from "react";
 
 const START_PARAM_STORAGE_KEY = "azhunebi_tg_start_param";
+const ACCESS_GRANTED_KEY = "azhunebi_guest_access_granted_at";
+const ACCESS_GRANTED_TTL_MS = 18 * 60 * 60 * 1000;
 
 function persistStartParam(value: string | null | undefined) {
   if (typeof window === "undefined" || !value?.trim()) {
@@ -27,6 +29,36 @@ function readStoredStartParam(): string | null {
     return window.sessionStorage.getItem(START_PARAM_STORAGE_KEY);
   } catch {
     return null;
+  }
+}
+
+export function markGuestAccessGranted() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ACCESS_GRANTED_KEY, String(Date.now()));
+  } catch {
+    // ignore
+  }
+}
+
+export function clearGuestAccessGranted() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(ACCESS_GRANTED_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function hasRememberedGuestAccess() {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.localStorage.getItem(ACCESS_GRANTED_KEY);
+    const at = Number(raw || 0);
+    if (!Number.isFinite(at) || at <= 0) return false;
+    return Date.now() - at < ACCESS_GRANTED_TTL_MS;
+  } catch {
+    return false;
   }
 }
 
@@ -116,18 +148,19 @@ export function useStartParamLocation() {
 
       const value = readTelegramStartParam();
       const webApp = window.Telegram?.WebApp;
-      const hasTelegramContext =
-        Boolean(webApp?.initData) || webApp?.initDataUnsafe !== undefined;
+      const hasInitData = Boolean(webApp?.initData);
 
       if (value) {
         resolve(value);
         return;
       }
 
-      // Wait longer for cold startapp launches before giving up.
-      if (attempts < 30) {
+      // Button re-open has initData but no startapp — don't wait ~3s.
+      // Cold Direct Link may need a short moment for start_param to appear.
+      const maxAttempts = hasInitData ? 6 : 24;
+      if (attempts < maxAttempts) {
         attempts += 1;
-        window.setTimeout(boot, hasTelegramContext ? 100 : 200);
+        window.setTimeout(boot, hasInitData ? 80 : 150);
         return;
       }
 

@@ -45,6 +45,9 @@ import {
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
 import {
+  clearGuestAccessGranted,
+  hasRememberedGuestAccess,
+  markGuestAccessGranted,
   readTelegramStartParam,
   useStartParamLocation,
 } from "@/lib/useStartParamLocation";
@@ -222,6 +225,11 @@ export default function Home() {
 
       const hasValidQr = Boolean(parseStartParamLocation(lastParam));
       const allowed = Boolean(result?.allowed) || hasValidQr;
+      if (result?.allowed) {
+        markGuestAccessGranted();
+      } else if (!hasValidQr) {
+        clearGuestAccessGranted();
+      }
       setGuestAccessAllowed(allowed);
 
       if (allowed && (hasValidQr || result?.location)) {
@@ -233,7 +241,10 @@ export default function Home() {
       console.error("[guest-access] check failed", error);
       const param = startParam || readTelegramStartParam();
       const hasValidQr = Boolean(parseStartParamLocation(param));
-      setGuestAccessAllowed(hasValidQr);
+      // Network/API blip: keep menu if we already earned access this visit/day.
+      setGuestAccessAllowed(
+        hasValidQr || hasRememberedGuestAccess()
+      );
       if (hasValidQr) {
         void ensureWelcomeInChat(param);
       }
