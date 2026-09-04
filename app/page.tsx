@@ -1217,7 +1217,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative fixed inset-0 flex flex-col overflow-hidden bg-brand-bg text-stone-100">
+    <div className="tg-app-shell relative fixed inset-0 overflow-hidden bg-brand-bg text-stone-100">
       {accessPending ? (
         <div
           className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-brand-bg"
@@ -1245,80 +1245,83 @@ export default function Home() {
         </div>
       ) : null}
 
-      <div className="shrink-0">
-        <MenuHeader
-          logoUrl={logoUrl}
-          ordersCount={orders.length}
-          showAdminLink={showAdminLink}
-          showOrdersLink={showOrdersLink}
-          showBillLink={showBillLink}
-          showSettlementsLink={showSettlementsLink}
-          actionsLoading={!headerActionsReady}
-          skeletonCount={headerSkeletonCount}
-          onOpenOrders={() => {
-            setOrdersOpen(true);
-            syncOrders({ silent: ordersLoadedOnceRef.current });
-          }}
-          onOpenBill={() => {
-            setBillOpen(true);
-            syncOrders({ silent: ordersLoadedOnceRef.current });
-          }}
-        />
-
-        <CategoryBar
-          categories={categories}
-          activeCategory={activeCategory}
-          onChange={setActiveCategory}
-        />
-      </div>
-
-      <main
-        className={`menu-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden mx-auto w-full max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-28" : "pb-12"}`}
+      <div
+        data-tg-scroll-root
+        className={`tg-app-scroll w-full ${showFloatingCart ? "pb-28" : "pb-12"}`}
       >
-        {loadError ? (
-          <ErrorState onRetry={fetchData} />
-        ) : items.length > 0 ? (
-          <>
-            {filteredItems.length === 0 ? (
-              <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
-                <p className="text-base text-stone-300">
-                  У цій категорії поки немає страв
-                </p>
-                <p className="mt-2 text-sm text-brand-muted">
-                  Спробуйте обрати іншу категорію
-                </p>
-              </div>
-            ) : null}
+        <div className="mx-auto w-full max-w-3xl">
+          <MenuHeader
+            logoUrl={logoUrl}
+            ordersCount={orders.length}
+            showAdminLink={showAdminLink}
+            showOrdersLink={showOrdersLink}
+            showBillLink={showBillLink}
+            showSettlementsLink={showSettlementsLink}
+            actionsLoading={!headerActionsReady}
+            skeletonCount={headerSkeletonCount}
+            onOpenOrders={() => {
+              setOrdersOpen(true);
+              syncOrders({ silent: ordersLoadedOnceRef.current });
+            }}
+            onOpenBill={() => {
+              setBillOpen(true);
+              syncOrders({ silent: ordersLoadedOnceRef.current });
+            }}
+          />
 
-            <div
-              className={`flex flex-col gap-4 ${
-                filteredItems.length === 0 ? "hidden" : ""
-              }`}
-            >
-              {items.map((item) => (
+          <CategoryBar
+            categories={categories}
+            activeCategory={activeCategory}
+            onChange={setActiveCategory}
+          />
+
+          <main className="px-4 py-5">
+            {loadError ? (
+              <ErrorState onRetry={fetchData} />
+            ) : items.length > 0 ? (
+              <>
+                {filteredItems.length === 0 ? (
+                  <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
+                    <p className="text-base text-stone-300">
+                      У цій категорії поки немає страв
+                    </p>
+                    <p className="mt-2 text-sm text-brand-muted">
+                      Спробуйте обрати іншу категорію
+                    </p>
+                  </div>
+                ) : null}
+
                 <div
-                  key={item.id}
-                  className={isItemVisible(item) ? undefined : "hidden"}
-                  aria-hidden={!isItemVisible(item)}
+                  className={`flex flex-col gap-4 ${
+                    filteredItems.length === 0 ? "hidden" : ""
+                  }`}
                 >
-                  <DishCard
-                    item={item}
-                    quantity={cartQuantities[item.id] ?? 0}
-                    onOpen={() => setSelectedDish(item)}
-                    onAdd={() => addToCart(item)}
-                    onIncrement={() => incrementItem(item.id)}
-                    onDecrement={() => decrementItem(item.id)}
-                  />
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className={isItemVisible(item) ? undefined : "hidden"}
+                      aria-hidden={!isItemVisible(item)}
+                    >
+                      <DishCard
+                        item={item}
+                        quantity={cartQuantities[item.id] ?? 0}
+                        onOpen={() => setSelectedDish(item)}
+                        onAdd={() => addToCart(item)}
+                        onIncrement={() => incrementItem(item.id)}
+                        onDecrement={() => decrementItem(item.id)}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
-            <p className="text-base text-stone-300">Меню поки порожнє</p>
-          </div>
-        )}
-      </main>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
+                <p className="text-base text-stone-300">Меню поки порожнє</p>
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
 
       <DishModal
         item={selectedDish}

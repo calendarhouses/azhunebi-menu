@@ -184,7 +184,7 @@ export default function AdminPage() {
   const isSessionsView = tab === "sessions";
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-brand-bg text-white">
+    <div className="tg-app-shell fixed inset-0 overflow-hidden bg-brand-bg text-white">
       {/* Toast */}
       {toast && (
         <div className="pointer-events-none fixed left-0 right-0 top-4 z-[200] flex justify-center px-4">
@@ -203,164 +203,164 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Header */}
-      <header className="shrink-0 border-b border-white/10 bg-brand-surface">
-        <div className="mx-auto flex max-w-6xl items-start justify-between gap-4 px-4 py-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-brand-accent/70">
-              {isSessionsView ? "Розрахунки" : "Адмін панель"}
-            </h1>
-            {telegramUsername && (
-              <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-brand-surface-elevated px-4 py-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-accent/15 text-xs font-semibold text-brand-accent">
-                  {telegramUsername.charAt(0).toUpperCase()}
-                </span>
-                <span className="text-sm text-white/70">@{telegramUsername}</span>
-              </div>
-            )}
-          </div>
-          <Link
-            href="/"
-            className="mt-1 shrink-0 rounded-xl border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:text-white"
-          >
-            До меню
-          </Link>
-        </div>
-      </header>
-
-      {!isSessionsView ? (
-        <nav
-          aria-label="Розділи адмін-панелі"
-          className="shrink-0 border-b border-white/10 bg-brand-surface"
-        >
-          <div className="scroll-strip-x scrollbar-hide">
-            <div className="mx-auto max-w-6xl px-4 py-3">
-              <div className="inline-flex rounded-xl bg-white/5 p-1">
-                {tabs.map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setTab(id)}
-                    className={`shrink-0 whitespace-nowrap rounded-lg px-5 py-2 text-sm font-medium transition-all duration-300 ${
-                      tab === id
-                        ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
-                        : "text-white/40 hover:text-white/70"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </nav>
-      ) : null}
-
-      <div className="menu-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        {/* Load error banner with retry */}
-        {loadError && (
-          <div className="mb-4 flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-            <p className="text-sm text-red-400">{loadError}</p>
-            <button
-              type="button"
-              onClick={loadAdminData}
-              className="ml-4 shrink-0 rounded-lg bg-red-500/20 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/30"
-            >
-              Повторити
-            </button>
-          </div>
-        )}
-
-        {tab === "dishes" && (
-          <div className="max-w-lg">
-            <AdminDishesTab
-              dishes={dishes}
-              categories={categories}
-              onRefresh={loadAdminData}
-              onStatus={showToast}
-            />
-          </div>
-        )}
-
-        {tab === "categories" && (
-          <div className="max-w-lg">
-            <AdminCategoriesTab
-              categories={categories}
-              onRefresh={loadAdminData}
-              onStatus={showToast}
-            />
-          </div>
-        )}
-
-        {tab === "sessions" && (
-          <AdminSessionsTab onStatus={showToast} />
-        )}
-
-        {tab === "access" && canManageAdmins && (
-          <div className="mx-auto flex max-w-lg flex-col gap-6">
-            <form
-              onSubmit={addAdmin}
-              className="space-y-3 rounded-2xl border border-white/10 bg-brand-surface p-5"
-            >
-              <h2 className="text-lg font-medium">Додати адміна</h2>
-              <p className="text-sm text-white/40">
-                Лише ці Telegram-нікнейми бачать кнопку ⚙️ і можуть керувати
-                меню.
-              </p>
-              <label className="block">
-                <span className="mb-1 block text-xs text-white/40">
-                  Telegram @username
-                </span>
-                <input
-                  value={newAdminUsername}
-                  onChange={(e) => setNewAdminUsername(e.target.value)}
-                  placeholder="наприклад: ivan_petrenko"
-                  className={inputCls}
-                  required
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full rounded-xl bg-brand-accent py-2.5 text-sm font-semibold text-brand-accent-text disabled:opacity-50"
-              >
-                {busy ? "Збереження…" : "Додати доступ"}
-              </button>
-            </form>
-
-            <div className="space-y-3">
-              {admins.map((admin) => (
-                <div
-                  key={admin.telegram_username}
-                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-brand-surface p-4"
-                >
-                  <div>
-                    <p className="font-medium">@{admin.telegram_username}</p>
-                    <p className="text-xs text-white/40">
-                      Додано:{" "}
-                      {new Date(admin.created_at).toLocaleDateString("uk-UA")}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeAdmin(admin.telegram_username)}
-                    className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-sm text-red-400 transition hover:bg-red-500/20"
-                  >
-                    Прибрати
-                  </button>
+      <div data-tg-scroll-root className="tg-app-scroll w-full">
+        {/* Header */}
+        <header className="border-b border-white/10 bg-brand-surface">
+          <div className="mx-auto flex max-w-6xl items-start justify-between gap-4 px-4 py-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-brand-accent/70">
+                {isSessionsView ? "Розрахунки" : "Адмін панель"}
+              </h1>
+              {telegramUsername && (
+                <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-brand-surface-elevated px-4 py-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-accent/15 text-xs font-semibold text-brand-accent">
+                    {telegramUsername.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="text-sm text-white/70">@{telegramUsername}</span>
                 </div>
-              ))}
-
-              {admins.length === 0 && (
-                <p className="py-4 text-center text-sm text-white/30">
-                  Адмінів ще немає
-                </p>
               )}
             </div>
+            <Link
+              href="/"
+              className="mt-1 shrink-0 rounded-xl border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:text-white"
+            >
+              До меню
+            </Link>
           </div>
-        )}
-      </div>
+        </header>
+
+        {!isSessionsView ? (
+          <nav
+            aria-label="Розділи адмін-панелі"
+            className="sticky top-0 z-20 border-b border-white/10 bg-brand-surface"
+          >
+            <div className="scroll-strip-x scrollbar-hide">
+              <div className="mx-auto max-w-6xl px-4 py-3">
+                <div className="inline-flex rounded-xl bg-white/5 p-1">
+                  {tabs.map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTab(id)}
+                      className={`shrink-0 whitespace-nowrap rounded-lg px-5 py-2 text-sm font-medium transition-all duration-300 ${
+                        tab === id
+                          ? "bg-brand-surface-elevated text-brand-accent shadow-sm"
+                          : "text-white/40 hover:text-white/70"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </nav>
+        ) : null}
+
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          {/* Load error banner with retry */}
+          {loadError && (
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+              <p className="text-sm text-red-400">{loadError}</p>
+              <button
+                type="button"
+                onClick={loadAdminData}
+                className="ml-4 shrink-0 rounded-lg bg-red-500/20 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/30"
+              >
+                Повторити
+              </button>
+            </div>
+          )}
+
+          {tab === "dishes" && (
+            <div className="max-w-lg">
+              <AdminDishesTab
+                dishes={dishes}
+                categories={categories}
+                onRefresh={loadAdminData}
+                onStatus={showToast}
+              />
+            </div>
+          )}
+
+          {tab === "categories" && (
+            <div className="max-w-lg">
+              <AdminCategoriesTab
+                categories={categories}
+                onRefresh={loadAdminData}
+                onStatus={showToast}
+              />
+            </div>
+          )}
+
+          {tab === "sessions" && (
+            <AdminSessionsTab onStatus={showToast} />
+          )}
+
+          {tab === "access" && canManageAdmins && (
+            <div className="mx-auto flex max-w-lg flex-col gap-6">
+              <form
+                onSubmit={addAdmin}
+                className="space-y-3 rounded-2xl border border-white/10 bg-brand-surface p-5"
+              >
+                <h2 className="text-lg font-medium">Додати адміна</h2>
+                <p className="text-sm text-white/40">
+                  Лише ці Telegram-нікнейми бачать кнопку ⚙️ і можуть керувати
+                  меню.
+                </p>
+                <label className="block">
+                  <span className="mb-1 block text-xs text-white/40">
+                    Telegram @username
+                  </span>
+                  <input
+                    value={newAdminUsername}
+                    onChange={(e) => setNewAdminUsername(e.target.value)}
+                    placeholder="наприклад: ivan_petrenko"
+                    className={inputCls}
+                    required
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="w-full rounded-xl bg-brand-accent py-2.5 text-sm font-semibold text-brand-accent-text disabled:opacity-50"
+                >
+                  {busy ? "Збереження…" : "Додати доступ"}
+                </button>
+              </form>
+
+              <div className="space-y-3">
+                {admins.map((admin) => (
+                  <div
+                    key={admin.telegram_username}
+                    className="flex items-center justify-between rounded-2xl border border-white/10 bg-brand-surface p-4"
+                  >
+                    <div>
+                      <p className="font-medium">@{admin.telegram_username}</p>
+                      <p className="text-xs text-white/40">
+                        Додано:{" "}
+                        {new Date(admin.created_at).toLocaleDateString("uk-UA")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeAdmin(admin.telegram_username)}
+                      className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-sm text-red-400 transition hover:bg-red-500/20"
+                    >
+                      Прибрати
+                    </button>
+                  </div>
+                ))}
+
+                {admins.length === 0 && (
+                  <p className="py-4 text-center text-sm text-white/30">
+                    Адмінів ще немає
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

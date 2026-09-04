@@ -38,17 +38,36 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
-  touch-action: pan-y;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .checkout-form-scroll {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
 }
 
-/* Nested scroll inside Telegram Mini App — Android WebView needs this. */
-.menu-scroll {
+/*
+ * Single full-screen scroll root for Telegram Android.
+ * Nested flex + overflow-y-auto children often ignore vertical pans there.
+ */
+.tg-app-shell {
+  overscroll-behavior: none;
+}
+
+.tg-app-scroll {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
