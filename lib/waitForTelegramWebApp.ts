@@ -1,3 +1,5 @@
+import { applyTelegramViewportCssVar } from "@/components/TelegramViewportInit";
+
 const BRAND_BG = "#221f1c";
 const BRAND_ACCENT = "#c4a574";
 
@@ -21,10 +23,7 @@ export function waitForTelegramWebApp(
         const root = document.documentElement;
         root.style.setProperty("--brand-bg", BRAND_BG);
         root.style.setProperty("--brand-accent", BRAND_ACCENT);
-        root.style.setProperty(
-          "--tg-viewport-stable-height",
-          `${webApp.viewportStableHeight || window.innerHeight}px`
-        );
+        applyTelegramViewportCssVar();
 
         const theme = webApp.themeParams;
         if (theme.bg_color) {

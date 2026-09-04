@@ -1217,7 +1217,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative fixed inset-0 flex h-[var(--tg-viewport-stable-height,100dvh)] max-h-[var(--tg-viewport-stable-height,100dvh)] flex-col overflow-hidden bg-brand-bg text-stone-100">
+    <div className="relative fixed inset-0 flex flex-col overflow-hidden bg-brand-bg text-stone-100">
       {accessPending ? (
         <div
           className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-brand-bg"

@@ -1,6 +1,6 @@
 "use client";
 
-import { getFrozenStableViewportHeight } from "@/components/TelegramViewportInit";
+import { applyTelegramViewportCssVar } from "@/components/TelegramViewportInit";
 import { useEffect } from "react";
 
 const BRAND_BG = "#221f1c";
@@ -28,10 +28,7 @@ export function useTelegramApp(options?: {
     const root = document.documentElement;
     root.style.setProperty("--brand-bg", BRAND_BG);
     root.style.setProperty("--brand-accent", BRAND_ACCENT);
-    root.style.setProperty(
-      "--tg-viewport-stable-height",
-      `${getFrozenStableViewportHeight()}px`
-    );
+    applyTelegramViewportCssVar();
 
     const theme = webApp.themeParams;
     if (theme.bg_color) {

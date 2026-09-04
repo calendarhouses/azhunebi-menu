@@ -184,7 +184,7 @@ export default function AdminPage() {
   const isSessionsView = tab === "sessions";
 
   return (
-    <div className="fixed inset-0 flex h-[var(--tg-viewport-stable-height,100dvh)] max-h-[var(--tg-viewport-stable-height,100dvh)] flex-col overflow-hidden bg-brand-bg text-white">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-brand-bg text-white">
       {/* Toast */}
       {toast && (
         <div className="pointer-events-none fixed left-0 right-0 top-4 z-[200] flex justify-center px-4">
