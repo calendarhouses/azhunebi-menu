@@ -37,9 +37,9 @@ export default function RootLayout({
   return (
     <html
       lang="uk"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="min-h-full bg-brand-bg font-sans text-stone-100 antialiased">
+      <body className="bg-brand-bg font-sans text-stone-100 antialiased">
         <Script
           id="azhunebi-capture-start-param"
           strategy="beforeInteractive"

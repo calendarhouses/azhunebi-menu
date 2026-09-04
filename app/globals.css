@@ -39,15 +39,21 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
-  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
 }
 
 html {
   overflow-x: hidden;
-  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+}
+
+/*
+ * Android WebView: vertical page scroll must be allowed even when the gesture
+ * starts on controls. Horizontal strips opt into pan-x below.
+ */
+button,
+[role="button"],
+a {
   touch-action: pan-y;
 }
 
@@ -244,6 +250,12 @@ html {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+
+.scroll-strip-x button,
+.scroll-strip-x [role="button"],
+.scroll-strip-x a {
   touch-action: pan-x;
 }
 
