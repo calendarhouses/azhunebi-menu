@@ -46,7 +46,6 @@ import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
 import {
   clearGuestAccessGranted,
-  hasRememberedGuestAccess,
   markGuestAccessGranted,
   readTelegramStartParam,
   useStartParamLocation,
@@ -88,7 +87,9 @@ export default function Home() {
   } = useAppReady();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [guestAccessAllowed, setGuestAccessAllowed] = useState(true);
+  const [guestAccessAllowed, setGuestAccessAllowed] = useState<boolean | null>(
+    null
+  );
   const [selectedDish, setSelectedDish] = useState<MenuItemRow | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [orders, setOrders] = useState<TrackedOrder[]>([]);
@@ -202,6 +203,9 @@ export default function Home() {
       return;
     }
 
+    // Lock UI until the server answers — prevents post-checkout clicks via the chat button.
+    setGuestAccessAllowed(null);
+
     try {
       let result: {
         allowed: boolean;
@@ -209,20 +213,20 @@ export default function Home() {
         welcomeSent?: boolean;
         location?: unknown;
       } | null = null;
-      let lastParam: string | null = null;
+      let lastParam: string | null = startParam || readTelegramStartParam();
 
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const param = startParam || readTelegramStartParam();
-        lastParam = param;
-        result = await claimGuestAccess(param);
+      // Button re-open has no startapp — one fast check. QR open may need a short retry.
+      const maxAttempts = lastParam ? 8 : 1;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        lastParam = startParam || readTelegramStartParam();
+        result = await claimGuestAccess(lastParam);
         if (result.allowed) {
           break;
         }
-        // Keep retrying while QR param is present — first claim can race with session create.
-        if (!param && attempt >= 2) {
+        if (!lastParam) {
           break;
         }
-        await new Promise((resolve) => window.setTimeout(resolve, 300));
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
       }
 
       const hasValidQr = Boolean(parseStartParamLocation(lastParam));
@@ -238,40 +242,41 @@ export default function Home() {
         return;
       }
 
-      // QR is in this open but server has not persisted yet — keep menu and retry in background.
+      // Fresh QR scan but server still catching up — keep locked and retry briefly.
       if (hasValidQr) {
-        setGuestAccessAllowed(true);
-        void (async () => {
-          for (let attempt = 0; attempt < 12; attempt += 1) {
-            await new Promise((resolve) => window.setTimeout(resolve, 500));
-            try {
-              const retry = await claimGuestAccess(lastParam);
-              if (retry.allowed) {
-                markGuestAccessGranted();
-                if (!retry.welcomeSent) {
-                  void ensureWelcomeInChat(lastParam);
-                }
-                return;
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 400));
+          try {
+            const retry = await claimGuestAccess(lastParam);
+            if (retry.allowed) {
+              markGuestAccessGranted();
+              setGuestAccessAllowed(true);
+              if (!retry.welcomeSent) {
+                void ensureWelcomeInChat(lastParam);
               }
-            } catch (error) {
-              console.error("[guest-access] background claim failed", error);
+              return;
             }
+          } catch (error) {
+            console.error("[guest-access] QR claim retry failed", error);
           }
-        })();
-        return;
+        }
       }
 
-      // Button re-open (no startapp): only server-confirmed access counts.
       clearGuestAccessGranted();
       setGuestAccessAllowed(false);
     } catch (error) {
       console.error("[guest-access] check failed", error);
       const param = startParam || readTelegramStartParam();
       const hasValidQr = Boolean(parseStartParamLocation(param));
-      setGuestAccessAllowed(hasValidQr || hasRememberedGuestAccess());
       if (hasValidQr) {
+        setGuestAccessAllowed(true);
         void ensureWelcomeInChat(param);
+        return;
       }
+      // After checkout the server returns no_access; on network blips keep locked closed
+      // rather than letting a revoked guest click the menu.
+      clearGuestAccessGranted();
+      setGuestAccessAllowed(false);
     }
   }, [showAdminLink, startParam, ensureWelcomeInChat]);
 
@@ -1199,7 +1204,12 @@ export default function Home() {
       ? 3
       : 2;
 
-  if (!guestAccessAllowed) {
+  // Admins skip the gate immediately — guests stay locked until server answers.
+  const accessAllowed = showAdminLink ? true : guestAccessAllowed === true;
+  const accessDenied = !showAdminLink && guestAccessAllowed === false;
+  const accessPending = !showAdminLink && guestAccessAllowed === null;
+
+  if (accessDenied) {
     return (
       <div className="fixed inset-0 overflow-hidden overscroll-none bg-brand-bg text-stone-100">
         <AccessBlockedScreen onRetry={() => void verifyGuestAccess()} />
@@ -1208,7 +1218,17 @@ export default function Home() {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-stone-100">
+    <div className="relative fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-stone-100">
+      {accessPending ? (
+        <div
+          className="absolute inset-0 z-[200] flex items-center justify-center bg-brand-bg"
+          aria-busy="true"
+          aria-label="Завантаження"
+        >
+          <div className="h-10 w-10 animate-pulse rounded-full bg-brand-accent/30" />
+        </div>
+      ) : null}
+
       {orderToast ? (
         <div className="animate-toast-in fixed left-4 right-4 top-4 z-[100] flex items-start justify-between gap-3 rounded-2xl border border-brand-accent/25 bg-brand-surface/95 px-4 py-3 shadow-xl backdrop-blur-md">
           <p className="text-sm font-medium text-stone-100">{orderToast}</p>
