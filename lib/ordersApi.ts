@@ -21,7 +21,9 @@ type OrderAction =
   | "getRunningTab"
   | "getHouseBinding"
   | "changeHouse"
-  | "leaveHouse";
+  | "leaveHouse"
+  | "checkAccess"
+  | "claimAccess";
 
 function buildRequestBody(
   action: OrderAction,
@@ -170,6 +172,7 @@ export async function createOrderRequest(payload: {
   tableNumber?: string;
   paymentMethod: string;
   scheduledFor?: string;
+  startParam?: string | null;
 }) {
   console.info("[order-api] create order request", {
     url: `${BOT_API_URL}?action=create`,
@@ -177,6 +180,46 @@ export async function createOrderRequest(payload: {
   });
 
   return orderRequest<CreateOrderResponse>("create", payload);
+}
+
+export async function checkGuestAccess(startParam?: string | null) {
+  if (!getInitData()) {
+    return { allowed: false, reason: "no_telegram" as const };
+  }
+
+  const result = await orderRequest<{
+    allowed: boolean;
+    reason?: string;
+    access?: unknown;
+    location?: { type: string; number: number } | null;
+  }>("checkAccess", { startParam: startParam || null });
+
+  return {
+    allowed: Boolean(result.allowed),
+    reason: result.reason || null,
+    access: result.access ?? null,
+    location: result.location ?? null,
+  };
+}
+
+export async function claimGuestAccess(startParam?: string | null) {
+  if (!getInitData()) {
+    return { allowed: false, reason: "no_telegram" as const };
+  }
+
+  const result = await orderRequest<{
+    allowed: boolean;
+    reason?: string;
+    access?: unknown;
+    location?: { type: string; number: number } | null;
+  }>("claimAccess", { startParam: startParam || null });
+
+  return {
+    allowed: Boolean(result.allowed),
+    reason: result.reason || null,
+    access: result.access ?? null,
+    location: result.location ?? null,
+  };
 }
 
 /** Sends the rendered receipt card to admin after the order is already created. */

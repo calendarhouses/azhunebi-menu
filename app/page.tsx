@@ -1,5 +1,6 @@
 "use client";
 
+import AccessBlockedScreen from "@/components/AccessBlockedScreen";
 import OrdersPanel from "@/components/OrdersPanel";
 import FloatingCartBar from "@/components/FloatingCartBar";
 import HouseBillPanel from "@/components/HouseBillPanel";
@@ -12,6 +13,8 @@ import MenuHeader from "@/components/MenuHeader";
 import { useAppReady } from "@/components/AppReadyProvider";
 import {
   changeGuestHouseRequest,
+  checkGuestAccess,
+  claimGuestAccess,
   createOrderRequest,
   fetchHouseBinding,
   fetchOrderById,
@@ -78,6 +81,10 @@ export default function Home() {
   } = useAppReady();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [guestAccessAllowed, setGuestAccessAllowed] = useState<boolean | null>(
+    null
+  );
+  const [guestAccessChecking, setGuestAccessChecking] = useState(true);
   const [selectedDish, setSelectedDish] = useState<MenuItemRow | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [orders, setOrders] = useState<TrackedOrder[]>([]);
@@ -112,6 +119,37 @@ export default function Home() {
   } = useCartStorage();
 
   const { startParamLocation, startParamReady } = useStartParamLocation();
+
+  const verifyGuestAccess = useCallback(async () => {
+    if (!isTelegramWebApp()) {
+      // Outside Telegram there is nothing to gate; keep preview usable for local/dev.
+      setGuestAccessAllowed(true);
+      setGuestAccessChecking(false);
+      return;
+    }
+
+    setGuestAccessChecking(true);
+    try {
+      const startParam =
+        window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+      const result = startParam
+        ? await claimGuestAccess(startParam)
+        : await checkGuestAccess(null);
+      setGuestAccessAllowed(Boolean(result.allowed) || showAdminLink);
+    } catch (error) {
+      console.error("[guest-access] check failed", error);
+      setGuestAccessAllowed(showAdminLink);
+    } finally {
+      setGuestAccessChecking(false);
+    }
+  }, [showAdminLink]);
+
+  useEffect(() => {
+    if (!startParamReady) {
+      return;
+    }
+    void verifyGuestAccess();
+  }, [startParamReady, verifyGuestAccess]);
 
   const isSubmittingRef = useRef(false);
   const orderJustSubmittedRef = useRef(false);
@@ -879,6 +917,8 @@ export default function Home() {
         tableNumber: tableDelivery,
         paymentMethod: "cash",
         scheduledFor: scheduledPayload,
+        startParam:
+          window.Telegram?.WebApp?.initDataUnsafe?.start_param || null,
       });
 
       rememberOrderId(result.orderId);
@@ -1021,6 +1061,22 @@ export default function Home() {
     : showAdminLink
       ? 3
       : 2;
+
+  if (guestAccessChecking || guestAccessAllowed === null) {
+    return (
+      <div className="fixed inset-0 overflow-hidden overscroll-none bg-brand-bg text-stone-100">
+        <AccessBlockedScreen checking />
+      </div>
+    );
+  }
+
+  if (!guestAccessAllowed) {
+    return (
+      <div className="fixed inset-0 overflow-hidden overscroll-none bg-brand-bg text-stone-100">
+        <AccessBlockedScreen onRetry={() => void verifyGuestAccess()} />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-stone-100">
