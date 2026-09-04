@@ -42,7 +42,10 @@ import {
 } from "@/lib/startParamLocation";
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
-import { useStartParamLocation } from "@/lib/useStartParamLocation";
+import {
+  readTelegramStartParam,
+  useStartParamLocation,
+} from "@/lib/useStartParamLocation";
 import { useTelegramApp } from "@/lib/useTelegramApp";
 import type { HouseBinding, RunningTabData } from "@/lib/runningTab";
 import type { MenuItemRow } from "@/lib/supabase";
@@ -117,7 +120,8 @@ export default function Home() {
     hydrated: cartHydrated,
   } = useCartStorage();
 
-  const { startParamLocation, startParamReady } = useStartParamLocation();
+  const { startParamLocation, startParamReady, startParam } =
+    useStartParamLocation();
 
   const verifyGuestAccess = useCallback(async () => {
     if (!isTelegramWebApp()) {
@@ -129,29 +133,29 @@ export default function Home() {
 
     setGuestAccessChecking(true);
     try {
-      const webApp = window.Telegram?.WebApp;
-      const startParam =
-        webApp?.initDataUnsafe?.start_param ||
-        (() => {
-          try {
-            return new URLSearchParams(webApp?.initData || "").get(
-              "start_param"
-            );
-          } catch {
-            return null;
-          }
-        })();
+      // Retry a few times: startapp param can arrive slightly after WebApp boot.
+      let result: { allowed: boolean } | null = null;
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const param = startParam || readTelegramStartParam();
+        result = await claimGuestAccess(param);
+        if (result.allowed) {
+          break;
+        }
+        if (param) {
+          // Param was present but server denied — no point retrying blindly.
+          break;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
 
-      // Always claim/check on server — it also reads start_param from signed initData.
-      const result = await claimGuestAccess(startParam);
-      setGuestAccessAllowed(Boolean(result.allowed) || showAdminLink);
+      setGuestAccessAllowed(Boolean(result?.allowed) || showAdminLink);
     } catch (error) {
       console.error("[guest-access] check failed", error);
       setGuestAccessAllowed(showAdminLink);
     } finally {
       setGuestAccessChecking(false);
     }
-  }, [showAdminLink]);
+  }, [showAdminLink, startParam]);
 
   useEffect(() => {
     if (!startParamReady) {
@@ -927,7 +931,8 @@ export default function Home() {
         paymentMethod: "cash",
         scheduledFor: scheduledPayload,
         startParam:
-          window.Telegram?.WebApp?.initDataUnsafe?.start_param || null,
+          window.Telegram?.WebApp?.initDataUnsafe?.start_param ||
+          readTelegramStartParam(),
       });
 
       rememberOrderId(result.orderId);
