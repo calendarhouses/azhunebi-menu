@@ -2,38 +2,39 @@
 
 import { useEffect } from "react";
 
-const SCROLL_ROOT_SELECTOR = "[data-tg-scroll-root]";
-
+/**
+ * Lock document scrolling while sheets/modals are open.
+ * Menu uses native document scroll (required for Telegram Android).
+ */
 export function useBodyScrollLock(locked: boolean) {
   useEffect(() => {
     if (!locked) {
       return;
     }
 
-    const { body } = document;
-    const previousOverflow = body.style.overflow;
+    const { body, documentElement } = document;
+    const scrollY = window.scrollY;
+    const previousBody = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+    const previousHtmlOverflow = documentElement.style.overflow;
+
     body.style.overflow = "hidden";
-
-    const scrollRoots = Array.from(
-      document.querySelectorAll<HTMLElement>(SCROLL_ROOT_SELECTOR)
-    );
-    const previousRoots = scrollRoots.map((el) => ({
-      el,
-      overflow: el.style.overflow,
-      touchAction: el.style.touchAction,
-    }));
-
-    for (const el of scrollRoots) {
-      el.style.overflow = "hidden";
-      el.style.touchAction = "none";
-    }
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    documentElement.style.overflow = "hidden";
 
     return () => {
-      body.style.overflow = previousOverflow;
-      for (const item of previousRoots) {
-        item.el.style.overflow = item.overflow;
-        item.el.style.touchAction = item.touchAction;
-      }
+      body.style.overflow = previousBody.overflow;
+      body.style.position = previousBody.position;
+      body.style.top = previousBody.top;
+      body.style.width = previousBody.width;
+      documentElement.style.overflow = previousHtmlOverflow;
+      window.scrollTo(0, scrollY);
     };
   }, [locked]);
 }

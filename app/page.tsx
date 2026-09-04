@@ -1217,10 +1217,10 @@ export default function Home() {
   }
 
   return (
-    <div className="tg-app-shell relative fixed inset-0 overflow-hidden bg-brand-bg text-stone-100">
+    <div className="min-h-[100dvh] bg-brand-bg text-stone-100">
       {accessPending ? (
         <div
-          className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-brand-bg"
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-brand-bg"
           aria-busy="true"
           aria-label="Завантаження"
         >
@@ -1246,81 +1246,78 @@ export default function Home() {
       ) : null}
 
       <div
-        data-tg-scroll-root
-        className={`tg-app-scroll w-full ${showFloatingCart ? "pb-28" : "pb-12"}`}
+        className={`mx-auto w-full max-w-3xl ${showFloatingCart ? "pb-28" : "pb-12"}`}
       >
-        <div className="mx-auto w-full max-w-3xl">
-          <MenuHeader
-            logoUrl={logoUrl}
-            ordersCount={orders.length}
-            showAdminLink={showAdminLink}
-            showOrdersLink={showOrdersLink}
-            showBillLink={showBillLink}
-            showSettlementsLink={showSettlementsLink}
-            actionsLoading={!headerActionsReady}
-            skeletonCount={headerSkeletonCount}
-            onOpenOrders={() => {
-              setOrdersOpen(true);
-              syncOrders({ silent: ordersLoadedOnceRef.current });
-            }}
-            onOpenBill={() => {
-              setBillOpen(true);
-              syncOrders({ silent: ordersLoadedOnceRef.current });
-            }}
-          />
+        <MenuHeader
+          logoUrl={logoUrl}
+          ordersCount={orders.length}
+          showAdminLink={showAdminLink}
+          showOrdersLink={showOrdersLink}
+          showBillLink={showBillLink}
+          showSettlementsLink={showSettlementsLink}
+          actionsLoading={!headerActionsReady}
+          skeletonCount={headerSkeletonCount}
+          onOpenOrders={() => {
+            setOrdersOpen(true);
+            syncOrders({ silent: ordersLoadedOnceRef.current });
+          }}
+          onOpenBill={() => {
+            setBillOpen(true);
+            syncOrders({ silent: ordersLoadedOnceRef.current });
+          }}
+        />
 
-          <CategoryBar
-            categories={categories}
-            activeCategory={activeCategory}
-            onChange={setActiveCategory}
-          />
+        <CategoryBar
+          categories={categories}
+          activeCategory={activeCategory}
+          onChange={setActiveCategory}
+        />
 
-          <main className="px-4 py-5">
-            {loadError ? (
-              <ErrorState onRetry={fetchData} />
-            ) : items.length > 0 ? (
-              <>
-                {filteredItems.length === 0 ? (
-                  <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
-                    <p className="text-base text-stone-300">
-                      У цій категорії поки немає страв
-                    </p>
-                    <p className="mt-2 text-sm text-brand-muted">
-                      Спробуйте обрати іншу категорію
-                    </p>
-                  </div>
-                ) : null}
-
-                <div
-                  className={`flex flex-col gap-4 ${
-                    filteredItems.length === 0 ? "hidden" : ""
-                  }`}
-                >
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={isItemVisible(item) ? undefined : "hidden"}
-                      aria-hidden={!isItemVisible(item)}
-                    >
-                      <DishCard
-                        item={item}
-                        quantity={cartQuantities[item.id] ?? 0}
-                        onOpen={() => setSelectedDish(item)}
-                        onAdd={() => addToCart(item)}
-                        onIncrement={() => incrementItem(item.id)}
-                        onDecrement={() => decrementItem(item.id)}
-                      />
-                    </div>
-                  ))}
+        <main className="px-4 py-5">
+          {loadError ? (
+            <ErrorState onRetry={fetchData} />
+          ) : items.length > 0 ? (
+            <>
+              {filteredItems.length === 0 ? (
+                <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
+                  <p className="text-base text-stone-300">
+                    У цій категорії поки немає страв
+                  </p>
+                  <p className="mt-2 text-sm text-brand-muted">
+                    Спробуйте обрати іншу категорію
+                  </p>
                 </div>
-              </>
-            ) : (
-              <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
-                <p className="text-base text-stone-300">Меню поки порожнє</p>
+              ) : null}
+
+              <div
+                className={`flex flex-col gap-4 ${
+                  filteredItems.length === 0 ? "hidden" : ""
+                }`}
+              >
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className={isItemVisible(item) ? undefined : "hidden"}
+                    aria-hidden={!isItemVisible(item)}
+                  >
+                    <DishCard
+                      item={item}
+                      quantity={cartQuantities[item.id] ?? 0}
+                      onOpen={() => setSelectedDish(item)}
+                      onAdd={() => addToCart(item)}
+                      onIncrement={() => incrementItem(item.id)}
+                      onDecrement={() => decrementItem(item.id)}
+                    />
+                  </div>
+                ))}
               </div>
-            )}
-          </main>
-        </div>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-stone-700/35 bg-brand-surface px-6 py-12 text-center">
+              <p className="text-base text-stone-300">Меню поки порожнє</p>
+            </div>
+          )}
+        </main>
       </div>
 
       <DishModal
