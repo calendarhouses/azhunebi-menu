@@ -151,6 +151,12 @@ export default function Home() {
   }, []);
 
   const verifyGuestAccess = useCallback(async () => {
+    // Admins never see the QR gate.
+    if (showAdminLink) {
+      setGuestAccessAllowed(true);
+      return;
+    }
+
     if (!isTelegramWebApp()) {
       setGuestAccessAllowed(true);
       return;
@@ -178,12 +184,10 @@ export default function Home() {
       }
 
       const hasValidQr = Boolean(parseStartParamLocation(lastParam));
-      const allowed =
-        Boolean(result?.allowed) || showAdminLink || hasValidQr;
+      const allowed = Boolean(result?.allowed) || hasValidQr;
       setGuestAccessAllowed(allowed);
 
       if (allowed && (hasValidQr || result?.location)) {
-        // Bot often can't message until write access / chat exists — retry via API.
         if (!result?.welcomeSent) {
           void ensureWelcomeInChat(lastParam);
         }
@@ -192,7 +196,7 @@ export default function Home() {
       console.error("[guest-access] check failed", error);
       const param = startParam || readTelegramStartParam();
       const hasValidQr = Boolean(parseStartParamLocation(param));
-      setGuestAccessAllowed(showAdminLink || hasValidQr);
+      setGuestAccessAllowed(hasValidQr);
       if (hasValidQr) {
         void ensureWelcomeInChat(param);
       }
@@ -200,11 +204,15 @@ export default function Home() {
   }, [showAdminLink, startParam, ensureWelcomeInChat]);
 
   useEffect(() => {
+    if (showAdminLink) {
+      setGuestAccessAllowed(true);
+      return;
+    }
     if (!startParamReady) {
       return;
     }
     void verifyGuestAccess();
-  }, [startParamReady, verifyGuestAccess]);
+  }, [startParamReady, verifyGuestAccess, showAdminLink]);
 
   const isSubmittingRef = useRef(false);
   const orderJustSubmittedRef = useRef(false);
@@ -772,9 +780,10 @@ export default function Home() {
   }, [activeCategory, categories]);
 
   useEffect(() => {
-    setHeaderActionsReady(false);
+    // Reset header action config on home remount, but do not flip the global
+    // preloader (that was flashing "loading" when returning from admin).
     setHeaderActionConfig(null);
-  }, [setHeaderActionsReady]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

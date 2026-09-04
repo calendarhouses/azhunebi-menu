@@ -60,11 +60,15 @@ export default function AppReadyProvider({ children }: { children: ReactNode }) 
   const [menuLoadError, setMenuLoadError] = useState(false);
 
   useEffect(() => {
-    setHeaderActionsReady(!needsHeaderActions);
+    // Home shows action skeletons via headerActionsReady; do not hide the whole
+    // app again when coming back from admin / settlements.
+    if (!needsHeaderActions) {
+      setHeaderActionsReady(true);
+    }
   }, [needsHeaderActions]);
 
-  const isFullyReady =
-    isAppReady && (!needsHeaderActions || headerActionsReady);
+  // Logo preloader only for the first cold boot — never again on in-app navigation.
+  const isFullyReady = isAppReady;
 
   const refreshMenu = useCallback(async (options?: { force?: boolean }) => {
     const now = Date.now();
