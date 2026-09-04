@@ -1205,7 +1205,6 @@ export default function Home() {
       : 2;
 
   // Admins skip the gate immediately — guests stay locked until server answers.
-  const accessAllowed = showAdminLink ? true : guestAccessAllowed === true;
   const accessDenied = !showAdminLink && guestAccessAllowed === false;
   const accessPending = !showAdminLink && guestAccessAllowed === null;
 
