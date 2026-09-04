@@ -1220,11 +1220,15 @@ export default function Home() {
     <div className="relative fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-stone-100">
       {accessPending ? (
         <div
-          className="absolute inset-0 z-[200] flex items-center justify-center bg-brand-bg"
+          className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-brand-bg"
           aria-busy="true"
           aria-label="Завантаження"
         >
-          <div className="h-10 w-10 animate-pulse rounded-full bg-brand-accent/30" />
+          <div
+            className="h-11 w-11 animate-spin rounded-full border-[3px] border-brand-accent/25 border-t-brand-accent"
+            role="status"
+          />
+          <p className="text-sm text-brand-muted">Завантаження…</p>
         </div>
       ) : null}
 
