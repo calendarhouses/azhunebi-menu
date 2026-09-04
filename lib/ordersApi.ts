@@ -23,7 +23,8 @@ type OrderAction =
   | "changeHouse"
   | "leaveHouse"
   | "checkAccess"
-  | "claimAccess";
+  | "claimAccess"
+  | "sendWelcome";
 
 function buildRequestBody(
   action: OrderAction,
@@ -212,6 +213,7 @@ export async function claimGuestAccess(startParam?: string | null) {
     reason?: string;
     access?: unknown;
     location?: { type: string; number: number } | null;
+    welcomeSent?: boolean;
   }>("claimAccess", { startParam: startParam || null });
 
   return {
@@ -219,6 +221,28 @@ export async function claimGuestAccess(startParam?: string | null) {
     reason: result.reason || null,
     access: result.access ?? null,
     location: result.location ?? null,
+    welcomeSent: Boolean(result.welcomeSent),
+  };
+}
+
+/** Ask the bot to (re)send the «Відкрити меню» button in chat. */
+export async function requestWelcomeMessage(startParam?: string | null) {
+  if (!getInitData()) {
+    return { welcomeSent: false, reason: "no_telegram" as const };
+  }
+
+  const result = await orderRequest<{
+    allowed?: boolean;
+    welcomeSent?: boolean;
+    welcomeReason?: string;
+    welcomeError?: string;
+    reason?: string;
+  }>("sendWelcome", { startParam: startParam || null });
+
+  return {
+    welcomeSent: Boolean(result.welcomeSent),
+    reason: result.welcomeReason || result.reason || null,
+    error: result.welcomeError || null,
   };
 }
 

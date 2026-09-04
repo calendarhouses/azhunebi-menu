@@ -20,6 +20,7 @@ import {
   fetchRunningTab,
   fetchSessionSync,
   isTelegramWebApp,
+  requestWelcomeMessage,
 } from "@/lib/ordersApi";
 import {
   readDismissedOrderIds,
@@ -84,10 +85,7 @@ export default function Home() {
   } = useAppReady();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [guestAccessAllowed, setGuestAccessAllowed] = useState<boolean | null>(
-    null
-  );
-  const [guestAccessChecking, setGuestAccessChecking] = useState(true);
+  const [guestAccessAllowed, setGuestAccessAllowed] = useState(true);
   const [selectedDish, setSelectedDish] = useState<MenuItemRow | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [orders, setOrders] = useState<TrackedOrder[]>([]);
@@ -124,18 +122,47 @@ export default function Home() {
   const { startParamLocation, startParamReady, startParam } =
     useStartParamLocation();
 
+  const ensureWelcomeInChat = useCallback(async (param: string | null) => {
+    const webApp = window.Telegram?.WebApp;
+
+    if (typeof webApp?.requestWriteAccess === "function") {
+      const requestWriteAccess = webApp.requestWriteAccess.bind(webApp);
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        try {
+          requestWriteAccess(() => finish());
+          window.setTimeout(finish, 1200);
+        } catch {
+          finish();
+        }
+      });
+    }
+
+    try {
+      await requestWelcomeMessage(param);
+    } catch (error) {
+      console.error("[guest-access] welcome message failed", error);
+    }
+  }, []);
+
   const verifyGuestAccess = useCallback(async () => {
     if (!isTelegramWebApp()) {
-      // Outside Telegram there is nothing to gate; keep preview usable for local/dev.
       setGuestAccessAllowed(true);
-      setGuestAccessChecking(false);
       return;
     }
 
-    setGuestAccessChecking(true);
     try {
-      // Retry a few times: startapp param can arrive slightly after WebApp boot.
-      let result: { allowed: boolean; reason?: string | null } | null = null;
+      let result: {
+        allowed: boolean;
+        reason?: string | null;
+        welcomeSent?: boolean;
+        location?: unknown;
+      } | null = null;
       let lastParam: string | null = null;
       for (let attempt = 0; attempt < 8; attempt += 1) {
         const param = startParam || readTelegramStartParam();
@@ -145,27 +172,32 @@ export default function Home() {
           break;
         }
         if (param) {
-          // Param was present but server denied — no point retrying blindly.
           break;
         }
         await new Promise((resolve) => window.setTimeout(resolve, 200));
       }
 
-      // If Telegram handed us a valid cabin/table QR, never trap the guest on the
-      // gate screen — server claim/order path still enforces access for writes.
       const hasValidQr = Boolean(parseStartParamLocation(lastParam));
-      setGuestAccessAllowed(
-        Boolean(result?.allowed) || showAdminLink || hasValidQr
-      );
+      const allowed =
+        Boolean(result?.allowed) || showAdminLink || hasValidQr;
+      setGuestAccessAllowed(allowed);
+
+      if (allowed && (hasValidQr || result?.location)) {
+        // Bot often can't message until write access / chat exists — retry via API.
+        if (!result?.welcomeSent) {
+          void ensureWelcomeInChat(lastParam);
+        }
+      }
     } catch (error) {
       console.error("[guest-access] check failed", error);
       const param = startParam || readTelegramStartParam();
       const hasValidQr = Boolean(parseStartParamLocation(param));
       setGuestAccessAllowed(showAdminLink || hasValidQr);
-    } finally {
-      setGuestAccessChecking(false);
+      if (hasValidQr) {
+        void ensureWelcomeInChat(param);
+      }
     }
-  }, [showAdminLink, startParam]);
+  }, [showAdminLink, startParam, ensureWelcomeInChat]);
 
   useEffect(() => {
     if (!startParamReady) {
@@ -1085,14 +1117,6 @@ export default function Home() {
     : showAdminLink
       ? 3
       : 2;
-
-  if (guestAccessChecking || guestAccessAllowed === null) {
-    return (
-      <div className="fixed inset-0 overflow-hidden overscroll-none bg-brand-bg text-stone-100">
-        <AccessBlockedScreen checking />
-      </div>
-    );
-  }
 
   if (!guestAccessAllowed) {
     return (

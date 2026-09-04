@@ -58,6 +58,8 @@ declare global {
         onEvent: (eventType: string, callback: () => void) => void;
         offEvent: (eventType: string, callback: () => void) => void;
         showAlert: (message: string, callback?: () => void) => void;
+        requestWriteAccess?: (callback?: (granted: boolean) => void) => void;
+        isVersionAtLeast?: (version: string) => boolean;
       };
     };
   }
