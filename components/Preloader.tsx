@@ -29,7 +29,7 @@ export default function Preloader({ logoUrl, isAppReady }: PreloaderProps) {
   return (
     <div
       className={`fixed inset-0 z-[9999] flex items-center justify-center bg-brand-bg transition-opacity duration-500 ${
-        visible ? "opacity-100" : "opacity-0"
+        visible ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
       <BrandLogo

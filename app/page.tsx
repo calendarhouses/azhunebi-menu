@@ -1217,7 +1217,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-brand-bg text-stone-100">
+    <div className="relative fixed inset-0 flex h-[var(--tg-viewport-stable-height,100dvh)] max-h-[var(--tg-viewport-stable-height,100dvh)] flex-col overflow-hidden bg-brand-bg text-stone-100">
       {accessPending ? (
         <div
           className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-brand-bg"
@@ -1273,7 +1273,7 @@ export default function Home() {
       </div>
 
       <main
-        className={`min-h-0 flex-1 overflow-y-auto overscroll-none touch-pan-y mx-auto w-full max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-28" : "pb-12"}`}
+        className={`menu-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden mx-auto w-full max-w-3xl px-4 py-5 ${showFloatingCart ? "pb-28" : "pb-12"}`}
       >
         {loadError ? (
           <ErrorState onRetry={fetchData} />

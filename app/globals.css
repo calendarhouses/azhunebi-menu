@@ -47,6 +47,13 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Nested scroll inside Telegram Mini App — Android WebView needs this. */
+.menu-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
 @utility pb-safe {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }

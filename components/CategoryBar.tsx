@@ -20,7 +20,7 @@ export default function CategoryBar({
   return (
     <div className="sticky top-0 z-30 border-b border-stone-600/20 bg-brand-bg/92 backdrop-blur-xl">
       <div className="mx-auto max-w-3xl">
-        <div className="scrollbar-hide flex gap-2 overflow-x-auto px-4 py-3">
+        <div className="scroll-strip-x scrollbar-hide flex gap-2 px-4 py-3">
           <button
             type="button"
             onClick={() => onChange("all")}
