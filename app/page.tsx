@@ -13,7 +13,6 @@ import MenuHeader from "@/components/MenuHeader";
 import { useAppReady } from "@/components/AppReadyProvider";
 import {
   changeGuestHouseRequest,
-  checkGuestAccess,
   claimGuestAccess,
   createOrderRequest,
   fetchHouseBinding,
@@ -130,11 +129,21 @@ export default function Home() {
 
     setGuestAccessChecking(true);
     try {
+      const webApp = window.Telegram?.WebApp;
       const startParam =
-        window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
-      const result = startParam
-        ? await claimGuestAccess(startParam)
-        : await checkGuestAccess(null);
+        webApp?.initDataUnsafe?.start_param ||
+        (() => {
+          try {
+            return new URLSearchParams(webApp?.initData || "").get(
+              "start_param"
+            );
+          } catch {
+            return null;
+          }
+        })();
+
+      // Always claim/check on server — it also reads start_param from signed initData.
+      const result = await claimGuestAccess(startParam);
       setGuestAccessAllowed(Boolean(result.allowed) || showAdminLink);
     } catch (error) {
       console.error("[guest-access] check failed", error);
