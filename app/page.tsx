@@ -124,30 +124,67 @@ export default function Home() {
 
   const ensureWelcomeInChat = useCallback(async (param: string | null) => {
     const webApp = window.Telegram?.WebApp;
+    const botUsername =
+      process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "azhunebifood_bot";
 
+    const openBotStart = () => {
+      if (!param || typeof webApp?.openTelegramLink !== "function") {
+        return false;
+      }
+      // Opens the bot chat with /start c9 — webhook grants access + sends the button.
+      webApp.openTelegramLink(
+        `https://t.me/${botUsername}?start=${encodeURIComponent(param)}`
+      );
+      return true;
+    };
+
+    // Fast path: try sending into chat immediately (works if guest already started the bot).
+    try {
+      const first = await requestWelcomeMessage(param);
+      if (first.welcomeSent) {
+        return;
+      }
+      if (first.needsBotStart) {
+        openBotStart();
+        return;
+      }
+    } catch (error) {
+      console.error("[guest-access] welcome message failed", error);
+    }
+
+    // Ask Telegram for permission to message, then retry.
+    let writeGranted = false;
     if (typeof webApp?.requestWriteAccess === "function") {
       const requestWriteAccess = webApp.requestWriteAccess.bind(webApp);
-      await new Promise<void>((resolve) => {
+      writeGranted = await new Promise<boolean>((resolve) => {
         let settled = false;
-        const finish = () => {
+        const finish = (value: boolean) => {
           if (settled) return;
           settled = true;
-          resolve();
+          resolve(value);
         };
         try {
-          requestWriteAccess(() => finish());
-          window.setTimeout(finish, 1200);
+          requestWriteAccess((granted) => finish(Boolean(granted)));
+          window.setTimeout(() => finish(false), 6000);
         } catch {
-          finish();
+          finish(false);
         }
       });
     }
 
-    try {
-      await requestWelcomeMessage(param);
-    } catch (error) {
-      console.error("[guest-access] welcome message failed", error);
+    if (writeGranted) {
+      try {
+        const second = await requestWelcomeMessage(param);
+        if (second.welcomeSent) {
+          return;
+        }
+      } catch (error) {
+        console.error("[guest-access] welcome retry failed", error);
+      }
     }
+
+    // Last resort: jump to bot /start so the webhook can deliver the button.
+    openBotStart();
   }, []);
 
   const verifyGuestAccess = useCallback(async () => {

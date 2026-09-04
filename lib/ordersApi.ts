@@ -214,6 +214,7 @@ export async function claimGuestAccess(startParam?: string | null) {
     access?: unknown;
     location?: { type: string; number: number } | null;
     welcomeSent?: boolean;
+    needsBotStart?: boolean;
   }>("claimAccess", { startParam: startParam || null });
 
   return {
@@ -222,13 +223,18 @@ export async function claimGuestAccess(startParam?: string | null) {
     access: result.access ?? null,
     location: result.location ?? null,
     welcomeSent: Boolean(result.welcomeSent),
+    needsBotStart: Boolean(result.needsBotStart),
   };
 }
 
 /** Ask the bot to (re)send the «Відкрити меню» button in chat. */
 export async function requestWelcomeMessage(startParam?: string | null) {
   if (!getInitData()) {
-    return { welcomeSent: false, reason: "no_telegram" as const };
+    return {
+      welcomeSent: false,
+      needsBotStart: false,
+      reason: "no_telegram" as const,
+    };
   }
 
   const result = await orderRequest<{
@@ -236,11 +242,13 @@ export async function requestWelcomeMessage(startParam?: string | null) {
     welcomeSent?: boolean;
     welcomeReason?: string;
     welcomeError?: string;
+    needsBotStart?: boolean;
     reason?: string;
   }>("sendWelcome", { startParam: startParam || null });
 
   return {
     welcomeSent: Boolean(result.welcomeSent),
+    needsBotStart: Boolean(result.needsBotStart),
     reason: result.welcomeReason || result.reason || null,
     error: result.welcomeError || null,
   };

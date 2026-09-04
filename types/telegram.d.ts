@@ -59,6 +59,7 @@ declare global {
         offEvent: (eventType: string, callback: () => void) => void;
         showAlert: (message: string, callback?: () => void) => void;
         requestWriteAccess?: (callback?: (granted: boolean) => void) => void;
+        openTelegramLink?: (url: string) => void;
         isVersionAtLeast?: (version: string) => boolean;
       };
     };
