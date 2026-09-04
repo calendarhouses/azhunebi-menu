@@ -210,41 +210,65 @@ export default function Home() {
         location?: unknown;
       } | null = null;
       let lastParam: string | null = null;
-      for (let attempt = 0; attempt < 8; attempt += 1) {
+
+      for (let attempt = 0; attempt < 10; attempt += 1) {
         const param = startParam || readTelegramStartParam();
         lastParam = param;
         result = await claimGuestAccess(param);
         if (result.allowed) {
           break;
         }
-        if (param) {
+        // Keep retrying while QR param is present — first claim can race with session create.
+        if (!param && attempt >= 2) {
           break;
         }
-        await new Promise((resolve) => window.setTimeout(resolve, 200));
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
       }
 
       const hasValidQr = Boolean(parseStartParamLocation(lastParam));
-      const allowed = Boolean(result?.allowed) || hasValidQr;
+
       if (result?.allowed) {
         markGuestAccessGranted();
-      } else if (!hasValidQr) {
-        clearGuestAccessGranted();
-      }
-      setGuestAccessAllowed(allowed);
-
-      if (allowed && (hasValidQr || result?.location)) {
-        if (!result?.welcomeSent) {
-          void ensureWelcomeInChat(lastParam);
+        setGuestAccessAllowed(true);
+        if (hasValidQr || result.location) {
+          if (!result.welcomeSent) {
+            void ensureWelcomeInChat(lastParam);
+          }
         }
+        return;
       }
+
+      // QR is in this open but server has not persisted yet — keep menu and retry in background.
+      if (hasValidQr) {
+        setGuestAccessAllowed(true);
+        void (async () => {
+          for (let attempt = 0; attempt < 12; attempt += 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 500));
+            try {
+              const retry = await claimGuestAccess(lastParam);
+              if (retry.allowed) {
+                markGuestAccessGranted();
+                if (!retry.welcomeSent) {
+                  void ensureWelcomeInChat(lastParam);
+                }
+                return;
+              }
+            } catch (error) {
+              console.error("[guest-access] background claim failed", error);
+            }
+          }
+        })();
+        return;
+      }
+
+      // Button re-open (no startapp): only server-confirmed access counts.
+      clearGuestAccessGranted();
+      setGuestAccessAllowed(false);
     } catch (error) {
       console.error("[guest-access] check failed", error);
       const param = startParam || readTelegramStartParam();
       const hasValidQr = Boolean(parseStartParamLocation(param));
-      // Network/API blip: keep menu if we already earned access this visit/day.
-      setGuestAccessAllowed(
-        hasValidQr || hasRememberedGuestAccess()
-      );
+      setGuestAccessAllowed(hasValidQr || hasRememberedGuestAccess());
       if (hasValidQr) {
         void ensureWelcomeInChat(param);
       }
