@@ -41,6 +41,13 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-brand-bg font-sans text-stone-100 antialiased">
         <Script
+          id="azhunebi-capture-start-param"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='azhunebi_tg_start_param';var q=new URLSearchParams(location.search);var h=location.hash&&location.hash.charAt(0)==='#'?location.hash.slice(1):location.hash;var hp=h?new URLSearchParams(h):null;var v=q.get('tgWebAppStartParam')||q.get('startapp')||q.get('start_param')||(hp&&(hp.get('tgWebAppStartParam')||hp.get('startapp')||hp.get('start_param')));if(v)sessionStorage.setItem(k,v);}catch(e){}})();`,
+          }}
+        />
+        <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />

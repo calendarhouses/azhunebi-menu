@@ -6,12 +6,37 @@ import {
 } from "@/lib/startParamLocation";
 import { useEffect, useState } from "react";
 
+const START_PARAM_STORAGE_KEY = "azhunebi_tg_start_param";
+
+function persistStartParam(value: string | null | undefined) {
+  if (typeof window === "undefined" || !value?.trim()) {
+    return;
+  }
+  try {
+    window.sessionStorage.setItem(START_PARAM_STORAGE_KEY, value.trim());
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function readStoredStartParam(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.sessionStorage.getItem(START_PARAM_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Telegram may expose the QR start value in several places depending on client:
  * - initDataUnsafe.start_param
  * - signed initData start_param
  * - URL query tgWebAppStartParam (Direct Link startapp)
  * - hash launch params
+ * - sessionStorage (survives trailing-slash redirects that drop the hash)
  */
 export function readTelegramStartParam(): string | null {
   if (typeof window === "undefined") {
@@ -56,9 +81,13 @@ export function readTelegramStartParam(): string | null {
     // ignore
   }
 
+  candidates.push(readStoredStartParam());
+
   for (const value of candidates) {
     if (value && value.trim()) {
-      return value.trim();
+      const trimmed = value.trim();
+      persistStartParam(trimmed);
+      return trimmed;
     }
   }
 
@@ -76,6 +105,7 @@ export function useStartParamLocation() {
 
     const resolve = (value: string | null) => {
       if (cancelled) return;
+      persistStartParam(value);
       setStartParam(value);
       setLocation(parseStartParamLocation(value));
       setReady(true);
@@ -95,9 +125,9 @@ export function useStartParamLocation() {
       }
 
       // Wait longer for cold startapp launches before giving up.
-      if (attempts < 20) {
+      if (attempts < 30) {
         attempts += 1;
-        window.setTimeout(boot, hasTelegramContext ? 150 : 250);
+        window.setTimeout(boot, hasTelegramContext ? 100 : 200);
         return;
       }
 

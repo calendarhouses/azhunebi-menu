@@ -39,6 +39,7 @@ import { isValidCabinNumber } from "@/lib/cabins";
 import {
   formatCabinDisplay,
   formatOrderLocationDisplay,
+  parseStartParamLocation,
 } from "@/lib/startParamLocation";
 import { triggerError, triggerImpact, triggerSuccess } from "@/lib/haptic";
 import { useCartStorage } from "@/lib/useCartStorage";
@@ -134,9 +135,11 @@ export default function Home() {
     setGuestAccessChecking(true);
     try {
       // Retry a few times: startapp param can arrive slightly after WebApp boot.
-      let result: { allowed: boolean } | null = null;
-      for (let attempt = 0; attempt < 6; attempt += 1) {
+      let result: { allowed: boolean; reason?: string | null } | null = null;
+      let lastParam: string | null = null;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
         const param = startParam || readTelegramStartParam();
+        lastParam = param;
         result = await claimGuestAccess(param);
         if (result.allowed) {
           break;
@@ -145,13 +148,20 @@ export default function Home() {
           // Param was present but server denied — no point retrying blindly.
           break;
         }
-        await new Promise((resolve) => window.setTimeout(resolve, 250));
+        await new Promise((resolve) => window.setTimeout(resolve, 200));
       }
 
-      setGuestAccessAllowed(Boolean(result?.allowed) || showAdminLink);
+      // If Telegram handed us a valid cabin/table QR, never trap the guest on the
+      // gate screen — server claim/order path still enforces access for writes.
+      const hasValidQr = Boolean(parseStartParamLocation(lastParam));
+      setGuestAccessAllowed(
+        Boolean(result?.allowed) || showAdminLink || hasValidQr
+      );
     } catch (error) {
       console.error("[guest-access] check failed", error);
-      setGuestAccessAllowed(showAdminLink);
+      const param = startParam || readTelegramStartParam();
+      const hasValidQr = Boolean(parseStartParamLocation(param));
+      setGuestAccessAllowed(showAdminLink || hasValidQr);
     } finally {
       setGuestAccessChecking(false);
     }
