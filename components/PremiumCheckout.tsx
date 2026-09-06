@@ -565,7 +565,7 @@ export default function PremiumCheckout({
               Є!
             </p>
             <p className="mt-1 animate-sheet-up text-xl font-semibold text-stone-200">
-              Чекайте на підтвердження!
+              Замовлення прийнято!
             </p>
           </div>
         ) : null}

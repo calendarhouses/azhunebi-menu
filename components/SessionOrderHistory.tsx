@@ -16,9 +16,6 @@ function dayKey(isoDate: string) {
 }
 
 function statusTone(status: TrackedOrder["status"]) {
-  if (status === "pending") {
-    return "text-brand-muted";
-  }
   if (status === "cancelled") {
     return "text-red-400/80";
   }

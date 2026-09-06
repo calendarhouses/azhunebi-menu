@@ -32,7 +32,6 @@ export type TrackedOrder = {
 };
 
 export const ORDER_STEPS: { key: OrderStatus; label: string }[] = [
-  { key: "pending", label: "Очікуємо підтвердження" },
   { key: "accepted", label: "Прийнято" },
   { key: "preparing", label: "Готуємо" },
   { key: "ready", label: "Готово" },
@@ -43,14 +42,14 @@ export function getStepIndex(status: OrderStatus) {
     return -1;
   }
 
+  // Legacy "pending" (pre auto-accept) maps to the first visible step.
+  if (status === "pending") {
+    return 0;
+  }
+
   const index = ORDER_STEPS.findIndex((step) => step.key === status);
   if (index >= 0) {
     return index;
-  }
-
-  // Legacy orders created before "accepted" existed.
-  if (status === "preparing") {
-    return 2;
   }
 
   return 0;
@@ -81,7 +80,7 @@ export function getStatusChangeMessage(
   next: OrderStatus
 ) {
   const labels: Record<OrderStatus, string> = {
-    pending: "Очікуємо підтвердження",
+    pending: "Замовлення прийнято",
     accepted: "Замовлення прийнято",
     preparing: "Готуємо для вас",
     ready: "Замовлення готове!",

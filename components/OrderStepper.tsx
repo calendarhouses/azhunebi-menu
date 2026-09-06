@@ -94,7 +94,7 @@ export default function OrderStepper({ order, onDismissCancelled }: OrderStepper
         </div>
       </div>
 
-      <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-3 items-stretch gap-2">
         {ORDER_STEPS.map((step, index) => {
           const isComplete = currentIndex > index;
           const isCurrent = currentIndex === index;
